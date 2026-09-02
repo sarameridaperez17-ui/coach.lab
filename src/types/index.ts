@@ -217,6 +217,54 @@ export interface Note {
   tags?: NoteTag[];
 }
 
+// --- Sistemas de juego ---
+
+export interface GameSystem {
+  id: string;
+  name: string;
+  description: string;
+  game_phase_id: string | null;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+  // Relaciones cargadas
+  positions?: GameSystemPosition[];
+  variants?: GameSystemVariant[];
+}
+
+export interface GameSystemPosition {
+  id: string;
+  game_system_id: string;
+  player_index: number;
+  label: string;
+  x: number;
+  y: number;
+}
+
+export interface GameSystemVariant {
+  id: string;
+  game_system_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+}
+
+// --- ABP (Acciones a Balón Parado) ---
+
+export type ABPType = 'offensive' | 'defensive';
+
+export interface ABPStrategy {
+  id: string;
+  abp_type: ABPType;
+  subtype: string;
+  title: string;
+  description: string;
+  key_points: string;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Multimedia ---
 
 export type AttachmentFileType = 'image' | 'diagram' | 'pdf' | 'video';

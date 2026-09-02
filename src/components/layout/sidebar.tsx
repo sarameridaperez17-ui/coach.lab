@@ -7,11 +7,11 @@ const NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: "⬡" },
   { href: "/modelo-de-juego", label: "Modelo de juego", icon: "◈" },
   { href: "/sistemas", label: "Sistemas", icon: "⬢" },
-  { href: "/posiciones", label: "Posiciones", icon: "◉" },
-  { href: "/abp", label: "ABP", icon: "◎" },
   { href: "/conceptos-tacticos", label: "Conceptos tácticos", icon: "◆" },
+  { href: "/posiciones", label: "Posiciones", icon: "◉" },
   { href: "/tareas", label: "Tareas", icon: "▣" },
-  { href: "/glosario", label: "Glosario", icon: "▤" },
+  { href: "/abp", label: "ABP", icon: "◎" },
+  { href: "/glosario", label: "Diccionario táctico", icon: "▤" },
   { href: "/notas", label: "Notas", icon: "▥" },
 ];
 
