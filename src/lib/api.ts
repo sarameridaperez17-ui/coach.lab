@@ -645,6 +645,139 @@ export async function deleteABPStrategy(id: string): Promise<void> {
 }
 
 // ============================================
+// BÚSQUEDA GLOBAL
+// ============================================
+
+export interface SearchResult {
+  id: string;
+  type: "principle" | "sub_principle" | "behavior" | "tactical_concept" | "glossary" | "note" | "task" | "system" | "abp";
+  label: string;
+  title: string;
+  subtitle: string;
+  href: string;
+}
+
+export async function globalSearch(query: string): Promise<SearchResult[]> {
+  if (!query.trim()) return [];
+  const q = query.toLowerCase();
+  const results: SearchResult[] = [];
+
+  const [principles, subPrinciples, behaviors, concepts, glossary, notes, tasks, systems, abp] = await Promise.all([
+    supabase.from("principles").select("id, name, game_phase_id").eq("archived", false),
+    supabase.from("sub_principles").select("id, name, principle_id").eq("archived", false),
+    supabase.from("behaviors").select("id, name, type, sub_principle_id").eq("archived", false),
+    supabase.from("tactical_concepts").select("id, name, definition").eq("archived", false),
+    supabase.from("glossary_terms").select("id, term, definition").eq("archived", false),
+    supabase.from("notes").select("id, title, content, note_type").eq("archived", false),
+    supabase.from("tasks").select("id, name, description").eq("archived", false),
+    supabase.from("game_systems").select("id, name, description").eq("archived", false),
+    supabase.from("abp_strategies").select("id, title, description, abp_type, subtype").eq("archived", false),
+  ]);
+
+  for (const p of principles.data ?? []) {
+    if (p.name.toLowerCase().includes(q)) {
+      results.push({ id: p.id, type: "principle", label: "Principio", title: p.name, subtitle: "", href: "/modelo-de-juego" });
+    }
+  }
+  for (const sp of subPrinciples.data ?? []) {
+    if (sp.name.toLowerCase().includes(q)) {
+      results.push({ id: sp.id, type: "sub_principle", label: "Subprincipio", title: sp.name, subtitle: "", href: "/modelo-de-juego" });
+    }
+  }
+  for (const b of behaviors.data ?? []) {
+    if (b.name.toLowerCase().includes(q)) {
+      results.push({ id: b.id, type: "behavior", label: "Comportamiento", title: b.name, subtitle: b.type, href: "/modelo-de-juego" });
+    }
+  }
+  for (const c of concepts.data ?? []) {
+    if (c.name.toLowerCase().includes(q) || (c.definition ?? "").toLowerCase().includes(q)) {
+      results.push({ id: c.id, type: "tactical_concept", label: "Concepto táctico", title: c.name, subtitle: (c.definition ?? "").slice(0, 80), href: "/conceptos-tacticos" });
+    }
+  }
+  for (const g of glossary.data ?? []) {
+    if (g.term.toLowerCase().includes(q) || (g.definition ?? "").toLowerCase().includes(q)) {
+      results.push({ id: g.id, type: "glossary", label: "Diccionario", title: g.term, subtitle: (g.definition ?? "").slice(0, 80), href: "/glosario" });
+    }
+  }
+  for (const n of notes.data ?? []) {
+    if (n.title.toLowerCase().includes(q) || (n.content ?? "").toLowerCase().includes(q)) {
+      results.push({ id: n.id, type: "note", label: "Nota", title: n.title, subtitle: n.note_type, href: "/notas" });
+    }
+  }
+  for (const t of tasks.data ?? []) {
+    if (t.name.toLowerCase().includes(q) || (t.description ?? "").toLowerCase().includes(q)) {
+      results.push({ id: t.id, type: "task", label: "Tarea", title: t.name, subtitle: (t.description ?? "").slice(0, 80), href: "/tareas" });
+    }
+  }
+  for (const s of systems.data ?? []) {
+    if (s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q)) {
+      results.push({ id: s.id, type: "system", label: "Sistema", title: s.name, subtitle: (s.description ?? "").slice(0, 80), href: "/sistemas" });
+    }
+  }
+  for (const a of abp.data ?? []) {
+    if (a.title.toLowerCase().includes(q) || (a.description ?? "").toLowerCase().includes(q)) {
+      results.push({ id: a.id, type: "abp", label: "ABP", title: a.title, subtitle: a.abp_type === "offensive" ? "Ofensivo" : "Defensivo", href: "/abp" });
+    }
+  }
+
+  return results.slice(0, 20);
+}
+
+// ============================================
+// NOTAS RECIENTES
+// ============================================
+
+export async function getRecentNotes(limit = 3): Promise<Note[]> {
+  const { data, error } = await supabase
+    .from("notes")
+    .select("*")
+    .eq("archived", false)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ============================================
+// MODIFICACIONES RECIENTES
+// ============================================
+
+export interface RecentModification {
+  id: string;
+  type: string;
+  title: string;
+  updated_at: string;
+  href: string;
+}
+
+export async function getRecentModifications(limit = 3): Promise<RecentModification[]> {
+  const [principles, subPrinciples, concepts, glossary, notes, tasks, systems, abp] = await Promise.all([
+    supabase.from("principles").select("id, name, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+    supabase.from("sub_principles").select("id, name, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+    supabase.from("tactical_concepts").select("id, name, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+    supabase.from("glossary_terms").select("id, term, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+    supabase.from("notes").select("id, title, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+    supabase.from("tasks").select("id, name, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+    supabase.from("game_systems").select("id, name, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+    supabase.from("abp_strategies").select("id, title, updated_at").eq("archived", false).order("updated_at", { ascending: false }).limit(limit),
+  ]);
+
+  const all: RecentModification[] = [
+    ...(principles.data ?? []).map((p) => ({ id: p.id, type: "Principio", title: p.name, updated_at: p.updated_at, href: "/modelo-de-juego" })),
+    ...(subPrinciples.data ?? []).map((s) => ({ id: s.id, type: "Subprincipio", title: s.name, updated_at: s.updated_at, href: "/modelo-de-juego" })),
+    ...(concepts.data ?? []).map((c) => ({ id: c.id, type: "Concepto táctico", title: c.name, updated_at: c.updated_at, href: "/conceptos-tacticos" })),
+    ...(glossary.data ?? []).map((g) => ({ id: g.id, type: "Diccionario", title: g.term, updated_at: g.updated_at, href: "/glosario" })),
+    ...(notes.data ?? []).map((n) => ({ id: n.id, type: "Nota", title: n.title, updated_at: n.updated_at, href: "/notas" })),
+    ...(tasks.data ?? []).map((t) => ({ id: t.id, type: "Tarea", title: t.name, updated_at: t.updated_at, href: "/tareas" })),
+    ...(systems.data ?? []).map((s) => ({ id: s.id, type: "Sistema", title: s.name, updated_at: s.updated_at, href: "/sistemas" })),
+    ...(abp.data ?? []).map((a) => ({ id: a.id, type: "ABP", title: a.title, updated_at: a.updated_at, href: "/abp" })),
+  ];
+
+  all.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  return all.slice(0, limit);
+}
+
+// ============================================
 // ESTADÍSTICAS (conteos para Home)
 // ============================================
 
