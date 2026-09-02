@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import type { GlossaryTerm } from "@/types";
 
+
 export default function GlosarioPage() {
   const [terms, setTerms] = useState<GlossaryTerm[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,14 @@ export default function GlosarioPage() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("crear") === "1") {
+      setAdding(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const handleCreate = async () => {

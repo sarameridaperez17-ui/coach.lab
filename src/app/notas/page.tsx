@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { getNotes, createNote, updateNote, deleteNote } from "@/lib/api";
 import type { Note, NoteType } from "@/types";
 
+
 const NOTE_TYPE_LABELS: Record<NoteType, { label: string; color: string }> = {
   free: { label: "Libre", color: "bg-cyan-900/50 text-cyan-400" },
   post_session: { label: "Post-sesión", color: "bg-violet-900/50 text-violet-400" },
@@ -39,6 +40,14 @@ export default function NotasPage() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("crear") === "1") {
+      setAdding(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const handleCreate = async () => {

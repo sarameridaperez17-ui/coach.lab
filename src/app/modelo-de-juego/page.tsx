@@ -24,6 +24,7 @@ import type {
   BehaviorType,
 } from "@/types";
 
+
 // ---- Inline edit component ----
 function InlineEdit({
   value,
@@ -122,6 +123,14 @@ export default function ModeloDeJuegoPage() {
       }
     }
     load();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("crear") === "1") {
+      setAddingPrinciple(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   // Load principles when phase changes

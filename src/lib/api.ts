@@ -784,18 +784,24 @@ export async function getRecentModifications(limit = 3): Promise<RecentModificat
 export async function getModelStats(): Promise<{
   principles: number;
   subPrinciples: number;
+  behaviors: number;
+  abp: number;
   tasks: number;
   notes: number;
 }> {
-  const [pRes, spRes, tRes, nRes] = await Promise.all([
+  const [pRes, spRes, bRes, abpRes, tRes, nRes] = await Promise.all([
     supabase.from("principles").select("id", { count: "exact", head: true }).eq("archived", false),
     supabase.from("sub_principles").select("id", { count: "exact", head: true }).eq("archived", false),
+    supabase.from("behaviors").select("id", { count: "exact", head: true }).eq("archived", false),
+    supabase.from("abp_strategies").select("id", { count: "exact", head: true }).eq("archived", false),
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("archived", false),
     supabase.from("notes").select("id", { count: "exact", head: true }).eq("archived", false),
   ]);
   return {
     principles: pRes.count ?? 0,
     subPrinciples: spRes.count ?? 0,
+    behaviors: bRes.count ?? 0,
+    abp: abpRes.count ?? 0,
     tasks: tRes.count ?? 0,
     notes: nRes.count ?? 0,
   };

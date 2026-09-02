@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { getTasks, createTask, updateTask, deleteTask, getGamePhases } from "@/lib/api";
 import type { Task, ContentType, GamePhase } from "@/types";
 
+
 const CONTENT_LABELS: Record<ContentType, { label: string; color: string }> = {
   tactical: { label: "Táctico", color: "bg-emerald-900/50 text-emerald-400" },
   technical: { label: "Técnico", color: "bg-blue-900/50 text-blue-400" },
@@ -45,6 +46,14 @@ export default function TareasPage() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("crear") === "1") {
+      setAdding(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const resetForm = () => {

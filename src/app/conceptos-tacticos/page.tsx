@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import type { TacticalConcept } from "@/types";
 
+
 export default function ConceptosTacticosPage() {
   const [concepts, setConcepts] = useState<TacticalConcept[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,14 @@ export default function ConceptosTacticosPage() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("crear") === "1") {
+      setAdding(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const handleCreate = async () => {

@@ -72,43 +72,18 @@ function groupModsByDate(mods: RecentModification[]): Record<string, RecentModif
   return groups;
 }
 
-// Simulated data for sections not yet connected
-const SIMULATED_PROGRESS = {
-  principles: { pct: 78, progressLabel: "del modelo definido" },
-  subPrinciples: { pct: 72, progressLabel: "del modelo definido" },
-  behaviors: { pct: 68, progressLabel: "del modelo definido" },
-  tasks: { pct: 64, progressLabel: "del modelo vinculado" },
-  notes: { pct: 0, progressLabel: "" },
-};
-
-const SIMULATED_CONTEXTS = [
-  { name: "Dominador con balon", color: "bg-emerald-500", principles: 8, tasks: 12 },
-  { name: "Dominador sin balon", color: "bg-blue-500", principles: 7, tasks: 10 },
-  { name: "Rival en bloque bajo", color: "bg-amber-500", principles: 9, tasks: 14 },
-  { name: "Rival en presion alta", color: "bg-orange-500", principles: 8, tasks: 11 },
-  { name: "Partido igualado", color: "bg-purple-500", principles: 6, tasks: 9 },
-];
-
-const SIMULATED_RADAR = [
-  { label: "Fase ofensiva", pct: 80 },
-  { label: "Fase defensiva", pct: 70 },
-  { label: "Transiciones", pct: 75 },
-  { label: "ABP", pct: 60 },
-  { label: "Principios transversales", pct: 85 },
-];
-
 const QUICK_ACTIONS = [
-  { label: "Nuevo principio", href: "/modelo-de-juego", color: "text-emerald-400" },
-  { label: "Nueva tarea", href: "/tareas", color: "text-orange-400" },
-  { label: "Nuevo concepto", href: "/conceptos-tacticos", color: "text-amber-400" },
-  { label: "Nueva nota", href: "/notas", color: "text-cyan-400" },
-  { label: "Nuevo sistema", href: "/sistemas", color: "text-indigo-400" },
-  { label: "Nuevo ABP", href: "/abp", color: "text-rose-400" },
+  { label: "Nuevo principio", href: "/modelo-de-juego?crear=1", color: "text-emerald-400" },
+  { label: "Nueva tarea", href: "/tareas?crear=1", color: "text-orange-400" },
+  { label: "Nuevo concepto", href: "/conceptos-tacticos?crear=1", color: "text-amber-400" },
+  { label: "Nueva nota", href: "/notas?crear=1", color: "text-cyan-400" },
+  { label: "Nuevo sistema", href: "/sistemas?crear=1", color: "text-indigo-400" },
+  { label: "Nuevo ABP", href: "/abp?crear=1", color: "text-rose-400" },
 ];
 
 export default function HomePage() {
   const router = useRouter();
-  const [stats, setStats] = useState({ principles: 0, subPrinciples: 0, tasks: 0, notes: 0 });
+  const [stats, setStats] = useState({ principles: 0, subPrinciples: 0, behaviors: 0, abp: 0, tasks: 0, notes: 0 });
 
   // Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,7 +98,8 @@ export default function HomePage() {
   const [recentMods, setRecentMods] = useState<RecentModification[]>([]);
 
   // Quote
-  const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  const [quote, setQuote] = useState(QUOTES[0]);
+  useEffect(() => { setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]); }, []);
 
   useEffect(() => {
     getModelStats().then(setStats).catch(console.error);
@@ -156,16 +132,14 @@ export default function HomePage() {
     }, 300);
   };
 
-  const behaviors = stats.principles * 7; // simulated
   const modGroups = groupModsByDate(recentMods);
-  const globalPct = SIMULATED_RADAR.reduce((a, b) => a + b.pct, 0) / SIMULATED_RADAR.length;
 
   return (
     <div className="max-w-7xl">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Hola, Sandra</h1>
+          <h1 className="text-2xl font-bold text-white">Coach<span className="text-emerald-400">.lab</span></h1>
           <p className="text-gray-500 text-sm mt-1">
             El conocimiento se construye. La identidad se entrena. El rendimiento es la consecuencia.
           </p>
@@ -216,28 +190,18 @@ export default function HomePage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {[
-          { label: "Principios", value: stats.principles, color: "text-emerald-400", barColor: "bg-emerald-500", ...SIMULATED_PROGRESS.principles },
-          { label: "Subprincipios", value: stats.subPrinciples, color: "text-blue-400", barColor: "bg-blue-500", ...SIMULATED_PROGRESS.subPrinciples },
-          { label: "Comportamientos", value: behaviors, color: "text-amber-400", barColor: "bg-amber-500", ...SIMULATED_PROGRESS.behaviors },
-          { label: "Tareas", value: stats.tasks, color: "text-orange-400", barColor: "bg-orange-500", ...SIMULATED_PROGRESS.tasks },
-          { label: "Notas", value: stats.notes, color: "text-purple-400", barColor: "bg-purple-500", pct: 0, progressLabel: "", label2: stats.notes > 0 ? "Ultima: hoy" : "" },
+          { label: "Principios", value: stats.principles, color: "text-emerald-400" },
+          { label: "Subprincipios", value: stats.subPrinciples, color: "text-blue-400" },
+          { label: "Comportamientos", value: stats.behaviors, color: "text-amber-400" },
+          { label: "ABP", value: stats.abp, color: "text-orange-400" },
+          { label: "Tareas", value: stats.tasks, color: "text-rose-400" },
+          { label: "Notas", value: stats.notes, color: "text-purple-400" },
         ].map((s) => (
           <div key={s.label} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
             <p className={`text-xs font-semibold uppercase tracking-wide ${s.color}`}>{s.label}</p>
             <p className="text-3xl font-bold text-white mt-2">{s.value}</p>
-            {s.pct > 0 && (
-              <>
-                <div className="w-full h-1 bg-[#2a2d37] rounded-full mt-3">
-                  <div className={`h-1 rounded-full ${s.barColor}`} style={{ width: `${s.pct}%` }} />
-                </div>
-                <p className="text-[10px] text-gray-500 mt-1.5">{s.pct}% {s.progressLabel}</p>
-              </>
-            )}
-            {"label2" in s && s.label2 && (
-              <p className="text-[10px] text-gray-500 mt-3">{s.label2}</p>
-            )}
           </div>
         ))}
       </div>
@@ -330,48 +294,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Bottom row: 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        {/* Resumen del modelo (radar simulado) */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Resumen del modelo</h3>
-          {/* Simulated radar as bars */}
-          <div className="space-y-3 mb-4">
-            {SIMULATED_RADAR.map((item) => (
-              <div key={item.label}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gray-400">{item.label}</span>
-                  <span className="text-xs text-gray-500">{item.pct}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-[#2a2d37] rounded-full">
-                  <div className="h-1.5 rounded-full bg-emerald-500" style={{ width: `${item.pct}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-[#2a2d37] pt-3 text-center">
-            <p className="text-[10px] text-gray-500">Cobertura global del modelo</p>
-            <p className="text-2xl font-bold text-emerald-400 mt-1">{Math.round(globalPct)}%</p>
-          </div>
-        </div>
-
-        {/* Contextos */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Contextos</h3>
-          <div className="space-y-2.5">
-            {SIMULATED_CONTEXTS.map((ctx) => (
-              <div key={ctx.name} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#22252f] transition-colors">
-                <div className={`w-2 h-2 rounded-full ${ctx.color} flex-shrink-0`} />
-                <div className="flex-1">
-                  <span className="text-sm text-gray-200">{ctx.name}</span>
-                </div>
-                <span className="text-[10px] text-gray-500">{ctx.principles} principios · {ctx.tasks} tareas</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-emerald-500 text-center mt-4 cursor-pointer hover:text-emerald-400">Ver todos los contextos</p>
-        </div>
-
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 mb-8">
         {/* Ultimas notas */}
         <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Ultimas notas</h3>

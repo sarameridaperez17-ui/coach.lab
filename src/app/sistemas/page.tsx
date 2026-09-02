@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import type { GameSystem, GameSystemVariant } from "@/types";
 
+
 const DEFAULT_POSITIONS = [
   { player_index: 1, label: "PT", x: 50, y: 93 },
   { player_index: 2, label: "LI", x: 20, y: 75 },
@@ -64,6 +65,14 @@ export default function SistemasPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("crear") === "1") {
+      setCreating(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   // Seleccionar un sistema y cargar sus datos al panel
   const selectSystem = useCallback((sys: GameSystem) => {
