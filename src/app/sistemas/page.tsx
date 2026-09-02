@@ -219,7 +219,7 @@ export default function SistemasPage() {
   return (
     <div className="max-w-6xl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Sistemas de juego</h1>
+        <h1 className="text-2xl font-bold text-gray-200">Sistemas de juego</h1>
         <button
           onClick={() => {
             setCreating(true);
@@ -244,7 +244,7 @@ export default function SistemasPage() {
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 selectedId === sys.id
                   ? "bg-indigo-600 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-indigo-300"
+                  : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-indigo-300"
               }`}
             >
               {sys.name}
@@ -258,7 +258,7 @@ export default function SistemasPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Campograma */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
               <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
                 Campograma — arrastra las jugadoras · doble-clic para cambiar etiqueta
               </h3>
@@ -332,7 +332,7 @@ export default function SistemasPage() {
                       if (e.key === "Enter") handleLabelSave(editingLabel);
                       if (e.key === "Escape") setEditingLabel(null);
                     }}
-                    className="w-20 px-2 py-1 border border-gray-200 rounded text-sm text-center uppercase"
+                    className="w-20 px-2 py-1 border border-[#2a2d37] rounded text-sm text-center uppercase"
                     maxLength={3}
                   />
                   <button
@@ -343,7 +343,7 @@ export default function SistemasPage() {
                   </button>
                   <button
                     onClick={() => setEditingLabel(null)}
-                    className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs"
+                    className="px-2 py-1 bg-[#22252f] text-gray-500 rounded text-xs"
                   >
                     Cancelar
                   </button>
@@ -354,8 +354,8 @@ export default function SistemasPage() {
 
           {/* Panel lateral */}
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900 mb-3">
+            <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
+              <h3 className="font-semibold text-gray-200 mb-3">
                 {creating ? "Nuevo sistema" : "Sistema"}
               </h3>
               <input
@@ -363,7 +363,7 @@ export default function SistemasPage() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Ej: 1-4-3-3"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 mb-3"
+                className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 mb-3"
               />
               <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                 Descripción
@@ -373,7 +373,7 @@ export default function SistemasPage() {
                 onChange={(e) => setFormDesc(e.target.value)}
                 placeholder="Describe las características principales del sistema..."
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 resize-none mb-3"
+                className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 resize-none mb-3"
               />
               <div className="flex gap-2">
                 {creating ? (
@@ -386,7 +386,7 @@ export default function SistemasPage() {
                     </button>
                     <button
                       onClick={() => setCreating(false)}
-                      className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200"
+                      className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
                     >
                       Cancelar
                     </button>
@@ -401,7 +401,7 @@ export default function SistemasPage() {
                     </button>
                     <button
                       onClick={() => selectedId && handleDelete(selectedId)}
-                      className="px-3 py-1.5 bg-red-50 text-red-600 rounded text-sm hover:bg-red-100"
+                      className="px-3 py-1.5 bg-red-900/20 text-red-400 rounded text-sm hover:bg-red-900/30"
                     >
                       Eliminar
                     </button>
@@ -412,9 +412,9 @@ export default function SistemasPage() {
 
             {/* Variantes — solo si estamos editando un sistema existente */}
             {selectedId && (
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">Variantes</h3>
+                  <h3 className="font-semibold text-gray-200">Variantes</h3>
                   <button
                     onClick={() => setAddingVariant(true)}
                     className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
@@ -430,7 +430,7 @@ export default function SistemasPage() {
                       value={variantName}
                       onChange={(e) => setVariantName(e.target.value)}
                       placeholder="Nombre de la variante"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                      className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleAddVariant();
                         if (e.key === "Escape") { setAddingVariant(false); setVariantName(""); }
@@ -445,7 +445,7 @@ export default function SistemasPage() {
                       </button>
                       <button
                         onClick={() => { setAddingVariant(false); setVariantName(""); }}
-                        className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs"
+                        className="px-2 py-1 bg-[#22252f] text-gray-500 rounded text-xs"
                       >
                         Cancelar
                       </button>
@@ -454,7 +454,7 @@ export default function SistemasPage() {
                 )}
 
                 {selectedVariants.length === 0 && !addingVariant ? (
-                  <div className="border border-dashed border-gray-200 rounded-lg p-4 text-center text-gray-400 text-sm">
+                  <div className="border border-dashed border-[#2a2d37] rounded-lg p-4 text-center text-gray-400 text-sm">
                     Sin variantes definidas
                   </div>
                 ) : (
@@ -462,9 +462,9 @@ export default function SistemasPage() {
                     {selectedVariants.map((v) => (
                       <div
                         key={v.id}
-                        className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg group"
+                        className="flex items-center justify-between px-3 py-2 bg-[#22252f] rounded-lg group"
                       >
-                        <span className="text-sm text-gray-700">{v.name}</span>
+                        <span className="text-sm text-gray-300">{v.name}</span>
                         <button
                           onClick={() => handleDeleteVariant(v.id)}
                           className="text-xs text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -480,7 +480,7 @@ export default function SistemasPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
           <p className="text-lg font-medium mb-2">
             {systems.length === 0 ? "Sin sistemas" : "Selecciona un sistema"}
           </p>

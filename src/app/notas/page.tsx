@@ -5,9 +5,9 @@ import { getNotes, createNote, updateNote, deleteNote } from "@/lib/api";
 import type { Note, NoteType } from "@/types";
 
 const NOTE_TYPE_LABELS: Record<NoteType, { label: string; color: string }> = {
-  free: { label: "Libre", color: "bg-cyan-100 text-cyan-700" },
-  post_session: { label: "Post-sesión", color: "bg-violet-100 text-violet-700" },
-  post_match: { label: "Post-partido", color: "bg-orange-100 text-orange-700" },
+  free: { label: "Libre", color: "bg-cyan-900/50 text-cyan-400" },
+  post_session: { label: "Post-sesión", color: "bg-violet-900/50 text-violet-400" },
+  post_match: { label: "Post-partido", color: "bg-orange-900/50 text-orange-400" },
 };
 
 export default function NotasPage() {
@@ -104,7 +104,7 @@ export default function NotasPage() {
   return (
     <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Notas</h1>
+        <h1 className="text-2xl font-bold text-gray-200">Notas</h1>
         <button
           onClick={() => setAdding(true)}
           className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700 transition-colors"
@@ -120,12 +120,12 @@ export default function NotasPage() {
           placeholder="Buscar notas..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-cyan-300"
+          className="flex-1 px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-cyan-300"
         />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as NoteType | "all")}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 bg-white"
+          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm text-gray-400 bg-[#1a1d27]"
         >
           <option value="all">Todos los tipos</option>
           <option value="free">Libre</option>
@@ -135,7 +135,7 @@ export default function NotasPage() {
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value as "desc" | "asc")}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 bg-white"
+          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm text-gray-400 bg-[#1a1d27]"
         >
           <option value="desc">Más recientes</option>
           <option value="asc">Más antiguas</option>
@@ -144,19 +144,19 @@ export default function NotasPage() {
 
       {/* Formulario de creación */}
       {adding && (
-        <div className="bg-white rounded-xl border border-cyan-200 p-4 mb-4">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
           <div className="flex gap-2 mb-2">
             <input
               autoFocus
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Título de la nota"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              className="flex-1 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
             />
             <select
               value={newType}
               onChange={(e) => setNewType(e.target.value as NoteType)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm bg-[#1a1d27]"
             >
               <option value="free">Libre</option>
               <option value="post_session">Post-sesión</option>
@@ -168,7 +168,7 @@ export default function NotasPage() {
             onChange={(e) => setNewContent(e.target.value)}
             placeholder="Contenido de la nota..."
             rows={5}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none"
+            className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none"
           />
           <div className="flex gap-2">
             <button
@@ -179,7 +179,7 @@ export default function NotasPage() {
             </button>
             <button
               onClick={() => { setAdding(false); setNewTitle(""); setNewContent(""); }}
-              className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200"
+              className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
             >
               Cancelar
             </button>
@@ -189,7 +189,7 @@ export default function NotasPage() {
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
           <p className="text-lg font-medium mb-2">Sin notas</p>
           <p className="text-sm">
             Crea tu primera nota. Tipos: libre, post-sesión, post-partido.
@@ -202,7 +202,7 @@ export default function NotasPage() {
             return (
               <div
                 key={note.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 group"
+                className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 group"
               >
                 {editingId === note.id ? (
                   <div>
@@ -211,12 +211,12 @@ export default function NotasPage() {
                         autoFocus
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                        className="flex-1 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
                       />
                       <select
                         value={editType}
                         onChange={(e) => setEditType(e.target.value as NoteType)}
-                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                        className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm bg-[#1a1d27]"
                       >
                         <option value="free">Libre</option>
                         <option value="post_session">Post-sesión</option>
@@ -227,7 +227,7 @@ export default function NotasPage() {
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       rows={5}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none"
+                      className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none"
                     />
                     <div className="flex gap-2">
                       <button
@@ -238,7 +238,7 @@ export default function NotasPage() {
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm"
+                        className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm"
                       >
                         Cancelar
                       </button>
@@ -249,7 +249,7 @@ export default function NotasPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <h3
-                          className="font-semibold text-gray-900 cursor-pointer hover:text-cyan-600"
+                          className="font-semibold text-gray-200 cursor-pointer hover:text-cyan-600"
                           onClick={() =>
                             setExpandedId(expandedId === note.id ? null : note.id)
                           }
@@ -274,13 +274,13 @@ export default function NotasPage() {
                               setEditContent(note.content || "");
                               setEditType(note.note_type);
                             }}
-                            className="px-2 py-1 text-xs text-gray-500 hover:text-cyan-600 hover:bg-cyan-50 rounded"
+                            className="px-2 py-1 text-xs text-gray-500 hover:text-cyan-600 hover:bg-cyan-900/20 rounded"
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => handleDelete(note.id)}
-                            className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                            className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
                           >
                             Eliminar
                           </button>
@@ -288,7 +288,7 @@ export default function NotasPage() {
                       </div>
                     </div>
                     {expandedId === note.id && note.content && (
-                      <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                      <p className="text-sm text-gray-400 mt-2 whitespace-pre-wrap">
                         {note.content}
                       </p>
                     )}

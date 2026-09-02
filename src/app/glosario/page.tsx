@@ -97,7 +97,7 @@ export default function GlosarioPage() {
   return (
     <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Diccionario táctico</h1>
+        <h1 className="text-2xl font-bold text-gray-200">Diccionario táctico</h1>
         <button
           onClick={() => setAdding(true)}
           className="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700 transition-colors"
@@ -113,7 +113,7 @@ export default function GlosarioPage() {
           placeholder="Buscar en el glosario..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300"
+          className="w-full px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300"
         />
       </div>
 
@@ -124,7 +124,7 @@ export default function GlosarioPage() {
           className={`w-12 h-8 rounded text-sm font-medium transition-colors ${
             !letterFilter
               ? "bg-rose-600 text-white"
-              : "bg-white border border-gray-200 text-gray-600 hover:border-rose-300"
+              : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-rose-300"
           }`}
         >
           Todo
@@ -136,7 +136,7 @@ export default function GlosarioPage() {
             className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
               letterFilter === letter
                 ? "bg-rose-600 text-white"
-                : "bg-white border border-gray-200 text-gray-600 hover:border-rose-300 hover:text-rose-600"
+                : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-rose-300 hover:text-rose-600"
             }`}
           >
             {letter}
@@ -146,20 +146,20 @@ export default function GlosarioPage() {
 
       {/* Formulario de creación */}
       {adding && (
-        <div className="bg-white rounded-xl border border-rose-200 p-4 mb-4">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
           <input
             autoFocus
             value={newTerm}
             onChange={(e) => setNewTerm(e.target.value)}
             placeholder="Término (ej: profundidad, amplitud, fijar...)"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300"
+            className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300"
           />
           <textarea
             value={newDef}
             onChange={(e) => setNewDef(e.target.value)}
             placeholder="Definición..."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
+            className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
           />
           <div className="flex gap-2">
             <button
@@ -170,7 +170,7 @@ export default function GlosarioPage() {
             </button>
             <button
               onClick={() => { setAdding(false); setNewTerm(""); setNewDef(""); }}
-              className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200"
+              className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
             >
               Cancelar
             </button>
@@ -180,7 +180,7 @@ export default function GlosarioPage() {
 
       {/* Lista agrupada */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
           <p className="text-lg font-medium mb-2">Sin términos</p>
           <p className="text-sm">
             Crea tu primer término del glosario para mantener una terminología consistente.
@@ -190,14 +190,14 @@ export default function GlosarioPage() {
         <div className="space-y-6">
           {sortedLetters.map((letter) => (
             <div key={letter}>
-              <h2 className="text-lg font-bold text-rose-600 mb-2 border-b border-gray-100 pb-1">
+              <h2 className="text-lg font-bold text-rose-600 mb-2 border-b border-[#22252f] pb-1">
                 {letter}
               </h2>
               <div className="space-y-2">
                 {grouped[letter].map((t) => (
                   <div
                     key={t.id}
-                    className="bg-white rounded-lg border border-gray-200 p-4 group"
+                    className="bg-[#1a1d27] rounded-lg border border-[#2a2d37] p-4 group"
                   >
                     {editingId === t.id ? (
                       <div>
@@ -205,13 +205,13 @@ export default function GlosarioPage() {
                           autoFocus
                           value={editTerm}
                           onChange={(e) => setEditTerm(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                          className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300"
                         />
                         <textarea
                           value={editDef}
                           onChange={(e) => setEditDef(e.target.value)}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
+                          className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
                         />
                         <div className="flex gap-2">
                           <button
@@ -222,7 +222,7 @@ export default function GlosarioPage() {
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm"
+                            className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm"
                           >
                             Cancelar
                           </button>
@@ -231,7 +231,7 @@ export default function GlosarioPage() {
                     ) : (
                       <div className="flex items-start justify-between">
                         <div>
-                          <span className="font-semibold text-gray-900">{t.term}</span>
+                          <span className="font-semibold text-gray-200">{t.term}</span>
                           {t.definition && (
                             <p className="text-sm text-gray-500 mt-1">{t.definition}</p>
                           )}
@@ -243,13 +243,13 @@ export default function GlosarioPage() {
                               setEditTerm(t.term);
                               setEditDef(t.definition || "");
                             }}
-                            className="px-2 py-1 text-xs text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded"
+                            className="px-2 py-1 text-xs text-gray-500 hover:text-rose-600 hover:bg-rose-900/20 rounded"
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => handleDelete(t.id)}
-                            className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                            className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
                           >
                             Eliminar
                           </button>

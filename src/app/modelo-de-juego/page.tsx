@@ -44,7 +44,7 @@ function InlineEdit({
           setDraft(value);
           setEditing(true);
         }}
-        className={`cursor-pointer hover:bg-gray-100 rounded px-1 -mx-1 ${className}`}
+        className={`cursor-pointer hover:bg-[#22252f] rounded px-1 -mx-1 ${className}`}
         title="Doble clic para editar"
       >
         {value}
@@ -75,9 +75,9 @@ function InlineEdit({
 
 // ---- Behavior type badge ----
 const BEHAVIOR_LABELS: Record<BehaviorType, { label: string; color: string }> = {
-  collective: { label: "Colectivo", color: "bg-violet-100 text-violet-700" },
-  by_line: { label: "Por líneas", color: "bg-sky-100 text-sky-700" },
-  individual: { label: "Individual", color: "bg-amber-100 text-amber-700" },
+  collective: { label: "Colectivo", color: "bg-violet-900/50 text-violet-400" },
+  by_line: { label: "Por líneas", color: "bg-sky-900/50 text-sky-400" },
+  individual: { label: "Individual", color: "bg-amber-900/50 text-amber-400" },
 };
 
 export default function ModeloDeJuegoPage() {
@@ -206,7 +206,7 @@ export default function ModeloDeJuegoPage() {
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Modelo de juego</h1>
+      <h1 className="text-2xl font-bold text-gray-200 mb-6">Modelo de juego</h1>
 
       {/* Nivel 1: Contexto de equipo */}
       <div className="mb-6">
@@ -221,7 +221,7 @@ export default function ModeloDeJuegoPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 selectedContext === ctx.id
                   ? "bg-emerald-600 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-emerald-300"
+                  : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-emerald-300"
               }`}
             >
               {ctx.name}
@@ -235,7 +235,7 @@ export default function ModeloDeJuegoPage() {
 
       {/* Nivel 2: Fases del juego */}
       <div className="mb-6">
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-[#2a2d37]">
           {phases.map((phase) => (
             <button
               key={phase.id}
@@ -243,7 +243,7 @@ export default function ModeloDeJuegoPage() {
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 selectedPhase === phase.id
                   ? "border-emerald-600 text-emerald-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : "border-transparent text-gray-500 hover:text-gray-300"
               }`}
             >
               {phase.name}
@@ -263,7 +263,7 @@ export default function ModeloDeJuegoPage() {
             className={`px-3 py-1.5 rounded text-sm transition-colors ${
               selectedBlock === null
                 ? "bg-gray-900 text-white"
-                : "bg-white border border-gray-200 text-gray-600 hover:border-gray-400"
+                : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-[#353840]"
             }`}
           >
             Todos
@@ -275,7 +275,7 @@ export default function ModeloDeJuegoPage() {
               className={`px-3 py-1.5 rounded text-sm transition-colors ${
                 selectedBlock === block.id
                   ? "bg-gray-900 text-white"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-400"
+                  : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-[#353840]"
               }`}
             >
               {block.name}
@@ -289,10 +289,10 @@ export default function ModeloDeJuegoPage() {
         {filteredPrinciples.map((principle) => (
           <div
             key={principle.id}
-            className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+            className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden"
           >
             {/* Principio */}
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="p-4 border-b border-[#22252f] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <InlineEdit
@@ -300,7 +300,7 @@ export default function ModeloDeJuegoPage() {
                   onSave={(v) => {
                     updatePrinciple(principle.id, { name: v }).then(loadPrinciples);
                   }}
-                  className="font-semibold text-gray-900"
+                  className="font-semibold text-gray-200"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -327,7 +327,7 @@ export default function ModeloDeJuegoPage() {
             </div>
 
             {/* Subprincipios */}
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-[#22252f]">
               {(principle.sub_principles ?? [])
                 .filter((sp) => !sp.archived)
                 .map((sub) => (
@@ -342,7 +342,7 @@ export default function ModeloDeJuegoPage() {
                               loadPrinciples
                             );
                           }}
-                          className="font-medium text-gray-800 text-sm"
+                          className="font-medium text-gray-300 text-sm"
                         />
                       </div>
                       <div className="flex items-center gap-2">
@@ -352,7 +352,7 @@ export default function ModeloDeJuegoPage() {
                             setNewBehaviorName("");
                             setNewBehaviorType("collective");
                           }}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                          className="text-xs text-blue-400 hover:text-blue-700 font-medium"
                         >
                           + Comportamiento
                         </button>
@@ -394,7 +394,7 @@ export default function ModeloDeJuegoPage() {
                                       loadPrinciples
                                     );
                                   }}
-                                  className="text-sm text-gray-700"
+                                  className="text-sm text-gray-300"
                                 />
                                 <span
                                   className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.color}`}
@@ -428,14 +428,14 @@ export default function ModeloDeJuegoPage() {
                               if (e.key === "Escape") setAddingBehaviorTo(null);
                             }}
                             placeholder="Nombre del comportamiento"
-                            className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-400"
+                            className="flex-1 px-2 py-1 border border-[#2a2d37] rounded text-sm focus:outline-none focus:border-blue-400"
                           />
                           <select
                             value={newBehaviorType}
                             onChange={(e) =>
                               setNewBehaviorType(e.target.value as BehaviorType)
                             }
-                            className="px-2 py-1 border border-gray-200 rounded text-xs bg-white"
+                            className="px-2 py-1 border border-[#2a2d37] rounded text-xs bg-[#1a1d27]"
                           >
                             <option value="collective">Colectivo</option>
                             <option value="by_line">Por líneas</option>
@@ -471,7 +471,7 @@ export default function ModeloDeJuegoPage() {
                       if (e.key === "Escape") setAddingSubTo(null);
                     }}
                     placeholder="Nombre del subprincipio"
-                    className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:border-emerald-400"
+                    className="flex-1 px-2 py-1 border border-[#2a2d37] rounded text-sm focus:outline-none focus:border-emerald-400"
                   />
                   <button
                     onClick={() => handleCreateSubPrinciple(principle.id)}
@@ -493,7 +493,7 @@ export default function ModeloDeJuegoPage() {
 
         {/* Crear nuevo principio */}
         {addingPrinciple ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-2">
+          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 flex items-center gap-2">
             <input
               autoFocus
               value={newPrincipleName}
@@ -503,7 +503,7 @@ export default function ModeloDeJuegoPage() {
                 if (e.key === "Escape") setAddingPrinciple(false);
               }}
               placeholder="Nombre del principio"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-400"
+              className="flex-1 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-emerald-400"
             />
             <button
               onClick={handleCreatePrinciple}
@@ -513,7 +513,7 @@ export default function ModeloDeJuegoPage() {
             </button>
             <button
               onClick={() => setAddingPrinciple(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-400"
             >
               ✕
             </button>
@@ -521,7 +521,7 @@ export default function ModeloDeJuegoPage() {
         ) : (
           <button
             onClick={() => setAddingPrinciple(true)}
-            className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-sm font-medium text-gray-400 hover:border-emerald-300 hover:text-emerald-600 transition-colors"
+            className="w-full py-4 border-2 border-dashed border-[#2a2d37] rounded-xl text-sm font-medium text-gray-400 hover:border-emerald-300 hover:text-emerald-600 transition-colors"
           >
             + Nuevo principio para {activeContext?.name} — {activePhase?.name}
           </button>

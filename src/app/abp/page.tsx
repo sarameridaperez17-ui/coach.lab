@@ -149,19 +149,19 @@ export default function ABPPage() {
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Acciones a balón parado</h1>
+      <h1 className="text-2xl font-bold text-gray-200 mb-6">Acciones a balón parado</h1>
 
       {/* Tipo ABP */}
       <div className="mb-6">
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-[#2a2d37]">
           {ABP_TYPES.map((type) => (
             <button
               key={type.id}
               onClick={() => setSelectedType(type.id)}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 selectedType === type.id
-                  ? "border-orange-600 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? "border-orange-600 text-orange-400"
+                  : "border-transparent text-gray-500 hover:text-gray-300"
               }`}
             >
               {type.name}
@@ -177,10 +177,10 @@ export default function ABPPage() {
           return (
             <div
               key={subtype.id}
-              className="bg-white rounded-xl border border-gray-200 p-5"
+              className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 text-sm">{subtype.name}</h3>
+                <h3 className="font-semibold text-gray-200 text-sm">{subtype.name}</h3>
                 <span className="text-xs text-gray-400">
                   {subtypeStrategies.length} {subtypeStrategies.length === 1 ? "estrategia" : "estrategias"}
                 </span>
@@ -192,11 +192,11 @@ export default function ABPPage() {
                   {subtypeStrategies.map((strat) => (
                     <div
                       key={strat.id}
-                      className="p-2 bg-orange-50 border border-orange-100 rounded-lg group cursor-pointer hover:border-orange-300 transition-colors"
+                      className="p-2 bg-orange-900/20 border border-orange-800/30 rounded-lg group cursor-pointer hover:border-orange-700 transition-colors"
                       onClick={() => openModal(subtype.id, subtype.name, strat)}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-orange-800">{strat.title}</span>
+                        <span className="text-xs font-medium text-orange-300">{strat.title}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDelete(strat.id); }}
                           className="text-[10px] text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -205,7 +205,7 @@ export default function ABPPage() {
                         </button>
                       </div>
                       {strat.description && (
-                        <p className="text-[10px] text-orange-600 mt-0.5 truncate">{strat.description}</p>
+                        <p className="text-[10px] text-orange-400 mt-0.5 truncate">{strat.description}</p>
                       )}
                     </div>
                   ))}
@@ -215,7 +215,7 @@ export default function ABPPage() {
               {/* Botón definir estrategia */}
               <button
                 onClick={() => openModal(subtype.id, subtype.name)}
-                className="w-full border border-dashed border-gray-200 rounded-lg py-3 flex items-center justify-center hover:border-orange-300 hover:bg-orange-50 transition-colors"
+                className="w-full border border-dashed border-[#2a2d37] rounded-lg py-3 flex items-center justify-center hover:border-orange-700 hover:bg-orange-900/20 transition-colors"
               >
                 <span className="text-sm text-gray-400">+ Definir estrategia</span>
               </button>
@@ -226,9 +226,9 @@ export default function ABPPage() {
 
       {/* Modal */}
       {modalSubtype && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl">
-            <h3 className="font-semibold text-gray-900 mb-1">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#1a1d27] rounded-xl p-6 w-full max-w-lg shadow-xl">
+            <h3 className="font-semibold text-gray-200 mb-1">
               {editingStrategy ? "Editar estrategia" : "Nueva estrategia"}
             </h3>
             <p className="text-sm text-gray-500 mb-4">
@@ -240,27 +240,27 @@ export default function ABPPage() {
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
               placeholder="Título (ej: Córner al primer palo)"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-orange-300"
+              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-orange-300"
             />
             <textarea
               value={formDesc}
               onChange={(e) => setFormDesc(e.target.value)}
               placeholder="Descripción de la estrategia..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
             />
             <textarea
               value={formKeyPoints}
               onChange={(e) => setFormKeyPoints(e.target.value)}
               placeholder="Puntos clave (uno por línea)..."
               rows={4}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
             />
 
             <div className="flex gap-2 justify-end">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200"
+                className="px-4 py-2 bg-[#22252f] text-gray-400 rounded-lg text-sm hover:bg-[#2a2d37]"
               >
                 Cancelar
               </button>

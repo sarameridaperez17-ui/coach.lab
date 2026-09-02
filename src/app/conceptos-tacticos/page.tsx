@@ -85,7 +85,7 @@ export default function ConceptosTacticosPage() {
   return (
     <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Conceptos tácticos</h1>
+        <h1 className="text-2xl font-bold text-gray-200">Conceptos tácticos</h1>
         <button
           onClick={() => setAdding(true)}
           className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
@@ -101,26 +101,26 @@ export default function ConceptosTacticosPage() {
           placeholder="Buscar conceptos..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300"
+          className="w-full px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300"
         />
       </div>
 
       {/* Formulario de creación */}
       {adding && (
-        <div className="bg-white rounded-xl border border-amber-200 p-4 mb-4">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
           <input
             autoFocus
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Nombre del concepto (ej: cuadrado, 3ª mujer...)"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300"
+            className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300"
           />
           <textarea
             value={newDef}
             onChange={(e) => setNewDef(e.target.value)}
             placeholder="Definición..."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+            className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
           />
           <div className="flex gap-2">
             <button
@@ -131,7 +131,7 @@ export default function ConceptosTacticosPage() {
             </button>
             <button
               onClick={() => { setAdding(false); setNewName(""); setNewDef(""); }}
-              className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200"
+              className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
             >
               Cancelar
             </button>
@@ -141,7 +141,7 @@ export default function ConceptosTacticosPage() {
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
           <p className="text-lg font-medium mb-2">Sin conceptos tácticos</p>
           <p className="text-sm">
             Crea tu primer concepto táctico (cuadrado, giro, 3ª mujer, profundo...)
@@ -152,7 +152,7 @@ export default function ConceptosTacticosPage() {
           {filtered.map((concept) => (
             <div
               key={concept.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 group"
+              className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 group"
             >
               {editingId === concept.id ? (
                 <div>
@@ -160,13 +160,13 @@ export default function ConceptosTacticosPage() {
                     autoFocus
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300"
                   />
                   <textarea
                     value={editDef}
                     onChange={(e) => setEditDef(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+                    className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
                   />
                   <div className="flex gap-2">
                     <button
@@ -177,7 +177,7 @@ export default function ConceptosTacticosPage() {
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200"
+                      className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
                     >
                       Cancelar
                     </button>
@@ -186,7 +186,7 @@ export default function ConceptosTacticosPage() {
               ) : (
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{concept.name}</h3>
+                    <h3 className="font-semibold text-gray-200">{concept.name}</h3>
                     {concept.definition && (
                       <p className="text-sm text-gray-500 mt-1">{concept.definition}</p>
                     )}
@@ -198,13 +198,13 @@ export default function ConceptosTacticosPage() {
                         setEditName(concept.name);
                         setEditDef(concept.definition || "");
                       }}
-                      className="px-2 py-1 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded"
+                      className="px-2 py-1 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-900/20 rounded"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => handleDelete(concept.id)}
-                      className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                      className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
                     >
                       Eliminar
                     </button>

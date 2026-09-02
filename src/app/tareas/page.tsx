@@ -5,10 +5,10 @@ import { getTasks, createTask, updateTask, deleteTask, getGamePhases } from "@/l
 import type { Task, ContentType, GamePhase } from "@/types";
 
 const CONTENT_LABELS: Record<ContentType, { label: string; color: string }> = {
-  tactical: { label: "Táctico", color: "bg-emerald-100 text-emerald-700" },
-  technical: { label: "Técnico", color: "bg-blue-100 text-blue-700" },
-  physical: { label: "Físico", color: "bg-orange-100 text-orange-700" },
-  psychological: { label: "Psicológico", color: "bg-violet-100 text-violet-700" },
+  tactical: { label: "Táctico", color: "bg-emerald-900/50 text-emerald-400" },
+  technical: { label: "Técnico", color: "bg-blue-900/50 text-blue-400" },
+  physical: { label: "Físico", color: "bg-orange-900/50 text-orange-400" },
+  psychological: { label: "Psicológico", color: "bg-violet-900/50 text-violet-400" },
 };
 
 export default function TareasPage() {
@@ -125,47 +125,47 @@ export default function TareasPage() {
   });
 
   const TaskForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
-    <div className="bg-white rounded-xl border border-purple-200 p-4 mb-4">
+    <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
       <div className="grid grid-cols-2 gap-3 mb-3">
         <input
           autoFocus
           value={formName}
           onChange={(e) => setFormName(e.target.value)}
           placeholder="Nombre de la tarea"
-          className="col-span-2 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+          className="col-span-2 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
         />
         <textarea
           value={formDesc}
           onChange={(e) => setFormDesc(e.target.value)}
           placeholder="Descripción / objetivo"
           rows={2}
-          className="col-span-2 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+          className="col-span-2 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
         />
         <textarea
           value={formRules}
           onChange={(e) => setFormRules(e.target.value)}
           placeholder="Reglas"
           rows={2}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
         />
         <textarea
           value={formVariants}
           onChange={(e) => setFormVariants(e.target.value)}
           placeholder="Variantes"
           rows={2}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
         />
         <input
           value={formDimensions}
           onChange={(e) => setFormDimensions(e.target.value)}
           placeholder="Dimensiones (ej: 40x30m)"
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
         />
         <input
           value={formPlayers}
           onChange={(e) => setFormPlayers(e.target.value)}
           placeholder="Jugadoras (ej: 8v8+2)"
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
         />
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-500">Duración:</label>
@@ -174,7 +174,7 @@ export default function TareasPage() {
             value={formDuration}
             onChange={(e) => setFormDuration(Number(e.target.value))}
             min={1}
-            className="w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="w-20 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
           />
           <span className="text-sm text-gray-400">min</span>
         </div>
@@ -191,7 +191,7 @@ export default function TareasPage() {
                 key={ct}
                 onClick={() => toggleContentType(ct)}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  selected ? CONTENT_LABELS[ct].color : "bg-gray-100 text-gray-400"
+                  selected ? CONTENT_LABELS[ct].color : "bg-[#22252f] text-gray-400"
                 }`}
               >
                 {CONTENT_LABELS[ct].label}
@@ -210,7 +210,7 @@ export default function TareasPage() {
         </button>
         <button
           onClick={() => { setAdding(false); setEditingId(null); resetForm(); }}
-          className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200"
+          className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
         >
           Cancelar
         </button>
@@ -229,7 +229,7 @@ export default function TareasPage() {
   return (
     <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Tareas de entrenamiento</h1>
+        <h1 className="text-2xl font-bold text-gray-200">Tareas de entrenamiento</h1>
         <button
           onClick={() => { resetForm(); setAdding(true); }}
           className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
@@ -245,12 +245,12 @@ export default function TareasPage() {
           placeholder="Buscar tareas..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300"
+          className="flex-1 px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300"
         />
         <select
           value={contentFilter}
           onChange={(e) => setContentFilter(e.target.value as ContentType | "all")}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 bg-white"
+          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm text-gray-400 bg-[#1a1d27]"
         >
           <option value="all">Todos los contenidos</option>
           <option value="tactical">Táctico</option>
@@ -265,7 +265,7 @@ export default function TareasPage() {
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
           <p className="text-lg font-medium mb-2">Sin tareas</p>
           <p className="text-sm">
             Crea tu primera tarea de entrenamiento vinculada a principios del modelo de juego.
@@ -276,7 +276,7 @@ export default function TareasPage() {
           {filtered.map((task) => (
             <div
               key={task.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 group"
+              className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 group"
             >
               {editingId === task.id ? (
                 <TaskForm onSubmit={() => handleUpdate(task.id)} submitLabel="Guardar" />
@@ -285,7 +285,7 @@ export default function TareasPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <h3
-                        className="font-semibold text-gray-900 cursor-pointer hover:text-purple-600"
+                        className="font-semibold text-gray-200 cursor-pointer hover:text-purple-600"
                         onClick={() =>
                           setExpandedId(expandedId === task.id ? null : task.id)
                         }
@@ -295,7 +295,7 @@ export default function TareasPage() {
                       {task.content_type?.map((ct) => (
                         <span
                           key={ct}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${CONTENT_LABELS[ct]?.color ?? "bg-gray-100 text-gray-500"}`}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${CONTENT_LABELS[ct]?.color ?? "bg-[#22252f] text-gray-500"}`}
                         >
                           {CONTENT_LABELS[ct]?.label ?? ct}
                         </span>
@@ -317,13 +317,13 @@ export default function TareasPage() {
                           setFormVariants(task.variants || "");
                           setFormContentType(task.content_type || ["tactical"]);
                         }}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded"
+                        className="px-2 py-1 text-xs text-gray-500 hover:text-purple-600 hover:bg-purple-900/20 rounded"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleDelete(task.id)}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                        className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
                       >
                         Eliminar
                       </button>
@@ -337,25 +337,25 @@ export default function TareasPage() {
                       {task.rules && (
                         <div>
                           <span className="text-xs font-medium text-gray-500 uppercase">Reglas</span>
-                          <p className="text-gray-700 mt-1 whitespace-pre-wrap">{task.rules}</p>
+                          <p className="text-gray-300 mt-1 whitespace-pre-wrap">{task.rules}</p>
                         </div>
                       )}
                       {task.variants && (
                         <div>
                           <span className="text-xs font-medium text-gray-500 uppercase">Variantes</span>
-                          <p className="text-gray-700 mt-1 whitespace-pre-wrap">{task.variants}</p>
+                          <p className="text-gray-300 mt-1 whitespace-pre-wrap">{task.variants}</p>
                         </div>
                       )}
                       {task.dimensions && (
                         <div>
                           <span className="text-xs font-medium text-gray-500 uppercase">Dimensiones</span>
-                          <p className="text-gray-700 mt-1">{task.dimensions}</p>
+                          <p className="text-gray-300 mt-1">{task.dimensions}</p>
                         </div>
                       )}
                       {task.num_players && (
                         <div>
                           <span className="text-xs font-medium text-gray-500 uppercase">Jugadoras</span>
-                          <p className="text-gray-700 mt-1">{task.num_players}</p>
+                          <p className="text-gray-300 mt-1">{task.num_players}</p>
                         </div>
                       )}
                     </div>

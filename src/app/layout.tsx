@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="h-full antialiased">
-      <body className="min-h-full flex bg-gray-50 text-gray-900 font-sans">
+      <body className="min-h-full flex bg-[#0f1117] text-gray-200 font-sans">
         <Sidebar />
         <main className="flex-1 ml-64 p-8">{children}</main>
       </body>
