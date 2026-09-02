@@ -15,6 +15,8 @@ import {
   createBehavior,
   updateBehavior,
   deleteBehavior,
+  toggleBookmark,
+  getBookmarkedIds,
 } from "@/lib/api";
 import type {
   TeamContext,
@@ -100,6 +102,7 @@ export default function ModeloDeJuegoPage() {
   const [addingBehaviorTo, setAddingBehaviorTo] = useState<string | null>(null);
   const [newBehaviorName, setNewBehaviorName] = useState("");
   const [newBehaviorType, setNewBehaviorType] = useState<BehaviorType>("collective");
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   // Load base data
   useEffect(() => {
@@ -124,6 +127,19 @@ export default function ModeloDeJuegoPage() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    getBookmarkedIds("principle").then(setBookmarkedIds).catch(console.error);
+  }, []);
+
+  const handleToggleBookmark = async (id: string, title: string) => {
+    const added = await toggleBookmark("principle", id, title);
+    setBookmarkedIds(prev => {
+      const next = new Set(prev);
+      if (added) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -313,6 +329,13 @@ export default function ModeloDeJuegoPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleToggleBookmark(principle.id, principle.name); }}
+                  className="text-lg hover:scale-110 transition-transform"
+                  title={bookmarkedIds.has(principle.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
+                >
+                  {bookmarkedIds.has(principle.id) ? <span className="text-amber-400">★</span> : <span className="text-gray-600">☆</span>}
+                </button>
                 <button
                   onClick={() => {
                     setAddingSubTo(principle.id);

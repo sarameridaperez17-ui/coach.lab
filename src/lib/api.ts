@@ -806,3 +806,94 @@ export async function getModelStats(): Promise<{
     notes: nRes.count ?? 0,
   };
 }
+
+// ---- Bookmarks (Continuar trabajando) ----
+
+export interface Bookmark {
+  id: string;
+  item_type: string;
+  item_id: string;
+  item_title: string;
+  created_at: string;
+}
+
+const BOOKMARK_HREF_MAP: Record<string, string> = {
+  principle: "/modelo-de-juego",
+  sub_principle: "/modelo-de-juego",
+  behavior: "/modelo-de-juego",
+  tactical_concept: "/conceptos-tacticos",
+  glossary: "/glosario",
+  note: "/notas",
+  task: "/tareas",
+  system: "/sistemas",
+  abp: "/abp",
+};
+
+const BOOKMARK_TYPE_LABELS: Record<string, string> = {
+  principle: "Principio",
+  sub_principle: "Subprincipio",
+  behavior: "Comportamiento",
+  tactical_concept: "Concepto táctico",
+  glossary: "Término",
+  note: "Nota",
+  task: "Tarea",
+  system: "Sistema",
+  abp: "ABP",
+};
+
+export function getBookmarkHref(type: string): string {
+  return BOOKMARK_HREF_MAP[type] ?? "/";
+}
+
+export function getBookmarkTypeLabel(type: string): string {
+  return BOOKMARK_TYPE_LABELS[type] ?? type;
+}
+
+export async function getBookmarks(): Promise<Bookmark[]> {
+  const { data, error } = await supabase
+    .from("bookmarks")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function toggleBookmark(
+  itemType: string,
+  itemId: string,
+  itemTitle: string
+): Promise<boolean> {
+  // Check if already bookmarked
+  const { data: existing } = await supabase
+    .from("bookmarks")
+    .select("id")
+    .eq("item_type", itemType)
+    .eq("item_id", itemId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from("bookmarks").delete().eq("id", existing.id);
+    return false; // removed
+  } else {
+    await supabase.from("bookmarks").insert({ item_type: itemType, item_id: itemId, item_title: itemTitle });
+    return true; // added
+  }
+}
+
+export async function isBookmarked(itemType: string, itemId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("bookmarks")
+    .select("id")
+    .eq("item_type", itemType)
+    .eq("item_id", itemId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function getBookmarkedIds(itemType: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from("bookmarks")
+    .select("item_id")
+    .eq("item_type", itemType);
+  return new Set((data ?? []).map((d) => d.item_id));
+}

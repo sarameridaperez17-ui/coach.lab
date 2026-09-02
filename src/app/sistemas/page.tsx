@@ -9,6 +9,8 @@ import {
   saveSystemPositions,
   createSystemVariant,
   deleteSystemVariant,
+  toggleBookmark,
+  getBookmarkedIds,
 } from "@/lib/api";
 import type { GameSystem, GameSystemVariant } from "@/types";
 
@@ -48,6 +50,7 @@ export default function SistemasPage() {
 
   // Crear nuevo
   const [creating, setCreating] = useState(false);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -64,7 +67,17 @@ export default function SistemasPage() {
 
   useEffect(() => {
     load();
+    getBookmarkedIds("system").then(setBookmarkedIds).catch(console.error);
   }, [load]);
+
+  const handleToggleBookmark = async (id: string, title: string) => {
+    const added = await toggleBookmark("system", id, title);
+    setBookmarkedIds(prev => {
+      const next = new Set(prev);
+      if (added) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -247,17 +260,25 @@ export default function SistemasPage() {
       {systems.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
           {systems.map((sys) => (
-            <button
-              key={sys.id}
-              onClick={() => selectSystem(sys)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedId === sys.id
-                  ? "bg-indigo-600 text-white"
-                  : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-indigo-300"
-              }`}
-            >
-              {sys.name}
-            </button>
+            <div key={sys.id} className="flex items-center gap-1">
+              <button
+                onClick={() => selectSystem(sys)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedId === sys.id
+                    ? "bg-indigo-600 text-white"
+                    : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-indigo-300"
+                }`}
+              >
+                {sys.name}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleToggleBookmark(sys.id, sys.name); }}
+                className="text-lg hover:scale-110 transition-transform"
+                title={bookmarkedIds.has(sys.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
+              >
+                {bookmarkedIds.has(sys.id) ? <span className="text-amber-400">★</span> : <span className="text-gray-600">☆</span>}
+              </button>
+            </div>
           ))}
         </div>
       )}

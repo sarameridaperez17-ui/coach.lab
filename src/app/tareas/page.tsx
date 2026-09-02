@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getTasks, createTask, updateTask, deleteTask, getGamePhases } from "@/lib/api";
+import { getTasks, createTask, updateTask, deleteTask, getGamePhases, toggleBookmark, getBookmarkedIds } from "@/lib/api";
 import type { Task, ContentType, GamePhase } from "@/types";
 
 
@@ -21,6 +21,7 @@ export default function TareasPage() {
   const [adding, setAdding] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   // Form fields
   const [formName, setFormName] = useState("");
@@ -46,7 +47,17 @@ export default function TareasPage() {
 
   useEffect(() => {
     load();
+    getBookmarkedIds("task").then(setBookmarkedIds).catch(console.error);
   }, []);
+
+  const handleToggleBookmark = async (id: string, title: string) => {
+    const added = await toggleBookmark("task", id, title);
+    setBookmarkedIds(prev => {
+      const next = new Set(prev);
+      if (added) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -313,29 +324,38 @@ export default function TareasPage() {
                         {task.duration_minutes} min
                       </span>
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => {
-                          setEditingId(task.id);
-                          setFormName(task.name);
-                          setFormDesc(task.description || "");
-                          setFormRules(task.rules || "");
-                          setFormDimensions(task.dimensions || "");
-                          setFormPlayers(task.num_players || "");
-                          setFormDuration(task.duration_minutes);
-                          setFormVariants(task.variants || "");
-                          setFormContentType(task.content_type || ["tactical"]);
-                        }}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-purple-600 hover:bg-purple-900/20 rounded"
+                        onClick={(e) => { e.stopPropagation(); handleToggleBookmark(task.id, task.name); }}
+                        className="text-lg hover:scale-110 transition-transform"
+                        title={bookmarkedIds.has(task.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
                       >
-                        Editar
+                        {bookmarkedIds.has(task.id) ? <span className="text-amber-400">★</span> : <span className="text-gray-600">☆</span>}
                       </button>
-                      <button
-                        onClick={() => handleDelete(task.id)}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
-                      >
-                        Eliminar
-                      </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            setEditingId(task.id);
+                            setFormName(task.name);
+                            setFormDesc(task.description || "");
+                            setFormRules(task.rules || "");
+                            setFormDimensions(task.dimensions || "");
+                            setFormPlayers(task.num_players || "");
+                            setFormDuration(task.duration_minutes);
+                            setFormVariants(task.variants || "");
+                            setFormContentType(task.content_type || ["tactical"]);
+                          }}
+                          className="px-2 py-1 text-xs text-gray-500 hover:text-purple-600 hover:bg-purple-900/20 rounded"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(task.id)}
+                          className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </div>
                   </div>
                   {task.description && (

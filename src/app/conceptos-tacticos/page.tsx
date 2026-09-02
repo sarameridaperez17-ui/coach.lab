@@ -6,6 +6,8 @@ import {
   createTacticalConcept,
   updateTacticalConcept,
   deleteTacticalConcept,
+  toggleBookmark,
+  getBookmarkedIds,
 } from "@/lib/api";
 import type { TacticalConcept } from "@/types";
 
@@ -20,6 +22,7 @@ export default function ConceptosTacticosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDef, setEditDef] = useState("");
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
     try {
@@ -34,7 +37,17 @@ export default function ConceptosTacticosPage() {
 
   useEffect(() => {
     load();
+    getBookmarkedIds("tactical_concept").then(setBookmarkedIds).catch(console.error);
   }, []);
+
+  const handleToggleBookmark = async (id: string, title: string) => {
+    const added = await toggleBookmark("tactical_concept", id, title);
+    setBookmarkedIds(prev => {
+      const next = new Set(prev);
+      if (added) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -200,23 +213,32 @@ export default function ConceptosTacticosPage() {
                       <p className="text-sm text-gray-500 mt-1">{concept.definition}</p>
                     )}
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => {
-                        setEditingId(concept.id);
-                        setEditName(concept.name);
-                        setEditDef(concept.definition || "");
-                      }}
-                      className="px-2 py-1 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-900/20 rounded"
+                      onClick={(e) => { e.stopPropagation(); handleToggleBookmark(concept.id, concept.name); }}
+                      className="text-lg hover:scale-110 transition-transform"
+                      title={bookmarkedIds.has(concept.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
                     >
-                      Editar
+                      {bookmarkedIds.has(concept.id) ? <span className="text-amber-400">★</span> : <span className="text-gray-600">☆</span>}
                     </button>
-                    <button
-                      onClick={() => handleDelete(concept.id)}
-                      className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
-                    >
-                      Eliminar
-                    </button>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => {
+                          setEditingId(concept.id);
+                          setEditName(concept.name);
+                          setEditDef(concept.definition || "");
+                        }}
+                        className="px-2 py-1 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-900/20 rounded"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(concept.id)}
+                        className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-900/20 rounded"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

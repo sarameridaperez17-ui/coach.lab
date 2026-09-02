@@ -8,8 +8,11 @@ import {
   globalSearch,
   getRecentNotes,
   getRecentModifications,
+  getBookmarks,
+  getBookmarkHref,
+  getBookmarkTypeLabel,
 } from "@/lib/api";
-import type { SearchResult, RecentModification } from "@/lib/api";
+import type { SearchResult, RecentModification, Bookmark } from "@/lib/api";
 import type { Note } from "@/types";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -96,6 +99,7 @@ export default function HomePage() {
   // Recent
   const [recentNotes, setRecentNotes] = useState<Note[]>([]);
   const [recentMods, setRecentMods] = useState<RecentModification[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
   // Quote
   const [quote, setQuote] = useState(QUOTES[0]);
@@ -105,6 +109,7 @@ export default function HomePage() {
     getModelStats().then(setStats).catch(console.error);
     getRecentNotes(3).then(setRecentNotes).catch(console.error);
     getRecentModifications(5).then(setRecentMods).catch(console.error);
+    getBookmarks().then(setBookmarks).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -211,24 +216,24 @@ export default function HomePage() {
         {/* Continuar trabajando */}
         <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Continuar trabajando</h3>
-          {recentMods.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">Sin actividad reciente</p>
+          {bookmarks.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">Marca elementos con ★ para verlos aqui</p>
           ) : (
             <div className="space-y-3">
-              {recentMods.slice(0, 3).map((mod) => (
+              {bookmarks.map((bk) => (
                 <Link
-                  key={mod.id}
-                  href={mod.href}
+                  key={bk.id}
+                  href={getBookmarkHref(bk.item_type)}
                   className="flex items-center gap-3 p-3 rounded-lg bg-[#22252f] hover:bg-[#2a2d37] transition-colors group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                     <span className="text-emerald-400 text-sm">
-                      {mod.type === "Principio" ? "◈" : mod.type === "Sistema" ? "⬢" : mod.type === "Tarea" ? "▣" : mod.type === "ABP" ? "◎" : mod.type === "Nota" ? "▥" : mod.type === "Concepto tactico" ? "◆" : "▤"}
+                      {bk.item_type === "principle" ? "◈" : bk.item_type === "system" ? "⬢" : bk.item_type === "task" ? "▣" : bk.item_type === "abp" ? "◎" : bk.item_type === "note" ? "▥" : bk.item_type === "tactical_concept" ? "◆" : "▤"}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-200 truncate">{mod.title}</p>
-                    <p className="text-[10px] text-gray-500">{mod.type} · {timeAgo(mod.updated_at)}</p>
+                    <p className="text-sm font-medium text-gray-200 truncate">{bk.item_title}</p>
+                    <p className="text-[10px] text-gray-500">{getBookmarkTypeLabel(bk.item_type)}</p>
                   </div>
                   <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -236,9 +241,6 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
-          )}
-          {recentMods.length > 0 && (
-            <p className="text-xs text-emerald-500 text-center mt-4 cursor-pointer hover:text-emerald-400">Ver todo</p>
           )}
         </div>
 
@@ -254,12 +256,10 @@ export default function HomePage() {
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">{dateLabel}</p>
                   <div className="space-y-2">
                     {mods.map((mod) => (
-                      <Link key={mod.id} href={mod.href} className="flex items-center justify-between hover:bg-[#22252f] rounded-lg px-2 py-1.5 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-900/30 text-emerald-400">Actualizado</span>
-                          <span className="text-sm text-gray-300 truncate">{mod.type}: {mod.title}</span>
-                        </div>
-                        <span className="text-[10px] text-gray-500 whitespace-nowrap ml-2">{formatTime(mod.updated_at)}</span>
+                      <Link key={mod.id} href={mod.href} className="flex items-center gap-2 hover:bg-[#22252f] rounded-lg px-2 py-1.5 transition-colors min-w-0">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-900/30 text-emerald-400 flex-shrink-0">Actualizado</span>
+                        <span className="text-sm text-gray-300 truncate flex-1 min-w-0">{mod.type}: {mod.title}</span>
+                        <span className="text-[10px] text-gray-500 whitespace-nowrap flex-shrink-0">{formatTime(mod.updated_at)}</span>
                       </Link>
                     ))}
                   </div>
