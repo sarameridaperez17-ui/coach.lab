@@ -27,6 +27,10 @@ export interface BlockHeight {
   position: number;
 }
 
+export interface PrincipleContext {
+  team_context_id: string;
+}
+
 export interface Principle {
   id: string;
   name: string;
@@ -38,6 +42,7 @@ export interface Principle {
   updated_at: string;
   // Relaciones cargadas
   game_phase?: GamePhase;
+  principle_contexts?: PrincipleContext[];
   sub_principles?: SubPrinciple[];
   team_contexts?: TeamContext[];
 }
@@ -58,6 +63,14 @@ export interface SubPrinciple {
 
 export type BehaviorType = 'collective' | 'by_line' | 'individual';
 
+export interface BehaviorBlockHeight {
+  block_height_id: string;
+}
+
+export interface BehaviorContext {
+  team_context_id: string;
+}
+
 export interface Behavior {
   id: string;
   name: string;
@@ -70,6 +83,8 @@ export interface Behavior {
   updated_at: string;
   // Relaciones cargadas
   sub_principle?: SubPrinciple;
+  behavior_contexts?: BehaviorContext[];
+  behavior_block_heights?: BehaviorBlockHeight[];
   team_contexts?: TeamContext[];
   block_heights?: BlockHeight[];
 }

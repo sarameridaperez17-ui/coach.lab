@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: "⬡" },
   { href: "/modelo-de-juego", label: "Modelo de juego", icon: "◈" },
+  { href: "/sistemas", label: "Sistemas", icon: "⬢" },
   { href: "/posiciones", label: "Posiciones", icon: "◉" },
+  { href: "/abp", label: "ABP", icon: "◎" },
   { href: "/conceptos-tacticos", label: "Conceptos tácticos", icon: "◆" },
   { href: "/tareas", label: "Tareas", icon: "▣" },
   { href: "/glosario", label: "Glosario", icon: "▤" },

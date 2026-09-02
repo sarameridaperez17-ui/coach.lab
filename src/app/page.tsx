@@ -9,11 +9,25 @@ const QUICK_ACCESS = [
     color: "bg-emerald-50 border-emerald-200 hover:border-emerald-400",
   },
   {
+    href: "/sistemas",
+    title: "Sistemas",
+    description: "Estructuras posicionales, variantes y relación con el modelo de juego.",
+    icon: "⬢",
+    color: "bg-indigo-50 border-indigo-200 hover:border-indigo-400",
+  },
+  {
     href: "/posiciones",
     title: "Posiciones",
     description: "Perfiles de las 12 posiciones con comportamientos por zona y fase.",
     icon: "◉",
     color: "bg-blue-50 border-blue-200 hover:border-blue-400",
+  },
+  {
+    href: "/abp",
+    title: "ABP",
+    description: "Estrategias ofensivas y defensivas a balón parado.",
+    icon: "◎",
+    color: "bg-orange-50 border-orange-200 hover:border-orange-400",
   },
   {
     href: "/conceptos-tacticos",
