@@ -197,16 +197,34 @@ export default function HomePage() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {[
-          { label: "Principios", value: stats.principles, color: "text-emerald-400" },
-          { label: "Subprincipios", value: stats.subPrinciples, color: "text-blue-400" },
-          { label: "Comportamientos", value: stats.behaviors, color: "text-amber-400" },
-          { label: "ABP", value: stats.abp, color: "text-orange-400" },
-          { label: "Tareas", value: stats.tasks, color: "text-rose-400" },
-          { label: "Notas", value: stats.notes, color: "text-purple-400" },
+          { label: "Principios", value: stats.principles, color: "text-emerald-400", barColor: "bg-emerald-500", icon: (
+            <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+          )},
+          { label: "Subprincipios", value: stats.subPrinciples, color: "text-blue-400", barColor: "bg-blue-500", icon: (
+            <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" strokeWidth={1.5}/><circle cx="5" cy="19" r="2" strokeWidth={1.5}/><circle cx="19" cy="19" r="2" strokeWidth={1.5}/><path strokeLinecap="round" strokeWidth={1.5} d="M12 7v4m0 0l-5 6m5-6l5 6"/></svg>
+          )},
+          { label: "Comportamientos", value: stats.behaviors, color: "text-purple-400", barColor: "bg-purple-500", icon: (
+            <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          )},
+          { label: "ABP", value: stats.abp, color: "text-orange-400", barColor: "bg-orange-500", icon: (
+            <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21h18M3 21V7l9-4 9 4v14M9 21v-6h6v6" /></svg>
+          )},
+          { label: "Tareas", value: stats.tasks, color: "text-rose-400", barColor: "bg-rose-500", icon: (
+            <svg className="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+          )},
+          { label: "Notas", value: stats.notes, color: "text-amber-400", barColor: "bg-amber-500", icon: (
+            <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          )},
         ].map((s) => (
-          <div key={s.label} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-            <p className={`text-xs font-semibold uppercase tracking-wide ${s.color}`}>{s.label}</p>
-            <p className="text-3xl font-bold text-white mt-2">{s.value}</p>
+          <div key={s.label} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-xs font-semibold uppercase tracking-wide ${s.color}`}>{s.label}</p>
+              <span className="opacity-70">{s.icon}</span>
+            </div>
+            <p className="text-3xl font-bold text-white">{s.value}</p>
+            <div className="mt-3 h-1 w-full bg-[#22252f] rounded-full overflow-hidden">
+              <div className={`h-full rounded-full ${s.barColor} transition-all duration-700`} style={{ width: `${Math.min(100, Math.max(8, s.value * 2))}%` }} />
+            </div>
           </div>
         ))}
       </div>
