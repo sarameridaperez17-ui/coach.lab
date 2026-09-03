@@ -292,7 +292,7 @@ export default function NotasPage() {
                             className="text-lg hover:scale-110 transition-transform"
                             title={bookmarkedIds.has(note.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
                           >
-                            {bookmarkedIds.has(note.id) ? <span className="text-amber-400">★</span> : <span className="text-gray-600">☆</span>}
+                            {bookmarkedIds.has(note.id) ? <span className="text-emerald-400">🔄</span> : <span className="text-gray-600">🔄</span>}
                           </button>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button

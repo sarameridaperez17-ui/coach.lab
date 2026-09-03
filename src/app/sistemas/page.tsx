@@ -276,7 +276,7 @@ export default function SistemasPage() {
                 className="text-lg hover:scale-110 transition-transform"
                 title={bookmarkedIds.has(sys.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
               >
-                {bookmarkedIds.has(sys.id) ? <span className="text-amber-400">★</span> : <span className="text-gray-600">☆</span>}
+                {bookmarkedIds.has(sys.id) ? <span className="text-emerald-400">🔄</span> : <span className="text-gray-600">🔄</span>}
               </button>
             </div>
           ))}

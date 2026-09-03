@@ -217,7 +217,7 @@ export default function HomePage() {
         <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Continuar trabajando</h3>
           {bookmarks.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">Marca elementos con ★ para verlos aqui</p>
+            <p className="text-sm text-gray-500 text-center py-4">Marca elementos con 🔄 para verlos aqui</p>
           ) : (
             <div className="space-y-3">
               {bookmarks.map((bk) => (

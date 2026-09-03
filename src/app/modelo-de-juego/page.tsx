@@ -334,7 +334,7 @@ export default function ModeloDeJuegoPage() {
                   className="text-lg hover:scale-110 transition-transform"
                   title={bookmarkedIds.has(principle.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
                 >
-                  {bookmarkedIds.has(principle.id) ? <span className="text-amber-400">★</span> : <span className="text-gray-600">☆</span>}
+                  {bookmarkedIds.has(principle.id) ? <span className="text-emerald-400">🔄</span> : <span className="text-gray-600">🔄</span>}
                 </button>
                 <button
                   onClick={() => {
