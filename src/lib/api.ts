@@ -383,11 +383,13 @@ export async function getGlossaryTerms(): Promise<GlossaryTerm[]> {
 
 export async function createGlossaryTerm(
   term: string,
-  definition: string
+  definition: string,
+  behavior_tags?: string,
+  moment_tags?: string
 ): Promise<GlossaryTerm> {
   const { data, error } = await supabase
     .from("glossary_terms")
-    .insert({ term, definition })
+    .insert({ term, definition, behavior_tags: behavior_tags ?? '', moment_tags: moment_tags ?? '' })
     .select()
     .single();
   if (error) throw error;
@@ -396,7 +398,7 @@ export async function createGlossaryTerm(
 
 export async function updateGlossaryTerm(
   id: string,
-  updates: { term?: string; definition?: string }
+  updates: { term?: string; definition?: string; behavior_tags?: string; moment_tags?: string }
 ): Promise<void> {
   const { error } = await supabase.from("glossary_terms").update(updates).eq("id", id);
   if (error) throw error;

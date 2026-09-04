@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   getGlossaryTerms,
   createGlossaryTerm,
@@ -14,22 +14,143 @@ import type { ItemStatus } from "@/lib/api";
 import type { GlossaryTerm } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
 
-/* ── Term categories (inferred from definition keywords) ── */
-const TERM_CATEGORIES: Record<string, { label: string; color: string }> = {
-  ofensivo: { label: "Ofensivo", color: "bg-emerald-900/40 text-emerald-400" },
-  defensivo: { label: "Defensivo", color: "bg-red-900/40 text-red-400" },
-  transición: { label: "Transición", color: "bg-blue-900/40 text-blue-400" },
-  posicional: { label: "Posicional", color: "bg-amber-900/40 text-amber-400" },
-  general: { label: "General", color: "bg-gray-700/40 text-gray-400" },
+/* ── Tag definitions ── */
+const BEHAVIOR_OPTIONS = [
+  "Táctico individual",
+  "Táctico relacional",
+  "Táctico colectivo",
+  "Estratégico",
+  "Comunicación",
+];
+
+const MOMENT_OPTIONS = [
+  "Fase ofensiva",
+  "Fase defensiva",
+  "Transición defensiva",
+  "Transición ofensiva",
+];
+
+const BEHAVIOR_COLORS: Record<string, string> = {
+  "Táctico individual": "bg-amber-900/40 text-amber-400 border-amber-800/40",
+  "Táctico relacional": "bg-blue-900/40 text-blue-400 border-blue-800/40",
+  "Táctico colectivo": "bg-emerald-900/40 text-emerald-400 border-emerald-800/40",
+  "Estratégico": "bg-purple-900/40 text-purple-400 border-purple-800/40",
+  "Comunicación": "bg-pink-900/40 text-pink-400 border-pink-800/40",
 };
 
-function inferCategory(term: string, definition: string): string {
-  const text = `${term} ${definition}`.toLowerCase();
-  if (text.includes("press") || text.includes("defens") || text.includes("recuper") || text.includes("marca") || text.includes("cobertura") || text.includes("repliegue")) return "defensivo";
-  if (text.includes("transic") || text.includes("contrataque") || text.includes("contraataque")) return "transición";
-  if (text.includes("posicion") || text.includes("espacio") || text.includes("zona") || text.includes("amplitud") || text.includes("profundidad") || text.includes("intervalo")) return "posicional";
-  if (text.includes("ataque") || text.includes("ofensiv") || text.includes("finaliz") || text.includes("gol") || text.includes("progres") || text.includes("superioridad") || text.includes("desmarque")) return "ofensivo";
-  return "general";
+const MOMENT_COLORS: Record<string, string> = {
+  "Fase ofensiva": "bg-emerald-900/40 text-emerald-400 border-emerald-800/40",
+  "Fase defensiva": "bg-red-900/40 text-red-400 border-red-800/40",
+  "Transición defensiva": "bg-orange-900/40 text-orange-400 border-orange-800/40",
+  "Transición ofensiva": "bg-cyan-900/40 text-cyan-400 border-cyan-800/40",
+};
+
+function parseTags(csv: string): string[] {
+  if (!csv) return [];
+  return csv.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+function tagsToCSV(tags: string[]): string {
+  return tags.join(",");
+}
+
+/* ── Multi-select dropdown ── */
+function MultiSelect({
+  label,
+  options,
+  selected,
+  onChange,
+  colorMap,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (tags: string[]) => void;
+  colorMap: Record<string, string>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggle = (opt: string) => {
+    if (selected.includes(opt)) onChange(selected.filter(s => s !== opt));
+    else onChange([...selected, opt]);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm text-left bg-[#22252f] hover:border-[#3a3d47] transition-colors flex items-center justify-between"
+      >
+        <span className="truncate">
+          {selected.length === 0 ? (
+            <span className="text-gray-500">{label}</span>
+          ) : (
+            <span className="text-gray-300">{selected.length} seleccionado{selected.length > 1 ? "s" : ""}</span>
+          )}
+        </span>
+        <svg className={`w-4 h-4 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-[#1a1d27] border border-[#2a2d37] rounded-lg shadow-xl overflow-hidden">
+          {options.map(opt => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => toggle(opt)}
+              className={`w-full px-3 py-2 text-sm text-left flex items-center gap-2 transition-colors ${
+                selected.includes(opt) ? "bg-[#22252f] text-white" : "text-gray-400 hover:bg-[#22252f]"
+              }`}
+            >
+              <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                selected.includes(opt) ? "bg-rose-600 border-rose-600" : "border-[#3a3d47]"
+              }`}>
+                {selected.includes(opt) && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                )}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${colorMap[opt] || "bg-gray-700/40 text-gray-400"}`}>{opt}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Filter dropdown (single select, includes "Todos") ── */
+function FilterSelect({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm bg-[#22252f] text-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+    >
+      <option value="">{label}</option>
+      {options.map(opt => (
+        <option key={opt} value={opt}>{opt}</option>
+      ))}
+    </select>
+  );
 }
 
 export default function GlosarioPage() {
@@ -37,12 +158,18 @@ export default function GlosarioPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
+  const [behaviorFilter, setBehaviorFilter] = useState("");
+  const [momentFilter, setMomentFilter] = useState("");
   const [adding, setAdding] = useState(false);
   const [newTerm, setNewTerm] = useState("");
   const [newDef, setNewDef] = useState("");
+  const [newBehaviorTags, setNewBehaviorTags] = useState<string[]>([]);
+  const [newMomentTags, setNewMomentTags] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTerm, setEditTerm] = useState("");
   const [editDef, setEditDef] = useState("");
+  const [editBehaviorTags, setEditBehaviorTags] = useState<string[]>([]);
+  const [editMomentTags, setEditMomentTags] = useState<string[]>([]);
   const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
   const [statusMenu, setStatusMenu] = useState<{x: number; y: number; id: string; title: string} | null>(null);
 
@@ -96,9 +223,16 @@ export default function GlosarioPage() {
   const handleCreate = async () => {
     if (!newTerm.trim()) return;
     try {
-      await createGlossaryTerm(newTerm.trim(), newDef.trim());
+      await createGlossaryTerm(
+        newTerm.trim(),
+        newDef.trim(),
+        tagsToCSV(newBehaviorTags),
+        tagsToCSV(newMomentTags)
+      );
       setNewTerm("");
       setNewDef("");
+      setNewBehaviorTags([]);
+      setNewMomentTags([]);
       setAdding(false);
       await load();
     } catch (err) {
@@ -108,7 +242,12 @@ export default function GlosarioPage() {
 
   const handleUpdate = async (id: string) => {
     try {
-      await updateGlossaryTerm(id, { term: editTerm.trim(), definition: editDef.trim() });
+      await updateGlossaryTerm(id, {
+        term: editTerm.trim(),
+        definition: editDef.trim(),
+        behavior_tags: tagsToCSV(editBehaviorTags),
+        moment_tags: tagsToCSV(editMomentTags),
+      });
       setEditingId(null);
       await load();
     } catch (err) {
@@ -126,25 +265,28 @@ export default function GlosarioPage() {
     }
   };
 
+  /* ── Filtering ── */
   const filtered = terms.filter((t) => {
     const matchSearch =
       t.term.toLowerCase().includes(search.toLowerCase()) ||
       t.definition.toLowerCase().includes(search.toLowerCase());
     const matchLetter = !letterFilter || t.term.toUpperCase().startsWith(letterFilter);
-    return matchSearch && matchLetter;
+    const matchBehavior = !behaviorFilter || parseTags(t.behavior_tags).includes(behaviorFilter);
+    const matchMoment = !momentFilter || parseTags(t.moment_tags).includes(momentFilter);
+    return matchSearch && matchLetter && matchBehavior && matchMoment;
   });
 
-  /* ── Sidebar data ── */
-  const catCounts = terms.reduce<Record<string, number>>((acc, t) => {
-    const cat = inferCategory(t.term, t.definition);
-    acc[cat] = (acc[cat] || 0) + 1;
-    return acc;
-  }, {});
-  const catEntries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
-
-  // Términos más utilizados (favorites from statuses)
-  const favoriteTermIds = Array.from(itemStatuses.entries()).filter(([, s]) => s === "favorite").map(([id]) => id);
-  const favoriteTerms = terms.filter(t => favoriteTermIds.includes(t.id));
+  /* ── Sidebar counts ── */
+  const behaviorCounts: Record<string, number> = {};
+  const momentCounts: Record<string, number> = {};
+  terms.forEach(t => {
+    parseTags(t.behavior_tags).forEach(tag => {
+      behaviorCounts[tag] = (behaviorCounts[tag] || 0) + 1;
+    });
+    parseTags(t.moment_tags).forEach(tag => {
+      momentCounts[tag] = (momentCounts[tag] || 0) + 1;
+    });
+  });
 
   // Últimos añadidos
   const recentTerms = [...terms].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
@@ -171,8 +313,8 @@ export default function GlosarioPage() {
           </button>
         </div>
 
-        {/* Búsqueda */}
-        <div className="mb-4">
+        {/* Búsqueda + filtros */}
+        <div className="mb-4 space-y-3">
           <input
             type="text"
             placeholder="Buscar en el diccionario..."
@@ -180,6 +322,28 @@ export default function GlosarioPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 bg-[#22252f]"
           />
+          <div className="flex gap-3">
+            <FilterSelect
+              label="Comportamiento"
+              options={BEHAVIOR_OPTIONS}
+              value={behaviorFilter}
+              onChange={setBehaviorFilter}
+            />
+            <FilterSelect
+              label="Momento"
+              options={MOMENT_OPTIONS}
+              value={momentFilter}
+              onChange={setMomentFilter}
+            />
+            {(behaviorFilter || momentFilter) && (
+              <button
+                onClick={() => { setBehaviorFilter(""); setMomentFilter(""); }}
+                className="px-3 py-2 text-xs text-gray-400 hover:text-rose-400 transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filtro alfabético */}
@@ -226,6 +390,33 @@ export default function GlosarioPage() {
               rows={3}
               className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none bg-[#22252f]"
             />
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <MultiSelect
+                label="Comportamiento"
+                options={BEHAVIOR_OPTIONS}
+                selected={newBehaviorTags}
+                onChange={setNewBehaviorTags}
+                colorMap={BEHAVIOR_COLORS}
+              />
+              <MultiSelect
+                label="Momento"
+                options={MOMENT_OPTIONS}
+                selected={newMomentTags}
+                onChange={setNewMomentTags}
+                colorMap={MOMENT_COLORS}
+              />
+            </div>
+            {/* Preview tags */}
+            {(newBehaviorTags.length > 0 || newMomentTags.length > 0) && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {newBehaviorTags.map(tag => (
+                  <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${BEHAVIOR_COLORS[tag]}`}>{tag}</span>
+                ))}
+                {newMomentTags.map(tag => (
+                  <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${MOMENT_COLORS[tag]}`}>{tag}</span>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleCreate}
@@ -234,7 +425,7 @@ export default function GlosarioPage() {
                 Crear
               </button>
               <button
-                onClick={() => { setAdding(false); setNewTerm(""); setNewDef(""); }}
+                onClick={() => { setAdding(false); setNewTerm(""); setNewDef(""); setNewBehaviorTags([]); setNewMomentTags([]); }}
                 className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
               >
                 Cancelar
@@ -253,18 +444,19 @@ export default function GlosarioPage() {
           </div>
         ) : (
           <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
-            {/* Table header */}
-            <div className="grid grid-cols-[1fr_120px_1fr_80px] gap-2 px-4 py-2.5 border-b border-[#2a2d37] text-xs text-gray-500 font-medium uppercase tracking-wider">
-              <span>Término</span>
-              <span>Categoría</span>
-              <span>Descripción breve</span>
+            {/* Table header: NOMBRE + ETIQUETAS + DESCRIPCIÓN + ESTADO */}
+            <div className="grid grid-cols-[180px_1fr_1fr_80px] gap-2 px-4 py-2.5 border-b border-[#2a2d37] text-xs text-gray-500 font-medium uppercase tracking-wider">
+              <span>Nombre</span>
+              <span>Etiquetas</span>
+              <span>Descripción</span>
               <span className="text-center">Estado</span>
             </div>
             {/* Table rows */}
             <div className="divide-y divide-[#22252f]">
               {filtered.map((t) => {
-                const cat = inferCategory(t.term, t.definition);
-                const catInfo = TERM_CATEGORIES[cat] || TERM_CATEGORIES.general;
+                const bTags = parseTags(t.behavior_tags);
+                const mTags = parseTags(t.moment_tags);
+
                 return editingId === t.id ? (
                   <div key={t.id} className="px-4 py-3">
                     <input
@@ -279,6 +471,32 @@ export default function GlosarioPage() {
                       rows={3}
                       className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none bg-[#22252f]"
                     />
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <MultiSelect
+                        label="Comportamiento"
+                        options={BEHAVIOR_OPTIONS}
+                        selected={editBehaviorTags}
+                        onChange={setEditBehaviorTags}
+                        colorMap={BEHAVIOR_COLORS}
+                      />
+                      <MultiSelect
+                        label="Momento"
+                        options={MOMENT_OPTIONS}
+                        selected={editMomentTags}
+                        onChange={setEditMomentTags}
+                        colorMap={MOMENT_COLORS}
+                      />
+                    </div>
+                    {(editBehaviorTags.length > 0 || editMomentTags.length > 0) && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {editBehaviorTags.map(tag => (
+                          <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${BEHAVIOR_COLORS[tag]}`}>{tag}</span>
+                        ))}
+                        {editMomentTags.map(tag => (
+                          <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${MOMENT_COLORS[tag]}`}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <button onClick={() => handleUpdate(t.id)} className="px-3 py-1.5 bg-rose-600 text-white rounded text-sm">Guardar</button>
                       <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm">Cancelar</button>
@@ -287,27 +505,41 @@ export default function GlosarioPage() {
                 ) : (
                   <div
                     key={t.id}
-                    className="grid grid-cols-[1fr_120px_1fr_80px] gap-2 px-4 py-3 items-center hover:bg-[#22252f]/50 transition-colors group cursor-default"
+                    className="grid grid-cols-[180px_1fr_1fr_80px] gap-2 px-4 py-3 items-center hover:bg-[#22252f]/50 transition-colors group cursor-default"
                     onContextMenu={(e) => handleContextMenu(e, t.id, t.term)}
                   >
-                    {/* Term name */}
+                    {/* Nombre */}
                     <div className="min-w-0">
                       <span className="font-medium text-gray-200 text-sm">{t.term}</span>
                     </div>
-                    {/* Category */}
-                    <div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${catInfo.color}`}>{catInfo.label}</span>
+                    {/* Etiquetas */}
+                    <div className="flex flex-wrap gap-1 min-w-0">
+                      {bTags.map(tag => (
+                        <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${BEHAVIOR_COLORS[tag] || "bg-gray-700/40 text-gray-400"}`}>{tag}</span>
+                      ))}
+                      {mTags.map(tag => (
+                        <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${MOMENT_COLORS[tag] || "bg-gray-700/40 text-gray-400"}`}>{tag}</span>
+                      ))}
+                      {bTags.length === 0 && mTags.length === 0 && (
+                        <span className="text-[10px] text-gray-600">Sin etiquetas</span>
+                      )}
                     </div>
-                    {/* Short definition */}
+                    {/* Descripción */}
                     <div className="min-w-0">
                       <p className="text-xs text-gray-500 truncate">{t.definition || "—"}</p>
                     </div>
-                    {/* Status + actions */}
+                    {/* Estado (editar/borrar) */}
                     <div className="flex items-center justify-center gap-1">
                       {itemStatuses.has(t.id) && <StatusBadge status={itemStatuses.get(t.id)!} />}
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() => { setEditingId(t.id); setEditTerm(t.term); setEditDef(t.definition || ""); }}
+                          onClick={() => {
+                            setEditingId(t.id);
+                            setEditTerm(t.term);
+                            setEditDef(t.definition || "");
+                            setEditBehaviorTags(parseTags(t.behavior_tags));
+                            setEditMomentTags(parseTags(t.moment_tags));
+                          }}
                           className="p-1 text-xs text-gray-500 hover:text-rose-400 rounded"
                           title="Editar"
                         >
@@ -335,38 +567,33 @@ export default function GlosarioPage() {
         {/* Categorías */}
         <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Categorías</h3>
-          <div className="space-y-2">
-            {catEntries.map(([cat, count]) => {
-              const info = TERM_CATEGORIES[cat] || TERM_CATEGORIES.general;
-              return (
-                <div key={cat} className="flex items-center justify-between">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${info.color}`}>{info.label}</span>
-                  <span className="text-xs text-gray-500">{count}</span>
-                </div>
-              );
-            })}
-            <div className="pt-2 border-t border-[#22252f] flex items-center justify-between">
-              <span className="text-xs text-gray-400 font-medium">Total</span>
-              <span className="text-xs text-gray-300 font-semibold">{terms.length}</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Términos más utilizados (favorites) */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Términos destacados</h3>
-          {favoriteTerms.length === 0 ? (
-            <p className="text-xs text-gray-600">Marca términos como favoritos con clic derecho</p>
-          ) : (
-            <div className="space-y-2">
-              {favoriteTerms.slice(0, 5).map((t) => (
-                <div key={t.id} className="flex items-center gap-2">
-                  <span className="text-xs text-rose-400">★</span>
-                  <span className="text-xs text-gray-300 truncate">{t.term}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Comportamiento */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Comportamiento</p>
+          <div className="space-y-1.5 mb-4">
+            {BEHAVIOR_OPTIONS.map(opt => (
+              <div key={opt} className="flex items-center justify-between">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${BEHAVIOR_COLORS[opt]}`}>{opt}</span>
+                <span className="text-xs text-gray-500 tabular-nums">{behaviorCounts[opt] || 0}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Momento */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Momento</p>
+          <div className="space-y-1.5">
+            {MOMENT_OPTIONS.map(opt => (
+              <div key={opt} className="flex items-center justify-between">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${MOMENT_COLORS[opt]}`}>{opt}</span>
+                <span className="text-xs text-gray-500 tabular-nums">{momentCounts[opt] || 0}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-3 mt-3 border-t border-[#22252f] flex items-center justify-between">
+            <span className="text-xs text-gray-400 font-medium">Total términos</span>
+            <span className="text-xs text-gray-300 font-semibold">{terms.length}</span>
+          </div>
         </div>
 
         {/* Últimos añadidos */}
@@ -377,15 +604,24 @@ export default function GlosarioPage() {
           ) : (
             <div className="space-y-2">
               {recentTerms.map((t) => {
-                const cat = inferCategory(t.term, t.definition);
-                const info = TERM_CATEGORIES[cat] || TERM_CATEGORIES.general;
+                const bTags = parseTags(t.behavior_tags);
+                const mTags = parseTags(t.moment_tags);
                 return (
-                  <div key={t.id} className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
+                  <div key={t.id}>
+                    <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-300 truncate">{t.term}</p>
-                      <p className="text-[10px] text-gray-600">{new Date(t.created_at).toLocaleDateString("es-ES")}</p>
+                      <p className="text-[10px] text-gray-600 flex-shrink-0 ml-2">{new Date(t.created_at).toLocaleDateString("es-ES")}</p>
                     </div>
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${info.color} flex-shrink-0`}>{info.label}</span>
+                    {(bTags.length > 0 || mTags.length > 0) && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {bTags.slice(0, 2).map(tag => (
+                          <span key={tag} className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${BEHAVIOR_COLORS[tag]}`}>{tag}</span>
+                        ))}
+                        {mTags.slice(0, 2).map(tag => (
+                          <span key={tag} className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${MOMENT_COLORS[tag]}`}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

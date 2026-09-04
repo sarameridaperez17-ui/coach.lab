@@ -130,6 +130,8 @@ export interface GlossaryTerm {
   id: string;
   term: string;
   definition: string;
+  behavior_tags: string;
+  moment_tags: string;
   archived: boolean;
   created_at: string;
   updated_at: string;
