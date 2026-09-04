@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getTasks, createTask, updateTask, deleteTask, getGamePhases, toggleBookmark, getBookmarkedIds } from "@/lib/api";
+import { getTasks, createTask, updateTask, deleteTask, getGamePhases, setItemStatus, removeItemStatus, getItemStatuses } from "@/lib/api";
+import type { ItemStatus } from "@/lib/api";
 import type { Task, ContentType, GamePhase } from "@/types";
+import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
 
 
 const CONTENT_LABELS: Record<ContentType, { label: string; color: string }> = {
@@ -21,7 +23,8 @@ export default function TareasPage() {
   const [adding, setAdding] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
+  const [statusMenu, setStatusMenu] = useState<{x: number; y: number; id: string; title: string} | null>(null);
 
   // Form fields
   const [formName, setFormName] = useState("");
@@ -47,16 +50,30 @@ export default function TareasPage() {
 
   useEffect(() => {
     load();
-    getBookmarkedIds("task").then(setBookmarkedIds).catch(console.error);
+    getItemStatuses("task").then(setItemStatuses).catch(console.error);
   }, []);
 
-  const handleToggleBookmark = async (id: string, title: string) => {
-    const added = await toggleBookmark("task", id, title);
-    setBookmarkedIds(prev => {
-      const next = new Set(prev);
-      if (added) next.add(id); else next.delete(id);
-      return next;
-    });
+  const handleContextMenu = (e: React.MouseEvent, id: string, title: string) => {
+    e.preventDefault();
+    setStatusMenu({ x: e.clientX, y: e.clientY, id, title });
+  };
+
+  const handleSetStatus = async (status: ItemStatus) => {
+    if (!statusMenu) return;
+    try {
+      await setItemStatus("task", statusMenu.id, statusMenu.title, status);
+      setItemStatuses(prev => new Map(prev).set(statusMenu.id, status));
+    } catch (err) { console.error("Error setting status:", err); }
+    setStatusMenu(null);
+  };
+
+  const handleRemoveStatus = async () => {
+    if (!statusMenu) return;
+    try {
+      await removeItemStatus("task", statusMenu.id);
+      setItemStatuses(prev => { const next = new Map(prev); next.delete(statusMenu.id); return next; });
+    } catch (err) { console.error("Error removing status:", err); }
+    setStatusMenu(null);
   };
 
   useEffect(() => {
@@ -297,6 +314,7 @@ export default function TareasPage() {
             <div
               key={task.id}
               className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 group"
+              onContextMenu={(e) => handleContextMenu(e, task.id, task.name)}
             >
               {editingId === task.id ? (
                 <TaskForm onSubmit={() => handleUpdate(task.id)} submitLabel="Guardar" />
@@ -325,13 +343,7 @@ export default function TareasPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleToggleBookmark(task.id, task.name); }}
-                        className="text-lg hover:scale-110 transition-transform"
-                        title={bookmarkedIds.has(task.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
-                      >
-                        {bookmarkedIds.has(task.id) ? <span className="text-emerald-400">🔄</span> : <span className="text-gray-600">🔄</span>}
-                      </button>
+                      {itemStatuses.has(task.id) && <StatusBadge status={itemStatuses.get(task.id)!} />}
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => {
@@ -394,6 +406,17 @@ export default function TareasPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {statusMenu && (
+        <StatusMenu
+          x={statusMenu.x}
+          y={statusMenu.y}
+          currentStatus={itemStatuses.get(statusMenu.id) ?? null}
+          onSelect={handleSetStatus}
+          onRemove={handleRemoveStatus}
+          onClose={() => setStatusMenu(null)}
+        />
       )}
     </div>
   );

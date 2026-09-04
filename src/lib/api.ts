@@ -37,6 +37,39 @@ export async function getTeamContexts(): Promise<TeamContext[]> {
   return data ?? [];
 }
 
+export async function createTeamContext(name: string, description: string): Promise<TeamContext> {
+  const { data: existing } = await supabase
+    .from("team_contexts")
+    .select("position")
+    .order("position", { ascending: false })
+    .limit(1);
+  const nextPos = existing && existing.length > 0 ? existing[0].position + 1 : 0;
+
+  const { data, error } = await supabase
+    .from("team_contexts")
+    .insert({ name, description, position: nextPos })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateTeamContext(
+  id: string,
+  updates: { name?: string; description?: string }
+): Promise<void> {
+  const { error } = await supabase.from("team_contexts").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteTeamContext(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("team_contexts")
+    .update({ archived: true })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function getGamePhases(): Promise<GamePhase[]> {
   const { data, error } = await supabase
     .from("game_phases")
@@ -128,6 +161,75 @@ export async function deletePrinciple(id: string): Promise<void> {
     .update({ archived: true })
     .eq("id", id);
   if (error) throw error;
+}
+
+export async function duplicatePrinciple(
+  principleId: string,
+  targetPhaseId: string,
+  targetContextIds: string[]
+): Promise<Principle> {
+  // Cargar principio original con sub_principles y behaviors
+  const { data: orig, error: loadErr } = await supabase
+    .from("principles")
+    .select(`
+      *,
+      sub_principles(
+        *,
+        behaviors(*)
+      )
+    `)
+    .eq("id", principleId)
+    .single();
+  if (loadErr || !orig) throw loadErr ?? new Error("Principio no encontrado");
+
+  // Obtener posición
+  const { data: existing } = await supabase
+    .from("principles")
+    .select("position")
+    .eq("game_phase_id", targetPhaseId)
+    .order("position", { ascending: false })
+    .limit(1);
+  const nextPos = existing && existing.length > 0 ? existing[0].position + 1 : 0;
+
+  // Crear copia del principio
+  const { data: newP, error: pErr } = await supabase
+    .from("principles")
+    .insert({ name: orig.name, description: orig.description, game_phase_id: targetPhaseId, position: nextPos })
+    .select()
+    .single();
+  if (pErr) throw pErr;
+
+  // Vincular contextos
+  if (targetContextIds.length > 0) {
+    await supabase.from("principle_contexts").insert(
+      targetContextIds.map((cid) => ({ principle_id: newP.id, team_context_id: cid }))
+    );
+  }
+
+  // Duplicar subprincipios y comportamientos
+  for (const sp of orig.sub_principles ?? []) {
+    if (sp.archived) continue;
+    const { data: newSp } = await supabase
+      .from("sub_principles")
+      .insert({ name: sp.name, description: sp.description, principle_id: newP.id, position: sp.position })
+      .select()
+      .single();
+    if (!newSp) continue;
+    const activeBehaviors = (sp.behaviors ?? []).filter((b: { archived: boolean }) => !b.archived);
+    if (activeBehaviors.length > 0) {
+      await supabase.from("behaviors").insert(
+        activeBehaviors.map((b: { name: string; description: string; type: string; position: number }) => ({
+          name: b.name,
+          description: b.description,
+          type: b.type,
+          sub_principle_id: newSp.id,
+          position: b.position,
+        }))
+      );
+    }
+  }
+
+  return newP;
 }
 
 // ============================================
@@ -807,13 +909,16 @@ export async function getModelStats(): Promise<{
   };
 }
 
-// ---- Bookmarks (Continuar trabajando) ----
+// ---- Estados (working, paused, focus, favorite) ----
+
+export type ItemStatus = "working" | "paused" | "focus" | "favorite";
 
 export interface Bookmark {
   id: string;
   item_type: string;
   item_id: string;
   item_title: string;
+  status: ItemStatus;
   created_at: string;
 }
 
@@ -841,6 +946,13 @@ const BOOKMARK_TYPE_LABELS: Record<string, string> = {
   abp: "ABP",
 };
 
+export const STATUS_CONFIG: Record<ItemStatus, { label: string; color: string; hex: string; bgColor: string }> = {
+  working: { label: "Trabajando", color: "text-emerald-400", hex: "#34d399", bgColor: "bg-emerald-400/12" },
+  paused: { label: "En pausa", color: "text-blue-400", hex: "#60a5fa", bgColor: "bg-blue-400/12" },
+  focus: { label: "Foco", color: "text-amber-400", hex: "#fbbf24", bgColor: "bg-amber-400/12" },
+  favorite: { label: "Favorito", color: "text-rose-400", hex: "#f87171", bgColor: "bg-rose-400/12" },
+};
+
 export function getBookmarkHref(type: string): string {
   return BOOKMARK_HREF_MAP[type] ?? "/";
 }
@@ -858,12 +970,74 @@ export async function getBookmarks(): Promise<Bookmark[]> {
   return data ?? [];
 }
 
+export async function getBookmarksByStatus(status: ItemStatus): Promise<Bookmark[]> {
+  const { data, error } = await supabase
+    .from("bookmarks")
+    .select("*")
+    .eq("status", status)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function setItemStatus(
+  itemType: string,
+  itemId: string,
+  itemTitle: string,
+  status: ItemStatus
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("bookmarks")
+    .select("id")
+    .eq("item_type", itemType)
+    .eq("item_id", itemId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from("bookmarks").update({ status, item_title: itemTitle }).eq("id", existing.id);
+  } else {
+    await supabase.from("bookmarks").insert({ item_type: itemType, item_id: itemId, item_title: itemTitle, status });
+  }
+}
+
+export async function removeItemStatus(
+  itemType: string,
+  itemId: string
+): Promise<void> {
+  await supabase
+    .from("bookmarks")
+    .delete()
+    .eq("item_type", itemType)
+    .eq("item_id", itemId);
+}
+
+export async function getItemStatuses(itemType: string): Promise<Map<string, ItemStatus>> {
+  const { data } = await supabase
+    .from("bookmarks")
+    .select("item_id, status")
+    .eq("item_type", itemType);
+  const map = new Map<string, ItemStatus>();
+  for (const d of data ?? []) {
+    map.set(d.item_id, d.status as ItemStatus);
+  }
+  return map;
+}
+
+// Keep backward compat for getBookmarkedIds (used in pages)
+export async function getBookmarkedIds(itemType: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from("bookmarks")
+    .select("item_id")
+    .eq("item_type", itemType);
+  return new Set((data ?? []).map((d) => d.item_id));
+}
+
+// Legacy compat — toggleBookmark now sets "working" or removes
 export async function toggleBookmark(
   itemType: string,
   itemId: string,
   itemTitle: string
 ): Promise<boolean> {
-  // Check if already bookmarked
   const { data: existing } = await supabase
     .from("bookmarks")
     .select("id")
@@ -873,27 +1047,9 @@ export async function toggleBookmark(
 
   if (existing) {
     await supabase.from("bookmarks").delete().eq("id", existing.id);
-    return false; // removed
+    return false;
   } else {
-    await supabase.from("bookmarks").insert({ item_type: itemType, item_id: itemId, item_title: itemTitle });
-    return true; // added
+    await supabase.from("bookmarks").insert({ item_type: itemType, item_id: itemId, item_title: itemTitle, status: "working" });
+    return true;
   }
-}
-
-export async function isBookmarked(itemType: string, itemId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from("bookmarks")
-    .select("id")
-    .eq("item_type", itemType)
-    .eq("item_id", itemId)
-    .maybeSingle();
-  return !!data;
-}
-
-export async function getBookmarkedIds(itemType: string): Promise<Set<string>> {
-  const { data } = await supabase
-    .from("bookmarks")
-    .select("item_id")
-    .eq("item_type", itemType);
-  return new Set((data ?? []).map((d) => d.item_id));
 }

@@ -3,21 +3,27 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getTeamContexts,
+  createTeamContext,
+  updateTeamContext,
+  deleteTeamContext,
   getGamePhases,
   getBlockHeights,
   getPrinciples,
   createPrinciple,
   updatePrinciple,
   deletePrinciple,
+  duplicatePrinciple,
   createSubPrinciple,
   updateSubPrinciple,
   deleteSubPrinciple,
   createBehavior,
   updateBehavior,
   deleteBehavior,
-  toggleBookmark,
-  getBookmarkedIds,
+  setItemStatus,
+  removeItemStatus,
+  getItemStatuses,
 } from "@/lib/api";
+import type { ItemStatus } from "@/lib/api";
 import type {
   TeamContext,
   GamePhase,
@@ -25,6 +31,7 @@ import type {
   Principle,
   BehaviorType,
 } from "@/types";
+import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
 
 
 // ---- Inline edit component ----
@@ -102,7 +109,21 @@ export default function ModeloDeJuegoPage() {
   const [addingBehaviorTo, setAddingBehaviorTo] = useState<string | null>(null);
   const [newBehaviorName, setNewBehaviorName] = useState("");
   const [newBehaviorType, setNewBehaviorType] = useState<BehaviorType>("collective");
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
+  const [statusMenu, setStatusMenu] = useState<{x: number; y: number; id: string; title: string} | null>(null);
+
+  // Context CRUD
+  const [addingContext, setAddingContext] = useState(false);
+  const [newContextName, setNewContextName] = useState("");
+  const [newContextDesc, setNewContextDesc] = useState("");
+  const [editingContextId, setEditingContextId] = useState<string | null>(null);
+  const [editContextName, setEditContextName] = useState("");
+  const [editContextDesc, setEditContextDesc] = useState("");
+
+  // Relation modal
+  const [relatingPrinciple, setRelatingPrinciple] = useState<Principle | null>(null);
+  const [relTargetPhase, setRelTargetPhase] = useState("");
+  const [relTargetContext, setRelTargetContext] = useState("");
 
   // Load base data
   useEffect(() => {
@@ -129,16 +150,30 @@ export default function ModeloDeJuegoPage() {
   }, []);
 
   useEffect(() => {
-    getBookmarkedIds("principle").then(setBookmarkedIds).catch(console.error);
+    getItemStatuses("principle").then(setItemStatuses).catch(console.error);
   }, []);
 
-  const handleToggleBookmark = async (id: string, title: string) => {
-    const added = await toggleBookmark("principle", id, title);
-    setBookmarkedIds(prev => {
-      const next = new Set(prev);
-      if (added) next.add(id); else next.delete(id);
-      return next;
-    });
+  const handleContextMenu = (e: React.MouseEvent, id: string, title: string) => {
+    e.preventDefault();
+    setStatusMenu({ x: e.clientX, y: e.clientY, id, title });
+  };
+
+  const handleSetStatus = async (status: ItemStatus) => {
+    if (!statusMenu) return;
+    try {
+      await setItemStatus("principle", statusMenu.id, statusMenu.title, status);
+      setItemStatuses(prev => new Map(prev).set(statusMenu.id, status));
+    } catch (err) { console.error("Error setting status:", err); }
+    setStatusMenu(null);
+  };
+
+  const handleRemoveStatus = async () => {
+    if (!statusMenu) return;
+    try {
+      await removeItemStatus("principle", statusMenu.id);
+      setItemStatuses(prev => { const next = new Map(prev); next.delete(statusMenu.id); return next; });
+    } catch (err) { console.error("Error removing status:", err); }
+    setStatusMenu(null);
   };
 
   useEffect(() => {
@@ -201,6 +236,71 @@ export default function ModeloDeJuegoPage() {
     }
   };
 
+  // ---- Context CRUD handlers ----
+  const handleCreateContext = async () => {
+    if (!newContextName.trim()) return;
+    try {
+      const newCtx = await createTeamContext(newContextName.trim(), newContextDesc.trim());
+      setContexts((prev) => [...prev, newCtx]);
+      setNewContextName("");
+      setNewContextDesc("");
+      setAddingContext(false);
+    } catch (err) { console.error("Error creating context:", err); }
+  };
+
+  const handleUpdateContext = async (id: string) => {
+    try {
+      await updateTeamContext(id, { name: editContextName.trim(), description: editContextDesc.trim() });
+      setContexts((prev) => prev.map((c) => c.id === id ? { ...c, name: editContextName.trim(), description: editContextDesc.trim() } : c));
+      setEditingContextId(null);
+    } catch (err) { console.error("Error updating context:", err); }
+  };
+
+  const handleDeleteContext = async (id: string) => {
+    if (!confirm("¿Eliminar este contexto de equipo?")) return;
+    try {
+      await deleteTeamContext(id);
+      setContexts((prev) => prev.filter((c) => c.id !== id));
+      if (selectedContext === id && contexts.length > 1) {
+        setSelectedContext(contexts.find((c) => c.id !== id)?.id ?? "");
+      }
+    } catch (err) { console.error("Error deleting context:", err); }
+  };
+
+  // ---- Relation handler ----
+  const handleDuplicatePrinciple = async () => {
+    if (!relatingPrinciple || !relTargetPhase) return;
+    try {
+      await duplicatePrinciple(relatingPrinciple.id, relTargetPhase, relTargetContext ? [relTargetContext] : []);
+      setRelatingPrinciple(null);
+      await loadPrinciples();
+    } catch (err) { console.error("Error duplicating principle:", err); }
+  };
+
+  // Phase icons
+  const PHASE_ICONS: Record<string, React.ReactNode> = {
+    "Fase ofensiva": (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#34d399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 3v14M10 3l4 4M10 3L6 7" /><circle cx="10" cy="17" r="1.5" fill="#34d399" />
+      </svg>
+    ),
+    "Fase defensiva": (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 2L3 5v5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V5l-7-3z" /><path d="M10 5v11" />
+      </svg>
+    ),
+    "Transición ofensiva": (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#fbbf24" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 16l6-6 6 6" /><path d="M10 10V3" /><path d="M7 5l3-3 3 3" />
+      </svg>
+    ),
+    "Transición defensiva": (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4l6 6 6-6" /><path d="M10 10v7" /><path d="M7 15l3 3 3-3" />
+      </svg>
+    ),
+  };
+
   if (loading) {
     return (
       <div className="max-w-6xl flex items-center justify-center h-64">
@@ -235,42 +335,117 @@ export default function ModeloDeJuegoPage() {
 
       {/* Nivel 1: Contexto de equipo */}
       <div className="mb-6">
-        <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-          Contexto de equipo
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+            Contexto de equipo
+          </h2>
+          <button
+            onClick={() => { setAddingContext(true); setNewContextName(""); setNewContextDesc(""); }}
+            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            Nuevo contexto
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2">
           {contexts.map((ctx) => (
-            <button
-              key={ctx.id}
-              onClick={() => setSelectedContext(ctx.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedContext === ctx.id
-                  ? "bg-emerald-600 text-white"
-                  : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-emerald-300"
-              }`}
-            >
-              {ctx.name}
-            </button>
+            <div key={ctx.id} className="relative group">
+              <button
+                onClick={() => setSelectedContext(ctx.id)}
+                onDoubleClick={() => {
+                  setEditingContextId(ctx.id);
+                  setEditContextName(ctx.name);
+                  setEditContextDesc(ctx.description ?? "");
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedContext === ctx.id
+                    ? "bg-emerald-600 text-white"
+                    : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-emerald-300"
+                }`}
+                title="Doble clic para editar"
+              >
+                {ctx.name}
+              </button>
+              {!ctx.is_default && (
+                <button
+                  onClick={() => handleDeleteContext(ctx.id)}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#1a1d27] border border-[#2a2d37] text-gray-500 hover:text-rose-400 hover:border-rose-400 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           ))}
         </div>
-        {activeContext && (
+
+        {/* Add context form */}
+        {addingContext && (
+          <div className="mt-3 bg-[#1a1d27] border border-[#2a2d37] rounded-lg p-3 flex flex-col gap-2">
+            <input
+              autoFocus
+              value={newContextName}
+              onChange={(e) => setNewContextName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreateContext(); if (e.key === "Escape") setAddingContext(false); }}
+              placeholder="Nombre del contexto (ej: Sub-17 España)"
+              className="px-3 py-1.5 border border-[#2a2d37] rounded text-sm focus:outline-none focus:border-emerald-400"
+            />
+            <input
+              value={newContextDesc}
+              onChange={(e) => setNewContextDesc(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreateContext(); if (e.key === "Escape") setAddingContext(false); }}
+              placeholder="Descripción breve (opcional)"
+              className="px-3 py-1.5 border border-[#2a2d37] rounded text-sm focus:outline-none focus:border-emerald-400"
+            />
+            <div className="flex gap-2">
+              <button onClick={handleCreateContext} className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-medium">Crear</button>
+              <button onClick={() => setAddingContext(false)} className="text-xs text-gray-400">Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {/* Edit context modal */}
+        {editingContextId && (
+          <div className="mt-3 bg-[#1a1d27] border border-emerald-600/30 rounded-lg p-3 flex flex-col gap-2">
+            <input
+              autoFocus
+              value={editContextName}
+              onChange={(e) => setEditContextName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleUpdateContext(editingContextId); if (e.key === "Escape") setEditingContextId(null); }}
+              className="px-3 py-1.5 border border-[#2a2d37] rounded text-sm focus:outline-none focus:border-emerald-400"
+            />
+            <input
+              value={editContextDesc}
+              onChange={(e) => setEditContextDesc(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleUpdateContext(editingContextId); if (e.key === "Escape") setEditingContextId(null); }}
+              placeholder="Descripción"
+              className="px-3 py-1.5 border border-[#2a2d37] rounded text-sm focus:outline-none focus:border-emerald-400"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => handleUpdateContext(editingContextId)} className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-medium">Guardar</button>
+              <button onClick={() => setEditingContextId(null)} className="text-xs text-gray-400">Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {activeContext && !editingContextId && (
           <p className="text-sm text-gray-500 mt-2">{activeContext.description}</p>
         )}
       </div>
 
-      {/* Nivel 2: Fases del juego */}
+      {/* Nivel 2: Fases del juego (sin ABP — tiene página propia) */}
       <div className="mb-6">
         <div className="flex border-b border-[#2a2d37]">
-          {phases.map((phase) => (
+          {phases.filter((p) => p.name !== "ABP").map((phase) => (
             <button
               key={phase.id}
               onClick={() => setSelectedPhase(phase.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 selectedPhase === phase.id
                   ? "border-emerald-600 text-emerald-600"
                   : "border-transparent text-gray-500 hover:text-gray-300"
               }`}
             >
+              {PHASE_ICONS[phase.name] && <span className="flex-shrink-0">{PHASE_ICONS[phase.name]}</span>}
               {phase.name}
             </button>
           ))}
@@ -315,6 +490,7 @@ export default function ModeloDeJuegoPage() {
           <div
             key={principle.id}
             className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden"
+            onContextMenu={(e) => handleContextMenu(e, principle.id, principle.name)}
           >
             {/* Principio */}
             <div className="p-4 border-b border-[#22252f] flex items-center justify-between">
@@ -329,12 +505,18 @@ export default function ModeloDeJuegoPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
+                {itemStatuses.has(principle.id) && <StatusBadge status={itemStatuses.get(principle.id)!} />}
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleToggleBookmark(principle.id, principle.name); }}
-                  className="text-lg hover:scale-110 transition-transform"
-                  title={bookmarkedIds.has(principle.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
+                  onClick={() => {
+                    setRelatingPrinciple(principle);
+                    setRelTargetPhase("");
+                    setRelTargetContext(selectedContext);
+                  }}
+                  className="text-xs text-violet-400 hover:text-violet-300 font-medium flex items-center gap-1"
+                  title="Duplicar en otra fase o contexto"
                 >
-                  {bookmarkedIds.has(principle.id) ? <span className="text-emerald-400">🔄</span> : <span className="text-gray-600">🔄</span>}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M7 7h10v10" /><path d="M7 7L17 17" /></svg>
+                  Relacionar
                 </button>
                 <button
                   onClick={() => {
@@ -559,6 +741,72 @@ export default function ModeloDeJuegoPage() {
           </button>
         )}
       </div>
+
+      {/* Modal: Relacionar principio */}
+      {relatingPrinciple && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={() => setRelatingPrinciple(null)}>
+          <div className="bg-[#1a1d27] border border-[#2a2d37] rounded-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-200 mb-1">Relacionar principio</h3>
+            <p className="text-xs text-gray-500 mb-4">Se creará una copia independiente de <span className="text-emerald-400">&ldquo;{relatingPrinciple.name}&rdquo;</span> con sus subprincipios y comportamientos en la fase y contexto seleccionados.</p>
+
+            <label className="text-xs text-gray-400 font-medium block mb-1.5">Fase destino</label>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {phases.filter((p) => p.name !== "ABP").map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setRelTargetPhase(p.id)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    relTargetPhase === p.id
+                      ? "bg-violet-600 text-white"
+                      : "bg-[#22252f] border border-[#2a2d37] text-gray-400 hover:border-violet-400"
+                  }`}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+
+            <label className="text-xs text-gray-400 font-medium block mb-1.5">Contexto destino</label>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {contexts.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setRelTargetContext(c.id)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    relTargetContext === c.id
+                      ? "bg-violet-600 text-white"
+                      : "bg-[#22252f] border border-[#2a2d37] text-gray-400 hover:border-violet-400"
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setRelatingPrinciple(null)} className="px-4 py-2 text-xs text-gray-400 hover:text-gray-300">Cancelar</button>
+              <button
+                onClick={handleDuplicatePrinciple}
+                disabled={!relTargetPhase}
+                className="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-medium disabled:opacity-40"
+              >
+                Duplicar principio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {statusMenu && (
+        <StatusMenu
+          x={statusMenu.x}
+          y={statusMenu.y}
+          currentStatus={itemStatuses.get(statusMenu.id) ?? null}
+          onSelect={handleSetStatus}
+          onRemove={handleRemoveStatus}
+          onClose={() => setStatusMenu(null)}
+        />
+      )}
     </div>
   );
 }

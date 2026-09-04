@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getNotes, createNote, updateNote, deleteNote, toggleBookmark, getBookmarkedIds } from "@/lib/api";
+import { getNotes, createNote, updateNote, deleteNote, setItemStatus, removeItemStatus, getItemStatuses } from "@/lib/api";
+import type { ItemStatus } from "@/lib/api";
 import type { Note, NoteType } from "@/types";
+import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
 
 
 const NOTE_TYPE_LABELS: Record<NoteType, { label: string; color: string }> = {
@@ -26,7 +28,8 @@ export default function NotasPage() {
   const [editContent, setEditContent] = useState("");
   const [editType, setEditType] = useState<NoteType>("free");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
+  const [statusMenu, setStatusMenu] = useState<{x: number; y: number; id: string; title: string} | null>(null);
 
   const load = async () => {
     try {
@@ -41,16 +44,30 @@ export default function NotasPage() {
 
   useEffect(() => {
     load();
-    getBookmarkedIds("note").then(setBookmarkedIds).catch(console.error);
+    getItemStatuses("note").then(setItemStatuses).catch(console.error);
   }, []);
 
-  const handleToggleBookmark = async (id: string, title: string) => {
-    const added = await toggleBookmark("note", id, title);
-    setBookmarkedIds(prev => {
-      const next = new Set(prev);
-      if (added) next.add(id); else next.delete(id);
-      return next;
-    });
+  const handleContextMenu = (e: React.MouseEvent, id: string, title: string) => {
+    e.preventDefault();
+    setStatusMenu({ x: e.clientX, y: e.clientY, id, title });
+  };
+
+  const handleSetStatus = async (status: ItemStatus) => {
+    if (!statusMenu) return;
+    try {
+      await setItemStatus("note", statusMenu.id, statusMenu.title, status);
+      setItemStatuses(prev => new Map(prev).set(statusMenu.id, status));
+    } catch (err) { console.error("Error setting status:", err); }
+    setStatusMenu(null);
+  };
+
+  const handleRemoveStatus = async () => {
+    if (!statusMenu) return;
+    try {
+      await removeItemStatus("note", statusMenu.id);
+      setItemStatuses(prev => { const next = new Map(prev); next.delete(statusMenu.id); return next; });
+    } catch (err) { console.error("Error removing status:", err); }
+    setStatusMenu(null);
   };
 
   useEffect(() => {
@@ -223,6 +240,7 @@ export default function NotasPage() {
               <div
                 key={note.id}
                 className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 group"
+                onContextMenu={(e) => handleContextMenu(e, note.id, note.title)}
               >
                 {editingId === note.id ? (
                   <div>
@@ -287,13 +305,7 @@ export default function NotasPage() {
                           {new Date(note.created_at).toLocaleDateString("es-ES")}
                         </span>
                         <div className="flex items-center gap-1">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleToggleBookmark(note.id, note.title); }}
-                            className="text-lg hover:scale-110 transition-transform"
-                            title={bookmarkedIds.has(note.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
-                          >
-                            {bookmarkedIds.has(note.id) ? <span className="text-emerald-400">🔄</span> : <span className="text-gray-600">🔄</span>}
-                          </button>
+                          {itemStatuses.has(note.id) && <StatusBadge status={itemStatuses.get(note.id)!} />}
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => {
@@ -330,6 +342,17 @@ export default function NotasPage() {
             );
           })}
         </div>
+      )}
+
+      {statusMenu && (
+        <StatusMenu
+          x={statusMenu.x}
+          y={statusMenu.y}
+          currentStatus={itemStatuses.get(statusMenu.id) ?? null}
+          onSelect={handleSetStatus}
+          onRemove={handleRemoveStatus}
+          onClose={() => setStatusMenu(null)}
+        />
       )}
     </div>
   );

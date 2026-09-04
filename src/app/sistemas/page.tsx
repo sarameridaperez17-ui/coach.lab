@@ -9,10 +9,13 @@ import {
   saveSystemPositions,
   createSystemVariant,
   deleteSystemVariant,
-  toggleBookmark,
-  getBookmarkedIds,
+  setItemStatus,
+  removeItemStatus,
+  getItemStatuses,
 } from "@/lib/api";
+import type { ItemStatus } from "@/lib/api";
 import type { GameSystem, GameSystemVariant } from "@/types";
+import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
 
 
 const DEFAULT_POSITIONS = [
@@ -50,7 +53,8 @@ export default function SistemasPage() {
 
   // Crear nuevo
   const [creating, setCreating] = useState(false);
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
+  const [statusMenu, setStatusMenu] = useState<{x: number; y: number; id: string; title: string} | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -67,16 +71,30 @@ export default function SistemasPage() {
 
   useEffect(() => {
     load();
-    getBookmarkedIds("system").then(setBookmarkedIds).catch(console.error);
+    getItemStatuses("system").then(setItemStatuses).catch(console.error);
   }, [load]);
 
-  const handleToggleBookmark = async (id: string, title: string) => {
-    const added = await toggleBookmark("system", id, title);
-    setBookmarkedIds(prev => {
-      const next = new Set(prev);
-      if (added) next.add(id); else next.delete(id);
-      return next;
-    });
+  const handleContextMenu = (e: React.MouseEvent, id: string, title: string) => {
+    e.preventDefault();
+    setStatusMenu({ x: e.clientX, y: e.clientY, id, title });
+  };
+
+  const handleSetStatus = async (status: ItemStatus) => {
+    if (!statusMenu) return;
+    try {
+      await setItemStatus("system", statusMenu.id, statusMenu.title, status);
+      setItemStatuses(prev => new Map(prev).set(statusMenu.id, status));
+    } catch (err) { console.error("Error setting status:", err); }
+    setStatusMenu(null);
+  };
+
+  const handleRemoveStatus = async () => {
+    if (!statusMenu) return;
+    try {
+      await removeItemStatus("system", statusMenu.id);
+      setItemStatuses(prev => { const next = new Map(prev); next.delete(statusMenu.id); return next; });
+    } catch (err) { console.error("Error removing status:", err); }
+    setStatusMenu(null);
   };
 
   useEffect(() => {
@@ -260,7 +278,7 @@ export default function SistemasPage() {
       {systems.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
           {systems.map((sys) => (
-            <div key={sys.id} className="flex items-center gap-1">
+            <div key={sys.id} className="flex items-center gap-1" onContextMenu={(e) => handleContextMenu(e, sys.id, sys.name)}>
               <button
                 onClick={() => selectSystem(sys)}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -271,13 +289,7 @@ export default function SistemasPage() {
               >
                 {sys.name}
               </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleToggleBookmark(sys.id, sys.name); }}
-                className="text-lg hover:scale-110 transition-transform"
-                title={bookmarkedIds.has(sys.id) ? "Quitar de Continuar trabajando" : "Añadir a Continuar trabajando"}
-              >
-                {bookmarkedIds.has(sys.id) ? <span className="text-emerald-400">🔄</span> : <span className="text-gray-600">🔄</span>}
-              </button>
+              {itemStatuses.has(sys.id) && <StatusBadge status={itemStatuses.get(sys.id)!} />}
             </div>
           ))}
         </div>
@@ -520,6 +532,17 @@ export default function SistemasPage() {
               : "Haz clic en uno de los sistemas de arriba para editarlo."}
           </p>
         </div>
+      )}
+
+      {statusMenu && (
+        <StatusMenu
+          x={statusMenu.x}
+          y={statusMenu.y}
+          currentStatus={itemStatuses.get(statusMenu.id) ?? null}
+          onSelect={handleSetStatus}
+          onRemove={handleRemoveStatus}
+          onClose={() => setStatusMenu(null)}
+        />
       )}
     </div>
   );

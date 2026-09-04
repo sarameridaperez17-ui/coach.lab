@@ -11,8 +11,10 @@ import {
   getBookmarks,
   getBookmarkHref,
   getBookmarkTypeLabel,
+  removeItemStatus,
+  STATUS_CONFIG,
 } from "@/lib/api";
-import type { SearchResult, RecentModification, Bookmark } from "@/lib/api";
+import type { SearchResult, RecentModification, Bookmark, ItemStatus } from "@/lib/api";
 import type { Note } from "@/types";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -111,6 +113,15 @@ export default function HomePage() {
     getRecentModifications(5).then(setRecentMods).catch(console.error);
     getBookmarks().then(setBookmarks).catch(console.error);
   }, []);
+
+  const handleRemoveBookmark = async (itemType: string, itemId: string) => {
+    try {
+      await removeItemStatus(itemType, itemId);
+      setBookmarks((prev) => prev.filter((b) => !(b.item_type === itemType && b.item_id === itemId)));
+    } catch (err) {
+      console.error("Error removing status:", err);
+    }
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -229,41 +240,97 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Middle row: 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        {/* Continuar trabajando */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Continuar trabajando</h3>
-          {bookmarks.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">Marca elementos con 🔄 para verlos aqui</p>
-          ) : (
-            <div className="space-y-3">
-              {bookmarks.map((bk) => (
-                <Link
-                  key={bk.id}
-                  href={getBookmarkHref(bk.item_type)}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-[#22252f] hover:bg-[#2a2d37] transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-emerald-400 text-sm">
-                      {bk.item_type === "principle" ? "◈" : bk.item_type === "system" ? "⬢" : bk.item_type === "task" ? "▣" : bk.item_type === "abp" ? "◎" : bk.item_type === "note" ? "▥" : bk.item_type === "tactical_concept" ? "◆" : "▤"}
-                    </span>
+      {/* Status cards row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {(["working", "favorite", "focus", "paused"] as ItemStatus[]).map((st) => {
+          const cfg = STATUS_CONFIG[st];
+          const items = bookmarks.filter((bk) => bk.status === st);
+          const TITLES: Record<ItemStatus, string> = {
+            working: "Continuar trabajando",
+            favorite: "Favorito",
+            focus: "Foco",
+            paused: "En pausa",
+          };
+          const ICONS: Record<ItemStatus, React.ReactNode> = {
+            working: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+            ),
+            favorite: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            ),
+            focus: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            ),
+            paused: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" />
+              </svg>
+            ),
+          };
+          return (
+            <div key={st} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5 flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.hex }} />
+                <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: cfg.hex }}>{TITLES[st]}</h3>
+                {items.length > 0 && (
+                  <span className="text-[10px] text-gray-600 ml-auto">{items.length}</span>
+                )}
+              </div>
+              {items.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center py-6">
+                  <div className="text-center">
+                    <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center" style={{ backgroundColor: `${cfg.hex}10` }}>
+                      <span style={{ color: `${cfg.hex}50` }}>{ICONS[st]}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-600">Sin elementos</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-200 truncate">{bk.item_title}</p>
-                    <p className="text-[10px] text-gray-500">{getBookmarkTypeLabel(bk.item_type)}</p>
-                  </div>
-                  <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              ))}
+                </div>
+              ) : (
+                <div className="space-y-1.5 flex-1">
+                  {items.map((bk) => (
+                    <div
+                      key={bk.id}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#22252f] hover:bg-[#2a2d37] transition-colors group"
+                    >
+                      <Link href={getBookmarkHref(bk.item_type)} className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${cfg.hex}15` }}>
+                          <span style={{ color: cfg.hex }} className="text-[10px]">
+                            {bk.item_type === "principle" ? "◈" : bk.item_type === "system" ? "⬢" : bk.item_type === "task" ? "▣" : bk.item_type === "abp" ? "◎" : bk.item_type === "note" ? "▥" : bk.item_type === "tactical_concept" ? "◆" : "▤"}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-200 truncate">{bk.item_title}</p>
+                          <p className="text-[10px] text-gray-500">{getBookmarkTypeLabel(bk.item_type)}</p>
+                        </div>
+                      </Link>
+                      <button
+                        onClick={() => handleRemoveBookmark(bk.item_type, bk.item_id)}
+                        className="p-1 rounded-md text-gray-600 hover:text-rose-400 hover:bg-rose-400/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                        title="Quitar estado"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })}
+      </div>
 
+      {/* Middle row: Ultimos cambios + Acceso rapido */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
         {/* Ultimos cambios */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
+        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5 lg:col-span-2">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Ultimos cambios</h3>
           {recentMods.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-4">Sin cambios registrados</p>
