@@ -16,7 +16,6 @@ const NAV_SECTIONS = [
   {
     title: "CONOCIMIENTO",
     items: [
-      { href: "/conceptos-tacticos", label: "Conceptos tácticos", icon: "◆" },
       { href: "/glosario", label: "Diccionario táctico", icon: "▤" },
     ],
   },

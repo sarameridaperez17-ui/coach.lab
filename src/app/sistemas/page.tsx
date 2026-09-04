@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getGameSystems,
   createGameSystem,
@@ -12,11 +12,18 @@ import {
   setItemStatus,
   removeItemStatus,
   getItemStatuses,
+  getTasks,
+  getBookmarksByStatus,
 } from "@/lib/api";
-import type { ItemStatus } from "@/lib/api";
-import type { GameSystem, GameSystemVariant } from "@/types";
+import type { ItemStatus, Bookmark } from "@/lib/api";
+import type { GameSystem, GameSystemVariant, Task } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
 
+
+// Position labels for right-click dropdown
+const POSITION_LABELS = [
+  "PT", "CT", "CL", "CC", "LT", "MC", "IN", "MP", "Ca", "EX", "DC", "DP",
+];
 
 const DEFAULT_POSITIONS = [
   { player_index: 1, label: "PT", x: 50, y: 93 },
@@ -44,8 +51,16 @@ export default function SistemasPage() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formDesc, setFormDesc] = useState("");
-  const [editingLabel, setEditingLabel] = useState<number | null>(null);
-  const [labelInput, setLabelInput] = useState("");
+  const [formStrongSpaces, setFormStrongSpaces] = useState("");
+  const [formWeakSpaces, setFormWeakSpaces] = useState("");
+
+  // Position label dropdown (right-click on player)
+  const [labelDropdown, setLabelDropdown] = useState<{
+    playerIndex: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Variantes
   const [variantName, setVariantName] = useState("");
@@ -55,6 +70,10 @@ export default function SistemasPage() {
   const [creating, setCreating] = useState(false);
   const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
   const [statusMenu, setStatusMenu] = useState<{x: number; y: number; id: string; title: string} | null>(null);
+
+  // Sidebar data
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [favTaskIds, setFavTaskIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -72,7 +91,23 @@ export default function SistemasPage() {
   useEffect(() => {
     load();
     getItemStatuses("system").then(setItemStatuses).catch(console.error);
+    getTasks().then(setAllTasks).catch(console.error);
+    getBookmarksByStatus("favorite").then((bks: Bookmark[]) => {
+      setFavTaskIds(new Set(bks.filter(b => b.item_type === "task").map(b => b.item_id)));
+    }).catch(console.error);
   }, [load]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!labelDropdown) return;
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setLabelDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [labelDropdown]);
 
   const handleContextMenu = (e: React.MouseEvent, id: string, title: string) => {
     e.preventDefault();
@@ -110,6 +145,8 @@ export default function SistemasPage() {
     setSelectedId(sys.id);
     setFormName(sys.name);
     setFormDesc(sys.description || "");
+    setFormStrongSpaces(sys.strong_spaces || "");
+    setFormWeakSpaces(sys.weak_spaces || "");
     if (sys.positions && sys.positions.length > 0) {
       setPlayers(
         sys.positions
@@ -162,6 +199,28 @@ export default function SistemasPage() {
     }
   };
 
+  // Right-click on player to change label
+  const handlePlayerContextMenu = (e: React.MouseEvent, playerIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLabelDropdown({ playerIndex, x: e.clientX, y: e.clientY });
+  };
+
+  const handleLabelSelect = async (playerIndex: number, newLabel: string) => {
+    const updated = players.map((p) =>
+      p.player_index === playerIndex ? { ...p, label: newLabel } : p
+    );
+    setPlayers(updated);
+    setLabelDropdown(null);
+    if (selectedId) {
+      try {
+        await saveSystemPositions(selectedId, updated);
+      } catch (err) {
+        console.error("Error saving label:", err);
+      }
+    }
+  };
+
   // CRUD
   const handleCreate = async () => {
     if (!formName.trim()) return;
@@ -181,6 +240,8 @@ export default function SistemasPage() {
       await updateGameSystem(selectedId, {
         name: formName.trim(),
         description: formDesc.trim(),
+        strong_spaces: formStrongSpaces.trim(),
+        weak_spaces: formWeakSpaces.trim(),
       });
       await load();
     } catch (err) {
@@ -196,6 +257,8 @@ export default function SistemasPage() {
         setSelectedId(null);
         setFormName("");
         setFormDesc("");
+        setFormStrongSpaces("");
+        setFormWeakSpaces("");
         setPlayers(DEFAULT_POSITIONS);
       }
       await load();
@@ -225,39 +288,21 @@ export default function SistemasPage() {
     }
   };
 
-  const handleLabelSave = async (playerIndex: number) => {
-    setPlayers((prev) =>
-      prev.map((p) =>
-        p.player_index === playerIndex ? { ...p, label: labelInput.trim() || p.label } : p
-      )
-    );
-    setEditingLabel(null);
-    // Auto-save
-    if (selectedId) {
-      const updated = players.map((p) =>
-        p.player_index === playerIndex ? { ...p, label: labelInput.trim() || p.label } : p
-      );
-      try {
-        await saveSystemPositions(selectedId, updated);
-      } catch (err) {
-        console.error("Error saving label:", err);
-      }
-    }
-  };
-
   const selectedSystem = systems.find((s) => s.id === selectedId);
   const selectedVariants: GameSystemVariant[] = selectedSystem?.variants ?? [];
 
+  const systemFavTasks = allTasks.filter(t => favTaskIds.has(t.id)).slice(0, 5);
+
   if (loading) {
     return (
-      <div className="max-w-6xl flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64">
         <p className="text-gray-400">Cargando sistemas...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl">
+    <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-200">Sistemas de juego</h1>
         <button
@@ -266,6 +311,8 @@ export default function SistemasPage() {
             setSelectedId(null);
             setFormName("");
             setFormDesc("");
+            setFormStrongSpaces("");
+            setFormWeakSpaces("");
             setPlayers(DEFAULT_POSITIONS);
           }}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
@@ -297,226 +344,232 @@ export default function SistemasPage() {
 
       {/* Contenido principal */}
       {(selectedId || creating) ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Campograma */}
-          <div className="lg:col-span-2">
+        <div className="flex gap-6">
+          {/* LEFT: Campograma */}
+          <div className="flex-1 min-w-0">
             <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-                Campograma — arrastra las jugadoras · doble-clic para cambiar etiqueta
-              </h3>
-              <svg
-                viewBox="0 0 100 140"
-                className="w-full rounded-lg select-none"
-                style={{ background: "#2d8a4e" }}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-              >
-                {/* Campo */}
-                <rect x="2" y="2" width="96" height="136" rx="1" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.4" />
-                <line x1="2" y1="70" x2="98" y2="70" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-                <circle cx="50" cy="70" r="12" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-                <circle cx="50" cy="70" r="0.6" fill="rgba(255,255,255,0.5)" />
-                <rect x="18" y="2" width="64" height="22" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-                <rect x="30" y="2" width="40" height="8" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-                <circle cx="50" cy="16" r="0.5" fill="rgba(255,255,255,0.5)" />
-                <rect x="18" y="116" width="64" height="22" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-                <rect x="30" y="130" width="40" height="8" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-                <circle cx="50" cy="124" r="0.5" fill="rgba(255,255,255,0.5)" />
+              <div className="flex justify-center">
+                <svg
+                  viewBox="0 0 68 80"
+                  className="w-full rounded-lg select-none"
+                  style={{ background: "#1a5c2e", maxWidth: 480 }}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
+                  {/* Field outline */}
+                  <rect x="2" y="2" width="64" height="76" rx="1" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.3" />
 
-                {/* Jugadoras */}
-                {players.map((player) => {
-                  const fieldY = (player.y / 100) * 136 + 2;
-                  const fieldX = (player.x / 100) * 96 + 2;
-                  return (
-                    <g
-                      key={player.player_index}
-                      onMouseDown={() => handleMouseDown(player.player_index)}
-                      onDoubleClick={() => {
-                        setEditingLabel(player.player_index);
-                        setLabelInput(player.label);
-                      }}
-                      style={{ cursor: "grab" }}
-                    >
-                      <circle
-                        cx={fieldX}
-                        cy={fieldY}
-                        r="3.5"
-                        fill={dragging === player.player_index ? "#818cf8" : "#4f46e5"}
-                        stroke="white"
-                        strokeWidth="0.5"
-                      />
-                      <text
-                        x={fieldX}
-                        y={fieldY + 1.2}
-                        textAnchor="middle"
-                        fill="white"
-                        fontSize="2.8"
-                        fontWeight="bold"
-                        style={{ pointerEvents: "none" }}
+                  {/* Goals */}
+                  {/* Top goal (attack) */}
+                  <rect x="27" y="0" width="14" height="2" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
+                  {/* Bottom goal (defense) */}
+                  <rect x="27" y="78" width="14" height="2" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
+
+                  {/* Center line */}
+                  <line x1="2" y1="40" x2="66" y2="40" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <circle cx="34" cy="40" r="7" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <circle cx="34" cy="40" r="0.5" fill="rgba(255,255,255,0.4)" />
+
+                  {/* Top penalty area (attack) */}
+                  <rect x="14" y="2" width="40" height="12" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <rect x="22" y="2" width="24" height="4.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <circle cx="34" cy="9.5" r="0.4" fill="rgba(255,255,255,0.4)" />
+                  {/* Top penalty arc (semicircle outside area) */}
+                  <path d="M 25 14 A 9 9 0 0 0 43 14" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+
+                  {/* Bottom penalty area (defense) */}
+                  <rect x="14" y="66" width="40" height="12" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <rect x="22" y="73.5" width="24" height="4.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <circle cx="34" cy="70.5" r="0.4" fill="rgba(255,255,255,0.4)" />
+                  {/* Bottom penalty arc (semicircle outside area) */}
+                  <path d="M 25 66 A 9 9 0 0 1 43 66" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+
+                  {/* Corner arcs */}
+                  <path d="M 2 4 A 2 2 0 0 0 4 2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <path d="M 64 2 A 2 2 0 0 0 66 4" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <path d="M 2 76 A 2 2 0 0 1 4 78" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+                  <path d="M 64 78 A 2 2 0 0 1 66 76" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
+
+                  {/* Players */}
+                  {players.map((player) => {
+                    const fieldX = (player.x / 100) * 64 + 2;
+                    const fieldY = (player.y / 100) * 76 + 2;
+                    return (
+                      <g
+                        key={player.player_index}
+                        onMouseDown={() => handleMouseDown(player.player_index)}
+                        onContextMenu={(e) => handlePlayerContextMenu(e, player.player_index)}
+                        style={{ cursor: dragging === player.player_index ? "grabbing" : "grab" }}
                       >
-                        {player.label}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {/* Editar etiqueta jugadora */}
-              {editingLabel !== null && (
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Jugadora #{editingLabel}:</span>
-                  <input
-                    autoFocus
-                    value={labelInput}
-                    onChange={(e) => setLabelInput(e.target.value.toUpperCase().slice(0, 3))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleLabelSave(editingLabel);
-                      if (e.key === "Escape") setEditingLabel(null);
-                    }}
-                    className="w-20 px-2 py-1 border border-[#2a2d37] rounded text-sm text-center uppercase"
-                    maxLength={3}
-                  />
-                  <button
-                    onClick={() => handleLabelSave(editingLabel)}
-                    className="px-2 py-1 bg-indigo-600 text-white rounded text-xs"
-                  >
-                    OK
-                  </button>
-                  <button
-                    onClick={() => setEditingLabel(null)}
-                    className="px-2 py-1 bg-[#22252f] text-gray-500 rounded text-xs"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )}
+                        <circle
+                          cx={fieldX}
+                          cy={fieldY}
+                          r="3"
+                          fill={dragging === player.player_index ? "#818cf8" : "#4f46e5"}
+                          stroke="white"
+                          strokeWidth="0.4"
+                        />
+                        <text
+                          x={fieldX}
+                          y={fieldY + 0.9}
+                          textAnchor="middle"
+                          fill="white"
+                          fontSize="2.2"
+                          fontWeight="bold"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {player.label}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
             </div>
           </div>
 
-          {/* Panel lateral */}
-          <div className="space-y-4">
-            <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-              <h3 className="font-semibold text-gray-200 mb-3">
-                {creating ? "Nuevo sistema" : "Sistema"}
-              </h3>
-              <input
-                type="text"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Ej: 1-4-3-3"
-                className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 mb-3"
-              />
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                Descripción
-              </h4>
-              <textarea
-                value={formDesc}
-                onChange={(e) => setFormDesc(e.target.value)}
-                placeholder="Describe las características principales del sistema..."
-                rows={4}
-                className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 resize-none mb-3"
-              />
-              <div className="flex gap-2">
-                {creating ? (
-                  <>
-                    <button
-                      onClick={handleCreate}
-                      className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700"
-                    >
-                      Crear sistema
-                    </button>
-                    <button
-                      onClick={() => setCreating(false)}
-                      className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
-                    >
-                      Cancelar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleUpdateInfo}
-                      className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700"
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      onClick={() => selectedId && handleDelete(selectedId)}
-                      className="px-3 py-1.5 bg-red-900/20 text-red-400 rounded text-sm hover:bg-red-900/30"
-                    >
-                      Eliminar
-                    </button>
-                  </>
-                )}
+          {/* RIGHT: Sidebar */}
+          <div className="w-72 flex-shrink-0 space-y-4">
+            {/* System info */}
+            <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#22252f]">
+                <h3 className="text-sm font-semibold text-gray-200">
+                  {creating ? "Nuevo sistema" : "Información del sistema"}
+                </h3>
+              </div>
+              <div className="p-4">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Nombre</label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Ej: 1-4-3-3"
+                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 mb-3"
+                />
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Espacios fuertes</label>
+                <textarea
+                  value={formStrongSpaces}
+                  onChange={(e) => setFormStrongSpaces(e.target.value)}
+                  placeholder="Espacios de superioridad del sistema..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
+                />
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Espacios débiles</label>
+                <textarea
+                  value={formWeakSpaces}
+                  onChange={(e) => setFormWeakSpaces(e.target.value)}
+                  placeholder="Espacios vulnerables del sistema..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
+                />
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Descripción</label>
+                <textarea
+                  value={formDesc}
+                  onChange={(e) => setFormDesc(e.target.value)}
+                  placeholder="Características principales del sistema..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
+                />
+                <div className="flex gap-2">
+                  {creating ? (
+                    <>
+                      <button onClick={handleCreate} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700">Crear sistema</button>
+                      <button onClick={() => setCreating(false)} className="text-xs text-gray-400">Cancelar</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={handleUpdateInfo} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700">Guardar</button>
+                      <button onClick={() => selectedId && handleDelete(selectedId)} className="px-3 py-1.5 bg-red-900/20 text-red-400 rounded text-xs hover:bg-red-900/30">Eliminar</button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Variantes — solo si estamos editando un sistema existente */}
+            {/* Variantes */}
             {selectedId && (
-              <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-200">Variantes</h3>
+              <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#22252f] flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-200">Variantes</h3>
                   <button
                     onClick={() => setAddingVariant(true)}
-                    className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
                   >
                     + Añadir
                   </button>
                 </div>
-
-                {addingVariant && (
-                  <div className="mb-3">
-                    <input
-                      autoFocus
-                      value={variantName}
-                      onChange={(e) => setVariantName(e.target.value)}
-                      placeholder="Nombre de la variante"
-                      className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAddVariant();
-                        if (e.key === "Escape") { setAddingVariant(false); setVariantName(""); }
-                      }}
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleAddVariant}
-                        className="px-2 py-1 bg-indigo-600 text-white rounded text-xs"
-                      >
-                        Crear
-                      </button>
-                      <button
-                        onClick={() => { setAddingVariant(false); setVariantName(""); }}
-                        className="px-2 py-1 bg-[#22252f] text-gray-500 rounded text-xs"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {selectedVariants.length === 0 && !addingVariant ? (
-                  <div className="border border-dashed border-[#2a2d37] rounded-lg p-4 text-center text-gray-400 text-sm">
-                    Sin variantes definidas
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedVariants.map((v) => (
-                      <div
-                        key={v.id}
-                        className="flex items-center justify-between px-3 py-2 bg-[#22252f] rounded-lg group"
-                      >
-                        <span className="text-sm text-gray-300">{v.name}</span>
-                        <button
-                          onClick={() => handleDeleteVariant(v.id)}
-                          className="text-xs text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          ✕
-                        </button>
+                <div className="p-3">
+                  {addingVariant && (
+                    <div className="mb-3">
+                      <input
+                        autoFocus
+                        value={variantName}
+                        onChange={(e) => setVariantName(e.target.value)}
+                        placeholder="Nombre de la variante"
+                        className="w-full px-3 py-1.5 border border-[#2a2d37] rounded text-sm mb-2 focus:outline-none focus:border-indigo-400"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddVariant();
+                          if (e.key === "Escape") { setAddingVariant(false); setVariantName(""); }
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={handleAddVariant} className="px-2 py-1 bg-indigo-600 text-white rounded text-xs">Crear</button>
+                        <button onClick={() => { setAddingVariant(false); setVariantName(""); }} className="text-xs text-gray-400">Cancelar</button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  )}
+                  {selectedVariants.length === 0 && !addingVariant ? (
+                    <p className="text-xs text-gray-500 text-center py-3">Sin variantes definidas</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {selectedVariants.map((v) => (
+                        <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-[#22252f] rounded-lg group">
+                          <span className="text-xs text-gray-300">{v.name}</span>
+                          <button
+                            onClick={() => handleDeleteVariant(v.id)}
+                            className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tareas asociadas */}
+            {selectedId && (
+              <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#22252f]">
+                  <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
+                    </svg>
+                    Tareas destacadas
+                  </h3>
+                </div>
+                <div className="p-3">
+                  {systemFavTasks.length > 0 ? (
+                    <div className="space-y-2">
+                      {systemFavTasks.map(task => (
+                        <div key={task.id} className="bg-[#22252f] rounded-lg px-3 py-2">
+                          <p className="text-xs font-medium text-gray-300 line-clamp-2">{task.name}</p>
+                          {task.duration_minutes > 0 && (
+                            <p className="text-[10px] text-gray-500 mt-1">{task.duration_minutes} min</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-3">
+                      <p className="text-xs text-gray-500">Sin tareas favoritas</p>
+                      <p className="text-[10px] text-gray-600 mt-1">Marca tareas con ★ para verlas aquí</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -531,6 +584,40 @@ export default function SistemasPage() {
               ? "Crea tu primer sistema de juego con el campograma interactivo."
               : "Haz clic en uno de los sistemas de arriba para editarlo."}
           </p>
+        </div>
+      )}
+
+      {/* Position label dropdown (right-click on player) */}
+      {labelDropdown && (
+        <div
+          ref={dropdownRef}
+          className="fixed z-50 bg-[#1a1d27] border border-[#2a2d37] rounded-lg shadow-xl py-1 min-w-[120px]"
+          style={{
+            left: Math.min(labelDropdown.x, window.innerWidth - 140),
+            top: Math.min(labelDropdown.y, window.innerHeight - 300),
+          }}
+        >
+          <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium px-3 py-1.5 border-b border-[#22252f]">
+            Posición #{labelDropdown.playerIndex}
+          </p>
+          <div className="max-h-[240px] overflow-y-auto">
+            {POSITION_LABELS.map((label) => {
+              const current = players.find(p => p.player_index === labelDropdown.playerIndex);
+              const isActive = current?.label === label;
+              return (
+                <button
+                  key={label}
+                  onClick={() => handleLabelSelect(labelDropdown.playerIndex, label)}
+                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-[#22252f] transition-colors flex items-center justify-between ${
+                    isActive ? "text-indigo-400 font-semibold" : "text-gray-300"
+                  }`}
+                >
+                  <span>{label}</span>
+                  {isActive && <span className="text-indigo-400">✓</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

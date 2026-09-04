@@ -36,6 +36,8 @@ export interface Principle {
   name: string;
   description: string;
   game_phase_id: string;
+  block_height_id: string | null;
+  youtube_url: string | null;
   position: number;
   archived: boolean;
   created_at: string;
@@ -52,6 +54,7 @@ export interface SubPrinciple {
   name: string;
   description: string;
   principle_id: string;
+  youtube_url: string | null;
   position: number;
   archived: boolean;
   created_at: string;
@@ -61,7 +64,7 @@ export interface SubPrinciple {
   behaviors?: Behavior[];
 }
 
-export type BehaviorType = 'collective' | 'by_line' | 'individual';
+export type BehaviorType = 'individual' | 'relations' | 'collective';
 
 export interface BehaviorBlockHeight {
   block_height_id: string;
@@ -76,6 +79,7 @@ export interface Behavior {
   name: string;
   description: string;
   type: BehaviorType;
+  youtube_url: string | null;
   sub_principle_id: string;
   position: number;
   archived: boolean;
@@ -223,6 +227,8 @@ export interface GameSystem {
   id: string;
   name: string;
   description: string;
+  strong_spaces: string;
+  weak_spaces: string;
   game_phase_id: string | null;
   archived: boolean;
   created_at: string;
@@ -260,6 +266,12 @@ export interface ABPStrategy {
   title: string;
   description: string;
   key_points: string;
+  image_url: string;
+  execution_type: string;
+  target_zone: string;
+  structure_type: string;
+  protection_zone: string;
+  is_favorite: boolean;
   archived: boolean;
   created_at: string;
   updated_at: string;

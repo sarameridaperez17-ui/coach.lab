@@ -117,7 +117,8 @@ export async function getPrinciples(gamePhaseId: string): Promise<Principle[]> {
 export async function createPrinciple(
   name: string,
   gamePhaseId: string,
-  contextIds: string[]
+  contextIds: string[],
+  blockHeightId?: string | null
 ): Promise<Principle> {
   // Obtener posición máxima
   const { data: existing } = await supabase
@@ -128,9 +129,12 @@ export async function createPrinciple(
     .limit(1);
   const nextPos = existing && existing.length > 0 ? existing[0].position + 1 : 0;
 
+  const insertData: Record<string, unknown> = { name, game_phase_id: gamePhaseId, position: nextPos };
+  if (blockHeightId) insertData.block_height_id = blockHeightId;
+
   const { data, error } = await supabase
     .from("principles")
-    .insert({ name, game_phase_id: gamePhaseId, position: nextPos })
+    .insert(insertData)
     .select()
     .single();
   if (error) throw error;
@@ -149,7 +153,7 @@ export async function createPrinciple(
 
 export async function updatePrinciple(
   id: string,
-  updates: { name?: string; description?: string }
+  updates: { name?: string; description?: string; youtube_url?: string | null }
 ): Promise<void> {
   const { error } = await supabase.from("principles").update(updates).eq("id", id);
   if (error) throw error;
@@ -259,7 +263,7 @@ export async function createSubPrinciple(
 
 export async function updateSubPrinciple(
   id: string,
-  updates: { name?: string; description?: string }
+  updates: { name?: string; description?: string; youtube_url?: string | null }
 ): Promise<void> {
   const { error } = await supabase.from("sub_principles").update(updates).eq("id", id);
   if (error) throw error;
@@ -306,7 +310,7 @@ export async function createBehavior(
 
 export async function updateBehavior(
   id: string,
-  updates: { name?: string; description?: string; type?: BehaviorType }
+  updates: { name?: string; description?: string; type?: BehaviorType; youtube_url?: string | null }
 ): Promise<void> {
   const { error } = await supabase.from("behaviors").update(updates).eq("id", id);
   if (error) throw error;
@@ -640,7 +644,7 @@ export async function createGameSystem(
 
 export async function updateGameSystem(
   id: string,
-  updates: { name?: string; description?: string }
+  updates: { name?: string; description?: string; strong_spaces?: string; weak_spaces?: string }
 ): Promise<void> {
   const { error } = await supabase.from("game_systems").update(updates).eq("id", id);
   if (error) throw error;
@@ -720,6 +724,11 @@ export async function createABPStrategy(strategy: {
   title: string;
   description: string;
   key_points: string;
+  image_url?: string;
+  execution_type?: string;
+  target_zone?: string;
+  structure_type?: string;
+  protection_zone?: string;
 }): Promise<ABPStrategy> {
   const { data, error } = await supabase
     .from("abp_strategies")
@@ -732,7 +741,17 @@ export async function createABPStrategy(strategy: {
 
 export async function updateABPStrategy(
   id: string,
-  updates: { title?: string; description?: string; key_points?: string }
+  updates: {
+    title?: string;
+    description?: string;
+    key_points?: string;
+    image_url?: string;
+    execution_type?: string;
+    target_zone?: string;
+    structure_type?: string;
+    protection_zone?: string;
+    is_favorite?: boolean;
+  }
 ): Promise<void> {
   const { error } = await supabase.from("abp_strategies").update(updates).eq("id", id);
   if (error) throw error;

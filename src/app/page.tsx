@@ -7,14 +7,13 @@ import {
   getModelStats,
   globalSearch,
   getRecentNotes,
-  getRecentModifications,
   getBookmarks,
   getBookmarkHref,
   getBookmarkTypeLabel,
   removeItemStatus,
   STATUS_CONFIG,
 } from "@/lib/api";
-import type { SearchResult, RecentModification, Bookmark, ItemStatus } from "@/lib/api";
+import type { SearchResult, Bookmark, ItemStatus } from "@/lib/api";
 import type { Note } from "@/types";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -58,25 +57,6 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-}
-
-function groupModsByDate(mods: RecentModification[]): Record<string, RecentModification[]> {
-  const groups: Record<string, RecentModification[]> = {};
-  for (const mod of mods) {
-    const d = new Date(mod.updated_at);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
-    let label = "Hoy";
-    if (diff === 1) label = "Ayer";
-    else if (diff > 1) label = `Hace ${diff} dias`;
-    if (!groups[label]) groups[label] = [];
-    groups[label].push(mod);
-  }
-  return groups;
-}
-
 const QUICK_ACTIONS = [
   { label: "Nuevo principio", href: "/modelo-de-juego?crear=1", color: "text-emerald-400" },
   { label: "Nueva tarea", href: "/tareas?crear=1", color: "text-orange-400" },
@@ -100,7 +80,6 @@ export default function HomePage() {
 
   // Recent
   const [recentNotes, setRecentNotes] = useState<Note[]>([]);
-  const [recentMods, setRecentMods] = useState<RecentModification[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
   // Quote
@@ -110,7 +89,6 @@ export default function HomePage() {
   useEffect(() => {
     getModelStats().then(setStats).catch(console.error);
     getRecentNotes(3).then(setRecentNotes).catch(console.error);
-    getRecentModifications(5).then(setRecentMods).catch(console.error);
     getBookmarks().then(setBookmarks).catch(console.error);
   }, []);
 
@@ -147,8 +125,6 @@ export default function HomePage() {
       finally { setSearching(false); }
     }, 300);
   };
-
-  const modGroups = groupModsByDate(recentMods);
 
   return (
     <div className="max-w-7xl">
@@ -327,40 +303,11 @@ export default function HomePage() {
         })}
       </div>
 
-      {/* Middle row: Ultimos cambios + Acceso rapido */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        {/* Ultimos cambios */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5 lg:col-span-2">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Ultimos cambios</h3>
-          {recentMods.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">Sin cambios registrados</p>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(modGroups).map(([dateLabel, mods]) => (
-                <div key={dateLabel}>
-                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">{dateLabel}</p>
-                  <div className="space-y-2">
-                    {mods.map((mod) => (
-                      <Link key={mod.id} href={mod.href} className="flex items-center gap-2 hover:bg-[#22252f] rounded-lg px-2 py-1.5 transition-colors min-w-0">
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-900/30 text-emerald-400 flex-shrink-0">Actualizado</span>
-                        <span className="text-sm text-gray-300 truncate flex-1 min-w-0">{mod.type}: {mod.title}</span>
-                        <span className="text-[10px] text-gray-500 whitespace-nowrap flex-shrink-0">{formatTime(mod.updated_at)}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {recentMods.length > 0 && (
-            <p className="text-xs text-emerald-500 text-center mt-4 cursor-pointer hover:text-emerald-400">Ver todos los cambios</p>
-          )}
-        </div>
-
-        {/* Acceso rapido */}
+      {/* Acceso rapido */}
+      <div className="mb-8">
         <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Acceso rapido</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
             {QUICK_ACTIONS.map((action) => (
               <Link
                 key={action.label}
