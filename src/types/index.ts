@@ -279,6 +279,19 @@ export interface ABPStrategy {
   updated_at: string;
 }
 
+// --- Diagramas tácticos ---
+
+export interface TacticalDiagram {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  title: string;
+  board_state: Record<string, unknown>;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Multimedia ---
 
 export type AttachmentFileType = 'image' | 'diagram' | 'pdf' | 'video';

@@ -21,6 +21,7 @@ import type {
   GameSystemVariant,
   ABPStrategy,
   ABPType,
+  TacticalDiagram,
 } from "@/types";
 
 // ============================================
@@ -1073,4 +1074,54 @@ export async function toggleBookmark(
     await supabase.from("bookmarks").insert({ item_type: itemType, item_id: itemId, item_title: itemTitle, status: "working" });
     return true;
   }
+}
+
+// ============================================
+// DIAGRAMAS TÁCTICOS
+// ============================================
+
+export async function getTacticalDiagrams(entityType: string, entityId: string): Promise<TacticalDiagram[]> {
+  const { data, error } = await supabase
+    .from("tactical_diagrams")
+    .select("*")
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .order("position");
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveTacticalDiagram(
+  entityType: string,
+  entityId: string,
+  boardState: Record<string, unknown>,
+  title: string = "",
+  existingId?: string
+): Promise<TacticalDiagram> {
+  if (existingId) {
+    const { data, error } = await supabase
+      .from("tactical_diagrams")
+      .update({ board_state: boardState, title, updated_at: new Date().toISOString() })
+      .eq("id", existingId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from("tactical_diagrams")
+      .insert({ entity_type: entityType, entity_id: entityId, board_state: boardState, title })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+}
+
+export async function deleteTacticalDiagram(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("tactical_diagrams")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }

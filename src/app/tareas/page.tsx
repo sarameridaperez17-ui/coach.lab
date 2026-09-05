@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getTasks, createTask, updateTask, deleteTask, getGamePhases, setItemStatus, removeItemStatus, getItemStatuses } from "@/lib/api";
+import { getTasks, createTask, updateTask, deleteTask, getGamePhases, setItemStatus, removeItemStatus, getItemStatuses, getTacticalDiagrams, saveTacticalDiagram } from "@/lib/api";
 import type { ItemStatus } from "@/lib/api";
 import type { Task, ContentType, GamePhase } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
+import { TacticalBoardEditor } from "@/components/tactical-board";
+import type { BoardState } from "@/components/tactical-board";
 
 
 const CONTENT_LABELS: Record<ContentType, { label: string; color: string; accent: string }> = {
@@ -42,6 +44,8 @@ export default function TareasPage() {
   const [formDuration, setFormDuration] = useState(15);
   const [formVariants, setFormVariants] = useState("");
   const [formContentType, setFormContentType] = useState<ContentType[]>(["tactical"]);
+  const [formBoardState, setFormBoardState] = useState<BoardState | undefined>(undefined);
+  const [showBoardEditor, setShowBoardEditor] = useState(false);
 
   const load = async () => {
     try {
@@ -100,12 +104,14 @@ export default function TareasPage() {
     setFormDuration(15);
     setFormVariants("");
     setFormContentType(["tactical"]);
+    setFormBoardState(undefined);
+    setShowBoardEditor(false);
   };
 
   const handleCreate = async () => {
     if (!formName.trim()) return;
     try {
-      await createTask({
+      const created = await createTask({
         name: formName.trim(),
         description: formDesc.trim(),
         rules: formRules.trim(),
@@ -115,6 +121,9 @@ export default function TareasPage() {
         variants: formVariants.trim(),
         content_type: formContentType,
       });
+      if (formBoardState && created?.id) {
+        await saveTacticalDiagram("task", created.id, formBoardState as unknown as Record<string, unknown>, formName.trim()).catch(console.error);
+      }
       resetForm();
       setAdding(false);
       await load();
@@ -135,6 +144,10 @@ export default function TareasPage() {
         variants: formVariants.trim(),
         content_type: formContentType,
       });
+      if (formBoardState) {
+        const existing = await getTacticalDiagrams("task", id).catch(() => []);
+        await saveTacticalDiagram("task", id, formBoardState as unknown as Record<string, unknown>, formName.trim(), existing[0]?.id).catch(console.error);
+      }
       setEditingId(null);
       resetForm();
       await load();
@@ -256,6 +269,25 @@ export default function TareasPage() {
             );
           })}
         </div>
+      </div>
+
+      {/* Tablero táctico */}
+      <div className="mb-3">
+        <button
+          onClick={() => setShowBoardEditor(!showBoardEditor)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded-lg text-xs text-gray-400 hover:border-purple-400 hover:text-purple-400 transition-colors"
+        >
+          <span>⚽</span>
+          <span>{showBoardEditor ? "Ocultar tablero táctico" : "Abrir tablero táctico"}</span>
+        </button>
+        {showBoardEditor && (
+          <div className="mt-2">
+            <TacticalBoardEditor
+              initialState={formBoardState}
+              onChange={(state) => setFormBoardState(state)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">

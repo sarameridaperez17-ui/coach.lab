@@ -6,8 +6,12 @@ import {
   createABPStrategy,
   updateABPStrategy,
   deleteABPStrategy,
+  getTacticalDiagrams,
+  saveTacticalDiagram,
 } from "@/lib/api";
 import type { ABPStrategy, ABPType } from "@/types";
+import { TacticalBoardEditor } from "@/components/tactical-board";
+import type { BoardState } from "@/components/tactical-board";
 
 // ── Constantes ─────────────────────────────────────────────────
 const ABP_TYPES: { id: ABPType; name: string }[] = [
@@ -71,6 +75,8 @@ export default function ABPPage() {
   const [formTargetZone, setFormTargetZone] = useState("");
   const [formStructure, setFormStructure] = useState("");
   const [formProtectionZone, setFormProtectionZone] = useState("");
+  const [formBoardState, setFormBoardState] = useState<BoardState | undefined>(undefined);
+  const [showBoardEditor, setShowBoardEditor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Selected category for detail view
@@ -115,6 +121,21 @@ export default function ABPPage() {
       setFormTargetZone(strategy.target_zone || "");
       setFormStructure(strategy.structure_type || "");
       setFormProtectionZone(strategy.protection_zone || "");
+      // Cargar diagrama táctico si existe
+      getTacticalDiagrams("abp_strategy", strategy.id)
+        .then((diagrams) => {
+          if (diagrams.length > 0) {
+            setFormBoardState(diagrams[0].board_state as unknown as BoardState);
+            setShowBoardEditor(true);
+          } else {
+            setFormBoardState(undefined);
+            setShowBoardEditor(false);
+          }
+        })
+        .catch(() => {
+          setFormBoardState(undefined);
+          setShowBoardEditor(false);
+        });
     } else {
       setEditingStrategy(null);
       setFormTitle("");
@@ -125,12 +146,16 @@ export default function ABPPage() {
       setFormTargetZone("");
       setFormStructure("");
       setFormProtectionZone("");
+      setFormBoardState(undefined);
+      setShowBoardEditor(false);
     }
   };
 
   const closeModal = () => {
     setModalSubtype(null);
     setEditingStrategy(null);
+    setShowBoardEditor(false);
+    setFormBoardState(undefined);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +171,7 @@ export default function ABPPage() {
   const handleCreate = async () => {
     if (!modalSubtype || !formTitle.trim()) return;
     try {
-      await createABPStrategy({
+      const created = await createABPStrategy({
         abp_type: selectedType,
         subtype: modalSubtype,
         title: formTitle.trim(),
@@ -158,6 +183,10 @@ export default function ABPPage() {
         structure_type: selectedType === "defensive" ? formStructure : "",
         protection_zone: selectedType === "defensive" ? formProtectionZone : "",
       });
+      // Guardar diagrama táctico si existe
+      if (formBoardState && created?.id) {
+        await saveTacticalDiagram("abp_strategy", created.id, formBoardState as unknown as Record<string, unknown>, formTitle.trim()).catch(console.error);
+      }
       closeModal();
       await load();
     } catch (err) {
@@ -178,6 +207,17 @@ export default function ABPPage() {
         structure_type: selectedType === "defensive" ? formStructure : editingStrategy.structure_type,
         protection_zone: selectedType === "defensive" ? formProtectionZone : editingStrategy.protection_zone,
       });
+      // Guardar diagrama táctico
+      if (formBoardState) {
+        const existing = await getTacticalDiagrams("abp_strategy", editingStrategy.id).catch(() => []);
+        await saveTacticalDiagram(
+          "abp_strategy",
+          editingStrategy.id,
+          formBoardState as unknown as Record<string, unknown>,
+          formTitle.trim(),
+          existing[0]?.id
+        ).catch(console.error);
+      }
       closeModal();
       await load();
     } catch (err) {
@@ -326,6 +366,89 @@ export default function ABPPage() {
           )}
         </div>
 
+        {/* ── Filtro de acciones rápidas ───────────────────────────── */}
+        <div className="mb-6 bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Filtro de acciones rápidas</h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Categoría</label>
+              <select value={qfCategory} onChange={(e) => setQfCategory(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+                <option value="">Todas</option>
+                {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Ejecución</label>
+              <select value={qfExecution} onChange={(e) => setQfExecution(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+                <option value="">Todas</option>
+                {EXECUTION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona objetivo</label>
+              <select value={qfTargetZone} onChange={(e) => setQfTargetZone(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+                <option value="">Todas</option>
+                {TARGET_ZONE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Estructura</label>
+              <select value={qfStructure} onChange={(e) => setQfStructure(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+                <option value="">Todas</option>
+                {STRUCTURE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona protección</label>
+              <select value={qfProtectionZone} onChange={(e) => setQfProtectionZone(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+                <option value="">Todas</option>
+                {PROTECTION_ZONE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+          {hasQuickFilter && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-400">{quickFilterResults.length} resultado{quickFilterResults.length !== 1 ? "s" : ""}</p>
+                <button onClick={() => { setQfCategory(""); setQfExecution(""); setQfTargetZone(""); setQfStructure(""); setQfProtectionZone(""); }} className="text-[10px] text-orange-400 hover:text-orange-300">Limpiar filtros</button>
+              </div>
+              {quickFilterResults.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {quickFilterResults.map(strat => {
+                    const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
+                    return (
+                      <div key={strat.id} className="bg-[#22252f] rounded-xl p-3 cursor-pointer hover:border-orange-500/30 border border-transparent transition-colors flex flex-col" onClick={() => setSelectedCategory(strat.subtype)}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
+                          <span className="text-[9px] text-gray-500 flex-shrink-0">{subtypeInfo?.name}</span>
+                        </div>
+                        {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
+                        {strat.image_url && (
+                          <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
+                        )}
+                        <div className="flex flex-wrap gap-1 mt-auto">
+                          {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 text-[9px]">{strat.execution_type}</span>}
+                          {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 text-[9px]">{strat.target_zone}</span>}
+                          {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 text-[9px]">{strat.structure_type}</span>}
+                          {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
+                        </div>
+                        {strat.key_points && (
+                          <div className="bg-[#1a1d27] rounded-lg p-2 mt-1.5">
+                            <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
+                            <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 text-center py-3">Sin estrategias que coincidan con los filtros</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Category cards or detail view */}
         {selectedCategory && selectedCatSubtype ? (
           <div>
@@ -341,47 +464,47 @@ export default function ABPPage() {
               <p className="text-xs text-gray-500">{selectedCatStrategies.length} estrategias</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               {selectedCatStrategies.map(strat => (
-                <div key={strat.id} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 group">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-orange-300">{strat.title}</h3>
+                <div key={strat.id} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-3 group flex flex-col">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
                       <button
                         onClick={() => toggleFavorite(strat)}
-                        className={`text-sm transition-colors ${strat.is_favorite ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
+                        className={`text-xs flex-shrink-0 transition-colors ${strat.is_favorite ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
                         title={strat.is_favorite ? "Quitar de favoritos" : "Marcar como favorito"}
                       >
                         {strat.is_favorite ? "★" : "☆"}
                       </button>
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openModal(selectedCategory!, selectedCatSubtype.name, strat)} className="text-xs text-gray-400 hover:text-orange-400">Editar</button>
-                      <button onClick={() => handleDelete(strat.id)} className="text-xs text-gray-400 hover:text-red-500">✕</button>
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <button onClick={() => openModal(selectedCategory!, selectedCatSubtype.name, strat)} className="text-[10px] text-gray-400 hover:text-orange-400">Editar</button>
+                      <button onClick={() => handleDelete(strat.id)} className="text-[10px] text-gray-400 hover:text-red-500">✕</button>
                     </div>
                   </div>
-                  {strat.description && <p className="text-xs text-gray-400 mb-2">{strat.description}</p>}
+                  {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
                   {strat.image_url && (
-                    <img src={strat.image_url} alt={strat.title} className="w-full max-h-48 object-contain rounded-lg bg-[#22252f] mb-2" />
+                    <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                   )}
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {strat.execution_type && <span className="px-2 py-0.5 rounded-full bg-orange-900/30 text-orange-300 text-[10px]">{strat.execution_type}</span>}
-                    {strat.target_zone && <span className="px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 text-[10px]">{strat.target_zone}</span>}
-                    {strat.structure_type && <span className="px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-300 text-[10px]">{strat.structure_type}</span>}
-                    {strat.protection_zone && <span className="px-2 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[10px]">{strat.protection_zone}</span>}
+                  <div className="flex flex-wrap gap-1 mt-auto">
+                    {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 text-[9px]">{strat.execution_type}</span>}
+                    {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 text-[9px]">{strat.target_zone}</span>}
+                    {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 text-[9px]">{strat.structure_type}</span>}
+                    {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
                   </div>
                   {strat.key_points && (
-                    <div className="bg-[#22252f] rounded-lg p-3 mt-2">
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Puntos clave</p>
-                      <p className="text-xs text-gray-300 whitespace-pre-line">{strat.key_points}</p>
+                    <div className="bg-[#22252f] rounded-lg p-2 mt-1.5">
+                      <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
+                      <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
                     </div>
                   )}
                 </div>
               ))}
               <button
                 onClick={() => openModal(selectedCategory!, selectedCatSubtype.name)}
-                className="w-full py-4 border-2 border-dashed border-[#2a2d37] rounded-xl text-sm font-medium text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
+                className="py-4 border-2 border-dashed border-[#2a2d37] rounded-xl text-sm font-medium text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
               >
                 + Definir estrategia
               </button>
@@ -412,25 +535,43 @@ export default function ABPPage() {
         {!selectedCategory && strategies.length > 0 && (
           <div className="mt-6">
             <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Estrategias recientes</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {recentStrategies.map(strat => {
                 const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                 return (
                   <div
                     key={strat.id}
-                    className="bg-[#1a1d27] rounded-lg border border-[#2a2d37] p-3 hover:border-orange-500/30 cursor-pointer transition-colors"
+                    className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-3 hover:border-orange-500/30 cursor-pointer transition-colors group flex flex-col"
                     onClick={() => setSelectedCategory(strat.subtype)}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs font-medium text-orange-300">{strat.title}</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavorite(strat); }}
-                        className={`text-sm ${strat.is_favorite ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
-                      >
-                        {strat.is_favorite ? "★" : "☆"}
-                      </button>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(strat); }}
+                          className={`text-xs flex-shrink-0 transition-colors ${strat.is_favorite ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
+                        >
+                          {strat.is_favorite ? "★" : "☆"}
+                        </button>
+                      </div>
+                      <span className="text-[9px] text-gray-500 flex-shrink-0">{subtypeInfo?.name}</span>
                     </div>
-                    <p className="text-[10px] text-gray-500">{subtypeInfo?.name}</p>
+                    {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
+                    {strat.image_url && (
+                      <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
+                    )}
+                    <div className="flex flex-wrap gap-1 mt-auto">
+                      {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 text-[9px]">{strat.execution_type}</span>}
+                      {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 text-[9px]">{strat.target_zone}</span>}
+                      {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 text-[9px]">{strat.structure_type}</span>}
+                      {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
+                    </div>
+                    {strat.key_points && (
+                      <div className="bg-[#22252f] rounded-lg p-2 mt-1.5">
+                        <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
+                        <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -442,29 +583,38 @@ export default function ABPPage() {
         {!selectedCategory && favoriteStrategies.length > 0 && (
           <div className="mt-6">
             <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Estrategias favoritas</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {favoriteStrategies.map(strat => {
                 const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                 return (
                   <div
                     key={strat.id}
-                    className="bg-[#1a1d27] rounded-xl border border-yellow-500/20 p-3 hover:border-yellow-500/40 cursor-pointer transition-colors"
+                    className="bg-[#1a1d27] rounded-xl border border-yellow-500/20 p-3 hover:border-yellow-500/40 cursor-pointer transition-colors group flex flex-col"
                     onClick={() => setSelectedCategory(strat.subtype)}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-orange-400 font-medium uppercase">{subtypeInfo?.name}</span>
-                      <span className="text-yellow-400 text-xs">★</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
+                        <span className="text-yellow-400 text-xs flex-shrink-0">★</span>
+                      </div>
+                      <span className="text-[9px] text-gray-500 flex-shrink-0">{subtypeInfo?.name}</span>
                     </div>
-                    <p className="text-xs font-semibold text-gray-200 mb-1">{strat.title}</p>
+                    {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
                     {strat.image_url && (
-                      <img src={strat.image_url} alt={strat.title} className="w-full h-20 object-contain rounded bg-[#22252f] mb-1.5" />
+                      <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                     )}
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mt-auto">
                       {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 text-[9px]">{strat.execution_type}</span>}
                       {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 text-[9px]">{strat.target_zone}</span>}
                       {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 text-[9px]">{strat.structure_type}</span>}
                       {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
                     </div>
+                    {strat.key_points && (
+                      <div className="bg-[#22252f] rounded-lg p-2 mt-1.5">
+                        <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
+                        <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -472,111 +622,6 @@ export default function ABPPage() {
           </div>
         )}
 
-        {/* ── Filtro de acciones rápidas ───────────────────────────── */}
-        <div className="mt-8 bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Filtro de acciones rápidas</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-            {/* F1: Categorías */}
-            <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Categoría</label>
-              <select
-                value={qfCategory}
-                onChange={(e) => setQfCategory(e.target.value)}
-                className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400"
-              >
-                <option value="">Todas</option>
-                {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            {/* F2: Ejecución */}
-            <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Ejecución</label>
-              <select
-                value={qfExecution}
-                onChange={(e) => setQfExecution(e.target.value)}
-                className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400"
-              >
-                <option value="">Todas</option>
-                {EXECUTION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-            {/* F3: Zona objetivo */}
-            <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona objetivo</label>
-              <select
-                value={qfTargetZone}
-                onChange={(e) => setQfTargetZone(e.target.value)}
-                className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400"
-              >
-                <option value="">Todas</option>
-                {TARGET_ZONE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-            {/* F4: Estructura */}
-            <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Estructura</label>
-              <select
-                value={qfStructure}
-                onChange={(e) => setQfStructure(e.target.value)}
-                className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400"
-              >
-                <option value="">Todas</option>
-                {STRUCTURE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-            {/* F5: Zona de protección */}
-            <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona protección</label>
-              <select
-                value={qfProtectionZone}
-                onChange={(e) => setQfProtectionZone(e.target.value)}
-                className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400"
-              >
-                <option value="">Todas</option>
-                {PROTECTION_ZONE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          </div>
-          {hasQuickFilter && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-400">{quickFilterResults.length} resultado{quickFilterResults.length !== 1 ? "s" : ""}</p>
-                <button
-                  onClick={() => { setQfCategory(""); setQfExecution(""); setQfTargetZone(""); setQfStructure(""); setQfProtectionZone(""); }}
-                  className="text-[10px] text-orange-400 hover:text-orange-300"
-                >
-                  Limpiar filtros
-                </button>
-              </div>
-              {quickFilterResults.length > 0 ? (
-                <div className="space-y-2">
-                  {quickFilterResults.map(strat => {
-                    const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
-                    return (
-                      <div key={strat.id} className="bg-[#22252f] rounded-lg p-3 flex items-center gap-3">
-                        {strat.image_url && (
-                          <img src={strat.image_url} alt="" className="w-12 h-12 object-contain rounded bg-[#1a1d27]" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-orange-300">{strat.title}</p>
-                          <p className="text-[10px] text-gray-500">{subtypeInfo?.name}</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 text-[9px]">{strat.execution_type}</span>}
-                            {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 text-[9px]">{strat.target_zone}</span>}
-                            {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 text-[9px]">{strat.structure_type}</span>}
-                            {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-500 text-center py-3">Sin estrategias que coincidan con los filtros</p>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* RIGHT: Sidebar */}
@@ -667,7 +712,7 @@ export default function ABPPage() {
       {/* Modal */}
       {modalSubtype && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeModal}>
-          <div className="bg-[#1a1d27] rounded-xl p-6 w-full max-w-lg shadow-xl border border-[#2a2d37] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className={`bg-[#1a1d27] rounded-xl p-6 w-full shadow-xl border border-[#2a2d37] max-h-[90vh] overflow-y-auto ${showBoardEditor ? "max-w-4xl" : "max-w-lg"}`} onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold text-gray-200 mb-1">
               {editingStrategy ? "Editar estrategia" : "Nueva estrategia"}
             </h3>
@@ -725,6 +770,25 @@ export default function ABPPage() {
               </div>
               {formImageUrl && (
                 <img src={formImageUrl} alt="Preview" className="mt-2 w-full max-h-32 object-contain rounded-lg bg-[#22252f]" />
+              )}
+            </div>
+
+            {/* Tablero táctico */}
+            <div className="mb-3">
+              <button
+                onClick={() => setShowBoardEditor(!showBoardEditor)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded-lg text-xs text-gray-400 hover:border-blue-400 hover:text-blue-400 transition-colors"
+              >
+                <span>⚽</span>
+                <span>{showBoardEditor ? "Ocultar tablero táctico" : "Abrir tablero táctico"}</span>
+              </button>
+              {showBoardEditor && (
+                <div className="mt-2">
+                  <TacticalBoardEditor
+                    initialState={formBoardState}
+                    onChange={(state) => setFormBoardState(state)}
+                  />
+                </div>
               )}
             </div>
 
