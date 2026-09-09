@@ -156,7 +156,7 @@ export default function ConceptosTacticosPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Cargando conceptos tácticos...</p>
+        <p className="text-foreground-secondary">Cargando conceptos tácticos...</p>
       </div>
     );
   }
@@ -166,7 +166,7 @@ export default function ConceptosTacticosPage() {
       {/* ── Main content ── */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-200">Conceptos tácticos</h1>
+          <h1 className="text-2xl font-bold text-foreground">Conceptos tácticos</h1>
           <button
             onClick={() => setAdding(true)}
             className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
@@ -182,26 +182,26 @@ export default function ConceptosTacticosPage() {
             placeholder="Buscar conceptos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 bg-[#22252f]"
+            className="w-full px-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 bg-surface-hover"
           />
         </div>
 
         {/* Formulario de creación */}
         {adding && (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
+          <div className="bg-surface rounded-xl border border-border p-4 mb-4">
             <input
               autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Nombre del concepto (ej: cuadrado, 3ª mujer...)"
-              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-[#22252f]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-surface-hover"
             />
             <textarea
               value={newDef}
               onChange={(e) => setNewDef(e.target.value)}
               placeholder="Definición..."
               rows={3}
-              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none bg-[#22252f]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none bg-surface-hover"
             />
             <div className="flex gap-2">
               <button
@@ -212,7 +212,7 @@ export default function ConceptosTacticosPage() {
               </button>
               <button
                 onClick={() => { setAdding(false); setNewName(""); setNewDef(""); }}
-                className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
+                className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm hover:bg-border"
               >
                 Cancelar
               </button>
@@ -222,23 +222,23 @@ export default function ConceptosTacticosPage() {
 
         {/* Table */}
         {filtered.length === 0 ? (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
+          <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
             <p className="text-lg font-medium mb-2">Sin conceptos tácticos</p>
             <p className="text-sm">
               Crea tu primer concepto táctico (cuadrado, giro, 3ª mujer, profundo...)
             </p>
           </div>
         ) : (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border overflow-hidden">
             {/* Table header */}
-            <div className="grid grid-cols-[40px_1fr_180px_80px] gap-2 px-4 py-2.5 border-b border-[#2a2d37] text-xs text-gray-500 font-medium uppercase tracking-wider">
+            <div className="grid grid-cols-[40px_1fr_180px_80px] gap-2 px-4 py-2.5 border-b border-border text-xs text-muted font-medium uppercase tracking-wider">
               <span></span>
               <span>Concepto</span>
               <span>Categoría</span>
               <span className="text-center">Estado</span>
             </div>
             {/* Table rows */}
-            <div className="divide-y divide-[#22252f]">
+            <div className="divide-y divide-surface-hover">
               {filtered.map((concept) => {
                 const cat = getCategoryFromName(concept.name);
                 const icon = CATEGORY_ICONS[cat] || "📋";
@@ -248,23 +248,23 @@ export default function ConceptosTacticosPage() {
                       autoFocus
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-[#22252f]"
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-surface-hover"
                     />
                     <textarea
                       value={editDef}
                       onChange={(e) => setEditDef(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none bg-[#22252f]"
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none bg-surface-hover"
                     />
                     <div className="flex gap-2">
                       <button onClick={() => handleUpdate(concept.id)} className="px-3 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700">Guardar</button>
-                      <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]">Cancelar</button>
+                      <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm hover:bg-border">Cancelar</button>
                     </div>
                   </div>
                 ) : (
                   <div
                     key={concept.id}
-                    className="grid grid-cols-[40px_1fr_180px_80px] gap-2 px-4 py-3 items-center hover:bg-[#22252f]/50 transition-colors group cursor-default"
+                    className="grid grid-cols-[40px_1fr_180px_80px] gap-2 px-4 py-3 items-center hover:bg-surface-hover/50 transition-colors group cursor-default"
                     onContextMenu={(e) => handleContextMenu(e, concept.id, concept.name)}
                   >
                     {/* Icon */}
@@ -272,10 +272,10 @@ export default function ConceptosTacticosPage() {
                     {/* Name + definition */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-200 text-sm">{concept.name}</span>
+                        <span className="font-medium text-foreground text-sm">{concept.name}</span>
                       </div>
                       {concept.definition && (
-                        <p className="text-xs text-gray-500 mt-0.5 truncate">{concept.definition}</p>
+                        <p className="text-xs text-muted mt-0.5 truncate">{concept.definition}</p>
                       )}
                     </div>
                     {/* Category badge */}
@@ -288,14 +288,14 @@ export default function ConceptosTacticosPage() {
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => { setEditingId(concept.id); setEditName(concept.name); setEditDef(concept.definition || ""); }}
-                          className="p-1 text-xs text-gray-500 hover:text-amber-400 rounded"
+                          className="p-1 text-xs text-muted hover:text-amber-400 rounded"
                           title="Editar"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </button>
                         <button
                           onClick={() => handleDelete(concept.id)}
-                          className="p-1 text-xs text-gray-500 hover:text-red-400 rounded"
+                          className="p-1 text-xs text-muted hover:text-red-400 rounded"
                           title="Eliminar"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -314,14 +314,14 @@ export default function ConceptosTacticosPage() {
       <div className="w-72 flex-shrink-0 space-y-4">
         {/* Concepto destacado */}
         {highlightedConcept && (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Concepto destacado</h3>
+          <div className="bg-surface rounded-xl border border-border p-4">
+            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Concepto destacado</h3>
             <div className="flex items-start gap-3">
               <span className="text-2xl">{CATEGORY_ICONS[getCategoryFromName(highlightedConcept.name)] || "📋"}</span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-200">{highlightedConcept.name}</p>
+                <p className="text-sm font-semibold text-foreground">{highlightedConcept.name}</p>
                 {highlightedConcept.definition && (
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-3">{highlightedConcept.definition}</p>
+                  <p className="text-xs text-muted mt-1 line-clamp-3">{highlightedConcept.definition}</p>
                 )}
               </div>
             </div>
@@ -329,10 +329,10 @@ export default function ConceptosTacticosPage() {
         )}
 
         {/* Distribución por categorías */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Distribución por categorías</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Distribución por categorías</h3>
           {categoryEntries.length === 0 ? (
-            <p className="text-xs text-gray-600">Sin datos</p>
+            <p className="text-xs text-muted">Sin datos</p>
           ) : (
             <div className="space-y-2">
               {categoryEntries.map(([cat, count]) => {
@@ -340,13 +340,13 @@ export default function ConceptosTacticosPage() {
                 return (
                   <div key={cat}>
                     <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-gray-400 capitalize flex items-center gap-1.5">
+                      <span className="text-foreground-secondary capitalize flex items-center gap-1.5">
                         <span>{CATEGORY_ICONS[cat] || "📋"}</span>
                         {cat}
                       </span>
-                      <span className="text-gray-500">{count} <span className="text-gray-600">({pct}%)</span></span>
+                      <span className="text-muted">{count} <span className="text-muted">({pct}%)</span></span>
                     </div>
-                    <div className="w-full h-1.5 bg-[#22252f] rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-surface-hover rounded-full overflow-hidden">
                       <div className="h-full bg-amber-600/60 rounded-full" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
@@ -357,8 +357,8 @@ export default function ConceptosTacticosPage() {
         </div>
 
         {/* Conexiones del modelo */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Conexiones del modelo</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Conexiones del modelo</h3>
           {totalConcepts > 0 ? (
             <div className="flex items-center justify-center">
               <svg viewBox="0 0 120 120" className="w-28 h-28">
@@ -381,13 +381,13 @@ export default function ConceptosTacticosPage() {
                     return <path key={cat} d={path} fill={colors[i % colors.length]} opacity={0.8} />;
                   });
                 })()}
-                <circle cx="60" cy="60" r="22" fill="#1a1d27" />
-                <text x="60" y="57" textAnchor="middle" fill="#d4d4d8" fontSize="14" fontWeight="bold">{totalConcepts}</text>
-                <text x="60" y="70" textAnchor="middle" fill="#6b7280" fontSize="7">conceptos</text>
+                <circle cx="60" cy="60" r="22" fill="var(--surface)" />
+                <text x="60" y="57" textAnchor="middle" fill="var(--foreground)" fontSize="14" fontWeight="bold">{totalConcepts}</text>
+                <text x="60" y="70" textAnchor="middle" fill="var(--muted)" fontSize="7">conceptos</text>
               </svg>
             </div>
           ) : (
-            <p className="text-xs text-gray-600 text-center">Sin datos</p>
+            <p className="text-xs text-muted text-center">Sin datos</p>
           )}
           <div className="mt-3 space-y-1">
             {categoryEntries.slice(0, 4).map(([cat, count], i) => {
@@ -395,8 +395,8 @@ export default function ConceptosTacticosPage() {
               return (
                 <div key={cat} className="flex items-center gap-2 text-xs">
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
-                  <span className="text-gray-400 capitalize">{cat}</span>
-                  <span className="text-gray-600 ml-auto">{count}</span>
+                  <span className="text-foreground-secondary capitalize">{cat}</span>
+                  <span className="text-muted ml-auto">{count}</span>
                 </div>
               );
             })}
@@ -404,18 +404,18 @@ export default function ConceptosTacticosPage() {
         </div>
 
         {/* Últimos añadidos */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Últimos añadidos</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Últimos añadidos</h3>
           {recentConcepts.length === 0 ? (
-            <p className="text-xs text-gray-600">Sin conceptos</p>
+            <p className="text-xs text-muted">Sin conceptos</p>
           ) : (
             <div className="space-y-2">
               {recentConcepts.map((c) => (
                 <div key={c.id} className="flex items-center gap-2">
                   <span className="text-sm">{CATEGORY_ICONS[getCategoryFromName(c.name)] || "📋"}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-gray-300 truncate">{c.name}</p>
-                    <p className="text-[10px] text-gray-600">{new Date(c.created_at).toLocaleDateString("es-ES")}</p>
+                    <p className="text-xs text-foreground-secondary truncate">{c.name}</p>
+                    <p className="text-[10px] text-muted">{new Date(c.created_at).toLocaleDateString("es-ES")}</p>
                   </div>
                 </div>
               ))}

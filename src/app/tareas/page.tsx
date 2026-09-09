@@ -195,64 +195,64 @@ export default function TareasPage() {
   const recentTasks = [...tasks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
 
   const TaskForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
-    <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
+    <div className="bg-surface rounded-xl border border-border p-4 mb-4">
       <div className="grid grid-cols-2 gap-3 mb-3">
         <input
           autoFocus
           value={formName}
           onChange={(e) => setFormName(e.target.value)}
           placeholder="Nombre de la tarea"
-          className="col-span-2 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-[#22252f]"
+          className="col-span-2 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-surface-hover"
         />
         <textarea
           value={formDesc}
           onChange={(e) => setFormDesc(e.target.value)}
           placeholder="Descripción / objetivo"
           rows={2}
-          className="col-span-2 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-[#22252f]"
+          className="col-span-2 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-surface-hover"
         />
         <textarea
           value={formRules}
           onChange={(e) => setFormRules(e.target.value)}
           placeholder="Reglas"
           rows={2}
-          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-[#22252f]"
+          className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-surface-hover"
         />
         <textarea
           value={formVariants}
           onChange={(e) => setFormVariants(e.target.value)}
           placeholder="Variantes"
           rows={2}
-          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-[#22252f]"
+          className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-surface-hover"
         />
         <input
           value={formDimensions}
           onChange={(e) => setFormDimensions(e.target.value)}
           placeholder="Dimensiones (ej: 40x30m)"
-          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-[#22252f]"
+          className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-surface-hover"
         />
         <input
           value={formPlayers}
           onChange={(e) => setFormPlayers(e.target.value)}
           placeholder="Jugadoras (ej: 8v8+2)"
-          className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-[#22252f]"
+          className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-surface-hover"
         />
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-500">Duración:</label>
+          <label className="text-sm text-muted">Duración:</label>
           <input
             type="number"
             value={formDuration}
             onChange={(e) => setFormDuration(Number(e.target.value))}
             min={1}
-            className="w-20 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-[#22252f]"
+            className="w-20 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-surface-hover"
           />
-          <span className="text-sm text-gray-400">min</span>
+          <span className="text-sm text-foreground-secondary">min</span>
         </div>
       </div>
 
       {/* Content type toggles */}
       <div className="mb-3">
-        <label className="text-xs text-gray-500 font-medium mb-1 block">Tipo de contenido</label>
+        <label className="text-xs text-muted font-medium mb-1 block">Tipo de contenido</label>
         <div className="flex gap-2">
           {(Object.keys(CONTENT_LABELS) as ContentType[]).map((ct) => {
             const selected = formContentType.includes(ct);
@@ -261,7 +261,7 @@ export default function TareasPage() {
                 key={ct}
                 onClick={() => toggleContentType(ct)}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  selected ? CONTENT_LABELS[ct].color : "bg-[#22252f] text-gray-400"
+                  selected ? CONTENT_LABELS[ct].color : "bg-surface-hover text-foreground-secondary"
                 }`}
               >
                 {CONTENT_LABELS[ct].label}
@@ -275,7 +275,7 @@ export default function TareasPage() {
       <div className="mb-3">
         <button
           onClick={() => setShowBoardEditor(!showBoardEditor)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded-lg text-xs text-gray-400 hover:border-purple-400 hover:text-purple-400 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs text-foreground-secondary hover:border-purple-400 hover:text-purple-400 transition-colors"
         >
           <span>⚽</span>
           <span>{showBoardEditor ? "Ocultar tablero táctico" : "Abrir tablero táctico"}</span>
@@ -299,7 +299,7 @@ export default function TareasPage() {
         </button>
         <button
           onClick={() => { setAdding(false); setEditingId(null); resetForm(); }}
-          className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
+          className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm hover:bg-border"
         >
           Cancelar
         </button>
@@ -310,7 +310,7 @@ export default function TareasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Cargando tareas...</p>
+        <p className="text-foreground-secondary">Cargando tareas...</p>
       </div>
     );
   }
@@ -320,7 +320,7 @@ export default function TareasPage() {
       {/* ── Main content ── */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-200">Tareas de entrenamiento</h1>
+          <h1 className="text-2xl font-bold text-foreground">Tareas de entrenamiento</h1>
           <button
             onClick={() => { resetForm(); setAdding(true); }}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
@@ -334,7 +334,7 @@ export default function TareasPage() {
           <button
             onClick={() => setContentFilter("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              contentFilter === "all" ? "bg-purple-600 text-white" : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-purple-400"
+              contentFilter === "all" ? "bg-purple-600 text-white" : "bg-surface border border-border text-foreground-secondary hover:border-purple-400"
             }`}
           >
             Todas
@@ -344,7 +344,7 @@ export default function TareasPage() {
               key={ct}
               onClick={() => setContentFilter(ct)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                contentFilter === ct ? CONTENT_LABELS[ct].color + " ring-1 ring-current" : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-purple-400"
+                contentFilter === ct ? CONTENT_LABELS[ct].color + " ring-1 ring-current" : "bg-surface border border-border text-foreground-secondary hover:border-purple-400"
               }`}
             >
               <span>{CONTENT_ICONS[ct]}</span>
@@ -360,7 +360,7 @@ export default function TareasPage() {
             placeholder="Buscar tareas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300 bg-[#22252f]"
+            className="w-full px-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300 bg-surface-hover"
           />
         </div>
 
@@ -369,7 +369,7 @@ export default function TareasPage() {
 
         {/* Task cards grid */}
         {filtered.length === 0 ? (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
+          <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
             <p className="text-lg font-medium mb-2">Sin tareas</p>
             <p className="text-sm">
               Crea tu primera tarea de entrenamiento vinculada a principios del modelo de juego.
@@ -387,7 +387,7 @@ export default function TareasPage() {
               ) : (
                 <div
                   key={task.id}
-                  className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden group hover:border-[#353840] transition-colors"
+                  className="bg-surface rounded-xl border border-border overflow-hidden group hover:border-border-light transition-colors"
                   onContextMenu={(e) => handleContextMenu(e, task.id, task.name)}
                 >
                   {/* Color accent bar */}
@@ -398,7 +398,7 @@ export default function TareasPage() {
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="text-lg flex-shrink-0">{CONTENT_ICONS[primaryType] || "🎯"}</span>
                         <h3
-                          className="font-semibold text-gray-200 text-sm cursor-pointer hover:text-purple-400 truncate"
+                          className="font-semibold text-foreground text-sm cursor-pointer hover:text-purple-400 truncate"
                           onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}
                         >
                           {task.name}
@@ -415,7 +415,7 @@ export default function TareasPage() {
                       {task.content_type?.map((ct) => (
                         <span
                           key={ct}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${CONTENT_LABELS[ct]?.color ?? "bg-[#22252f] text-gray-500"}`}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${CONTENT_LABELS[ct]?.color ?? "bg-surface-hover text-muted"}`}
                         >
                           {CONTENT_LABELS[ct]?.label ?? ct}
                         </span>
@@ -423,7 +423,7 @@ export default function TareasPage() {
                     </div>
 
                     {/* Info row */}
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
+                    <div className="flex items-center gap-3 text-xs text-muted mb-2">
                       <span className="flex items-center gap-1">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         {task.duration_minutes} min
@@ -444,22 +444,22 @@ export default function TareasPage() {
 
                     {/* Description */}
                     {task.description && (
-                      <p className="text-xs text-gray-500 line-clamp-2">{task.description}</p>
+                      <p className="text-xs text-muted line-clamp-2">{task.description}</p>
                     )}
 
                     {/* Expanded details */}
                     {expandedId === task.id && (
-                      <div className="mt-3 pt-3 border-t border-[#22252f] grid grid-cols-2 gap-3 text-sm">
+                      <div className="mt-3 pt-3 border-t border-surface-hover grid grid-cols-2 gap-3 text-sm">
                         {task.rules && (
                           <div>
-                            <span className="text-[10px] font-medium text-gray-500 uppercase">Reglas</span>
-                            <p className="text-gray-300 mt-1 whitespace-pre-wrap text-xs">{task.rules}</p>
+                            <span className="text-[10px] font-medium text-muted uppercase">Reglas</span>
+                            <p className="text-foreground-secondary mt-1 whitespace-pre-wrap text-xs">{task.rules}</p>
                           </div>
                         )}
                         {task.variants && (
                           <div>
-                            <span className="text-[10px] font-medium text-gray-500 uppercase">Variantes</span>
-                            <p className="text-gray-300 mt-1 whitespace-pre-wrap text-xs">{task.variants}</p>
+                            <span className="text-[10px] font-medium text-muted uppercase">Variantes</span>
+                            <p className="text-foreground-secondary mt-1 whitespace-pre-wrap text-xs">{task.variants}</p>
                           </div>
                         )}
                       </div>
@@ -479,13 +479,13 @@ export default function TareasPage() {
                           setFormVariants(task.variants || "");
                           setFormContentType(task.content_type || ["tactical"]);
                         }}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-purple-400 hover:bg-purple-900/20 rounded"
+                        className="px-2 py-1 text-xs text-muted hover:text-purple-400 hover:bg-purple-900/20 rounded"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleDelete(task.id)}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded"
+                        className="px-2 py-1 text-xs text-muted hover:text-red-400 hover:bg-red-900/20 rounded"
                       >
                         Eliminar
                       </button>
@@ -501,31 +501,31 @@ export default function TareasPage() {
       {/* ── Right sidebar ── */}
       <div className="w-72 flex-shrink-0 space-y-4">
         {/* Resumen */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Resumen</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Resumen</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-200">{totalTasks}</p>
-              <p className="text-[10px] text-gray-500 uppercase">Tareas</p>
+              <p className="text-2xl font-bold text-foreground">{totalTasks}</p>
+              <p className="text-[10px] text-muted uppercase">Tareas</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-200">{totalDuration}</p>
-              <p className="text-[10px] text-gray-500 uppercase">Min totales</p>
+              <p className="text-2xl font-bold text-foreground">{totalDuration}</p>
+              <p className="text-[10px] text-muted uppercase">Min totales</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-200">{avgDuration}</p>
-              <p className="text-[10px] text-gray-500 uppercase">Min promedio</p>
+              <p className="text-2xl font-bold text-foreground">{avgDuration}</p>
+              <p className="text-[10px] text-muted uppercase">Min promedio</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-200">{favoriteIds.length}</p>
-              <p className="text-[10px] text-gray-500 uppercase">Favoritas</p>
+              <p className="text-2xl font-bold text-foreground">{favoriteIds.length}</p>
+              <p className="text-[10px] text-muted uppercase">Favoritas</p>
             </div>
           </div>
         </div>
 
         {/* Categorías */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Categorías</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Categorías</h3>
           <div className="space-y-2">
             {(Object.keys(CONTENT_LABELS) as ContentType[]).map((ct) => {
               const count = contentCounts[ct] || 0;
@@ -533,13 +533,13 @@ export default function TareasPage() {
               return (
                 <div key={ct}>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-400 flex items-center gap-1.5">
+                    <span className="text-foreground-secondary flex items-center gap-1.5">
                       <span>{CONTENT_ICONS[ct]}</span>
                       {CONTENT_LABELS[ct].label}
                     </span>
-                    <span className="text-gray-500">{count}</span>
+                    <span className="text-muted">{count}</span>
                   </div>
-                  <div className="w-full h-1.5 bg-[#22252f] rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-surface-hover rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: CONTENT_LABELS[ct].accent }} />
                   </div>
                 </div>
@@ -549,10 +549,10 @@ export default function TareasPage() {
         </div>
 
         {/* Últimas utilizadas */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Últimas añadidas</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Últimas añadidas</h3>
           {recentTasks.length === 0 ? (
-            <p className="text-xs text-gray-600">Sin tareas</p>
+            <p className="text-xs text-muted">Sin tareas</p>
           ) : (
             <div className="space-y-2">
               {recentTasks.map((t) => {
@@ -561,8 +561,8 @@ export default function TareasPage() {
                   <div key={t.id} className="flex items-center gap-2">
                     <span className="text-sm flex-shrink-0">{CONTENT_ICONS[ct] || "🎯"}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-gray-300 truncate">{t.name}</p>
-                      <p className="text-[10px] text-gray-600">{t.duration_minutes} min</p>
+                      <p className="text-xs text-foreground-secondary truncate">{t.name}</p>
+                      <p className="text-[10px] text-muted">{t.duration_minutes} min</p>
                     </div>
                   </div>
                 );

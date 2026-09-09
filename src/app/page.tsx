@@ -131,8 +131,8 @@ export default function HomePage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Coach<span className="text-emerald-400">.lab</span></h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Coach<span className="text-emerald-400">.lab</span></h1>
+          <p className="text-muted text-sm mt-1">
             El conocimiento se construye. La identidad se entrena. El rendimiento es la consecuencia.
           </p>
         </div>
@@ -141,7 +141,7 @@ export default function HomePage() {
       {/* Search bar */}
       <div ref={searchRef} className="relative mb-8">
         <div className="relative">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -150,30 +150,30 @@ export default function HomePage() {
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={() => { if (searchQuery.trim()) setSearchOpen(true); }}
-            className="w-full pl-11 pr-16 py-3 bg-[#1a1d27] border border-[#2a2d37] rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40"
+            className="w-full pl-11 pr-16 py-3 bg-surface border border-border rounded-xl text-sm text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40"
           />
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-gray-600 bg-[#22252f] px-2 py-1 rounded border border-[#2a2d37]">
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-muted bg-surface-hover px-2 py-1 rounded border border-border">
             Ctrl+K
           </span>
         </div>
         {searchOpen && (
-          <div className="absolute top-full mt-1 w-full bg-[#1a1d27] rounded-xl border border-[#2a2d37] shadow-2xl z-50 max-h-80 overflow-y-auto">
+          <div className="absolute top-full mt-1 w-full bg-surface rounded-xl border border-border shadow-2xl z-50 max-h-80 overflow-y-auto">
             {searching ? (
-              <div className="p-4 text-center text-sm text-gray-500">Buscando...</div>
+              <div className="p-4 text-center text-sm text-muted">Buscando...</div>
             ) : searchResults.length === 0 ? (
-              <div className="p-4 text-center text-sm text-gray-500">Sin resultados para &ldquo;{searchQuery}&rdquo;</div>
+              <div className="p-4 text-center text-sm text-muted">Sin resultados para &ldquo;{searchQuery}&rdquo;</div>
             ) : (
               searchResults.map((r) => (
                 <button
                   key={`${r.type}-${r.id}`}
                   onClick={() => { setSearchOpen(false); setSearchQuery(""); router.push(r.href); }}
-                  className="w-full text-left px-4 py-3 hover:bg-[#22252f] border-b border-[#22252f] last:border-b-0 transition-colors"
+                  className="w-full text-left px-4 py-3 hover:bg-surface-hover border-b border-surface-hover last:border-b-0 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${TYPE_COLORS[r.type] ?? "bg-gray-800 text-gray-400"}`}>{r.label}</span>
-                    <span className="text-sm font-medium text-gray-200 truncate">{r.title}</span>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${TYPE_COLORS[r.type] ?? "bg-surface-hover text-foreground-secondary"}`}>{r.label}</span>
+                    <span className="text-sm font-medium text-foreground truncate">{r.title}</span>
                   </div>
-                  {r.subtitle && <p className="text-xs text-gray-500 mt-0.5 truncate pl-0.5">{r.subtitle}</p>}
+                  {r.subtitle && <p className="text-xs text-muted mt-0.5 truncate pl-0.5">{r.subtitle}</p>}
                 </button>
               ))
             )}
@@ -203,13 +203,13 @@ export default function HomePage() {
             <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
           )},
         ].map((s) => (
-          <div key={s.label} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5 relative overflow-hidden">
+          <div key={s.label} className="bg-surface rounded-xl border border-border p-5 relative overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <p className={`text-xs font-semibold uppercase tracking-wide ${s.color}`}>{s.label}</p>
               <span className="opacity-70">{s.icon}</span>
             </div>
-            <p className="text-3xl font-bold text-white">{s.value}</p>
-            <div className="mt-3 h-1 w-full bg-[#22252f] rounded-full overflow-hidden">
+            <p className="text-3xl font-bold text-foreground">{s.value}</p>
+            <div className="mt-3 h-1 w-full bg-surface-hover rounded-full overflow-hidden">
               <div className={`h-full rounded-full ${s.barColor} transition-all duration-700`} style={{ width: `${Math.min(100, Math.max(8, s.value * 2))}%` }} />
             </div>
           </div>
@@ -250,12 +250,12 @@ export default function HomePage() {
             ),
           };
           return (
-            <div key={st} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5 flex flex-col">
+            <div key={st} className="bg-surface rounded-xl border border-border p-5 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.hex }} />
                 <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: cfg.hex }}>{TITLES[st]}</h3>
                 {items.length > 0 && (
-                  <span className="text-[10px] text-gray-600 ml-auto">{items.length}</span>
+                  <span className="text-[10px] text-muted ml-auto">{items.length}</span>
                 )}
               </div>
               {items.length === 0 ? (
@@ -264,7 +264,7 @@ export default function HomePage() {
                     <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center" style={{ backgroundColor: `${cfg.hex}10` }}>
                       <span style={{ color: `${cfg.hex}50` }}>{ICONS[st]}</span>
                     </div>
-                    <p className="text-[10px] text-gray-600">Sin elementos</p>
+                    <p className="text-[10px] text-muted">Sin elementos</p>
                   </div>
                 </div>
               ) : (
@@ -272,7 +272,7 @@ export default function HomePage() {
                   {items.map((bk) => (
                     <div
                       key={bk.id}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#22252f] hover:bg-[#2a2d37] transition-colors group"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-surface-hover hover:bg-border transition-colors group"
                     >
                       <Link href={getBookmarkHref(bk.item_type)} className="flex items-center gap-2.5 flex-1 min-w-0">
                         <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${cfg.hex}15` }}>
@@ -281,13 +281,13 @@ export default function HomePage() {
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-200 truncate">{bk.item_title}</p>
-                          <p className="text-[10px] text-gray-500">{getBookmarkTypeLabel(bk.item_type)}</p>
+                          <p className="text-xs font-medium text-foreground truncate">{bk.item_title}</p>
+                          <p className="text-[10px] text-muted">{getBookmarkTypeLabel(bk.item_type)}</p>
                         </div>
                       </Link>
                       <button
                         onClick={() => handleRemoveBookmark(bk.item_type, bk.item_id)}
-                        className="p-1 rounded-md text-gray-600 hover:text-rose-400 hover:bg-rose-400/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                        className="p-1 rounded-md text-muted hover:text-rose-400 hover:bg-rose-400/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
                         title="Quitar estado"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -305,21 +305,21 @@ export default function HomePage() {
 
       {/* Acceso rapido */}
       <div className="mb-8">
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Acceso rapido</h3>
+        <div className="bg-surface rounded-xl border border-border p-5">
+          <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide mb-4">Acceso rapido</h3>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
             {QUICK_ACTIONS.map((action) => (
               <Link
                 key={action.label}
                 href={action.href}
-                className="flex flex-col items-center gap-2 p-3 rounded-lg bg-[#22252f] hover:bg-[#2a2d37] transition-colors group"
+                className="flex flex-col items-center gap-2 p-3 rounded-lg bg-surface-hover hover:bg-border transition-colors group"
               >
-                <div className={`w-10 h-10 rounded-full border-2 border-dashed border-[#353840] flex items-center justify-center group-hover:border-emerald-500/40 transition-colors`}>
+                <div className={`w-10 h-10 rounded-full border-2 border-dashed border-border-light flex items-center justify-center group-hover:border-emerald-500/40 transition-colors`}>
                   <svg className={`w-5 h-5 ${action.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 </div>
-                <span className="text-[10px] text-gray-400 text-center leading-tight">{action.label}</span>
+                <span className="text-[10px] text-foreground-secondary text-center leading-tight">{action.label}</span>
               </Link>
             ))}
           </div>
@@ -329,28 +329,28 @@ export default function HomePage() {
       {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 mb-8">
         {/* Ultimas notas */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Ultimas notas</h3>
+        <div className="bg-surface rounded-xl border border-border p-5">
+          <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide mb-4">Ultimas notas</h3>
           {recentNotes.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">Sin notas aun. Crea tu primera nota.</p>
+            <p className="text-sm text-muted text-center py-4">Sin notas aun. Crea tu primera nota.</p>
           ) : (
             <div className="space-y-3">
               {recentNotes.map((note) => (
                 <Link
                   key={note.id}
                   href="/notas"
-                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-[#22252f] transition-colors"
+                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors"
                 >
                   <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <span className="text-purple-400 text-xs">▥</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-200 truncate">{note.title}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{note.title}</p>
                     {note.content && (
-                      <p className="text-[10px] text-gray-500 mt-0.5 truncate">{note.content.slice(0, 80)}...</p>
+                      <p className="text-[10px] text-muted mt-0.5 truncate">{note.content.slice(0, 80)}...</p>
                     )}
                   </div>
-                  <span className="text-[10px] text-gray-500 whitespace-nowrap flex-shrink-0">
+                  <span className="text-[10px] text-muted whitespace-nowrap flex-shrink-0">
                     {timeAgo(note.created_at)}
                   </span>
                 </Link>
@@ -364,10 +364,10 @@ export default function HomePage() {
       </div>
 
       {/* Footer quote */}
-      <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-5 flex items-center justify-between mb-4">
+      <div className="bg-surface rounded-xl border border-border p-5 flex items-center justify-between mb-4">
         <div className="flex items-start gap-3">
           <span className="text-2xl text-emerald-500/30 leading-none">&ldquo;</span>
-          <p className="text-sm text-gray-400 italic">{quote}</p>
+          <p className="text-sm text-foreground-secondary italic">{quote}</p>
         </div>
       </div>
     </div>

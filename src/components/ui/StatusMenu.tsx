@@ -126,7 +126,7 @@ export function StatusMenu({ x, y, currentStatus, onSelect, onRemove, onClose }:
   return (
     <div
       ref={menuRef}
-      className="fixed z-[100] bg-[#1a1d27] border border-[#2a2d37] rounded-xl shadow-2xl p-1"
+      className="fixed z-[100] bg-surface border border-border rounded-xl shadow-2xl p-1"
       style={{ left: x, top: y, width: 200 }}
     >
       {STATUS_OPTIONS.map((opt) => (
@@ -134,7 +134,7 @@ export function StatusMenu({ x, y, currentStatus, onSelect, onRemove, onClose }:
           key={opt.status}
           onClick={() => onSelect(opt.status)}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-            currentStatus === opt.status ? "bg-[#22252f] text-white" : "text-gray-300 hover:bg-[#22252f]"
+            currentStatus === opt.status ? "bg-surface-hover text-foreground" : "text-foreground-secondary hover:bg-surface-hover"
           }`}
         >
           {opt.icon}
@@ -148,10 +148,10 @@ export function StatusMenu({ x, y, currentStatus, onSelect, onRemove, onClose }:
       ))}
       {currentStatus && (
         <>
-          <div className="h-px bg-[#2a2d37] my-1 mx-2" />
+          <div className="h-px bg-border my-1 mx-2" />
           <button
             onClick={onRemove}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-rose-400 hover:bg-[#22252f] transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-rose-400 hover:bg-surface-hover transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6L6 18M6 6l12 12" />

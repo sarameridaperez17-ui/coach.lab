@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_SECTIONS = [
   {
@@ -37,13 +38,13 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-[#0d0f15] text-white flex flex-col border-r border-[#1e2130]">
+    <aside className="fixed left-0 top-0 h-full w-64 bg-background text-foreground flex flex-col border-r border-border">
       {/* Logo */}
-      <div className="p-6 border-b border-[#1e2130]">
+      <div className="p-6 border-b border-border">
         <h1 className="text-xl font-bold tracking-tight">
           coach<span className="text-emerald-400">.lab</span>
         </h1>
-        <p className="text-xs text-gray-500 mt-1">El laboratorio del entrenador</p>
+        <p className="text-xs text-muted mt-1">El laboratorio del entrenador</p>
       </div>
 
       {/* Home */}
@@ -53,7 +54,7 @@ export function Sidebar() {
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
             pathname === "/"
               ? "bg-emerald-600 text-white font-medium"
-              : "text-gray-400 hover:bg-[#1a1d27] hover:text-white"
+              : "text-foreground-secondary hover:bg-surface hover:text-foreground"
           }`}
         >
           <span className="text-base">⬡</span>
@@ -65,7 +66,7 @@ export function Sidebar() {
       <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
         {NAV_SECTIONS.map((section) => (
           <div key={section.title}>
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-3 mb-1.5">
+            <p className="text-[10px] font-semibold text-muted uppercase tracking-wider px-3 mb-1.5">
               {section.title}
             </p>
             <div className="space-y-0.5">
@@ -82,7 +83,7 @@ export function Sidebar() {
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                       isActive
                         ? "bg-emerald-600/15 text-emerald-400 font-medium"
-                        : "text-gray-400 hover:bg-[#1a1d27] hover:text-white"
+                        : "text-foreground-secondary hover:bg-surface hover:text-foreground"
                     }`}
                   >
                     <span className="text-sm">{item.icon}</span>
@@ -96,8 +97,9 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-[#1e2130]">
-        <p className="text-xs text-gray-600">coach.lab v1.0</p>
+      <div className="p-4 border-t border-border space-y-1">
+        <ThemeToggle />
+        <p className="text-xs text-muted px-3">coach.lab v1.0</p>
       </div>
     </aside>
   );

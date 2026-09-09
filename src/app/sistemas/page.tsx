@@ -296,7 +296,7 @@ export default function SistemasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Cargando sistemas...</p>
+        <p className="text-foreground-secondary">Cargando sistemas...</p>
       </div>
     );
   }
@@ -304,7 +304,7 @@ export default function SistemasPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-200">Sistemas de juego</h1>
+        <h1 className="text-2xl font-bold text-foreground">Sistemas de juego</h1>
         <button
           onClick={() => {
             setCreating(true);
@@ -331,7 +331,7 @@ export default function SistemasPage() {
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   selectedId === sys.id
                     ? "bg-indigo-600 text-white"
-                    : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-indigo-300"
+                    : "bg-surface border border-border text-foreground-secondary hover:border-indigo-300"
                 }`}
               >
                 {sys.name}
@@ -347,7 +347,7 @@ export default function SistemasPage() {
         <div className="flex gap-6">
           {/* LEFT: Campograma */}
           <div className="flex-1 min-w-0">
-            <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
+            <div className="bg-surface rounded-xl border border-border p-4">
               <div className="flex justify-center">
                 <svg
                   viewBox="0 0 68 80"
@@ -432,50 +432,50 @@ export default function SistemasPage() {
           {/* RIGHT: Sidebar */}
           <div className="w-72 flex-shrink-0 space-y-4">
             {/* System info */}
-            <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#22252f]">
-                <h3 className="text-sm font-semibold text-gray-200">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 border-b border-surface-hover">
+                <h3 className="text-sm font-semibold text-foreground">
                   {creating ? "Nuevo sistema" : "Información del sistema"}
                 </h3>
               </div>
               <div className="p-4">
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Nombre</label>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Nombre</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Ej: 1-4-3-3"
-                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 mb-3"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-indigo-400 mb-3"
                 />
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Espacios fuertes</label>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Espacios fuertes</label>
                 <textarea
                   value={formStrongSpaces}
                   onChange={(e) => setFormStrongSpaces(e.target.value)}
                   placeholder="Espacios de superioridad del sistema..."
                   rows={2}
-                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
                 />
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Espacios débiles</label>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Espacios débiles</label>
                 <textarea
                   value={formWeakSpaces}
                   onChange={(e) => setFormWeakSpaces(e.target.value)}
                   placeholder="Espacios vulnerables del sistema..."
                   rows={2}
-                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
                 />
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide font-medium block mb-1">Descripción</label>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Descripción</label>
                 <textarea
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
                   placeholder="Características principales del sistema..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none mb-3"
                 />
                 <div className="flex gap-2">
                   {creating ? (
                     <>
                       <button onClick={handleCreate} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700">Crear sistema</button>
-                      <button onClick={() => setCreating(false)} className="text-xs text-gray-400">Cancelar</button>
+                      <button onClick={() => setCreating(false)} className="text-xs text-foreground-secondary">Cancelar</button>
                     </>
                   ) : (
                     <>
@@ -489,9 +489,9 @@ export default function SistemasPage() {
 
             {/* Variantes */}
             {selectedId && (
-              <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#22252f] flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-200">Variantes</h3>
+              <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-3 border-b border-surface-hover flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">Variantes</h3>
                   <button
                     onClick={() => setAddingVariant(true)}
                     className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
@@ -507,7 +507,7 @@ export default function SistemasPage() {
                         value={variantName}
                         onChange={(e) => setVariantName(e.target.value)}
                         placeholder="Nombre de la variante"
-                        className="w-full px-3 py-1.5 border border-[#2a2d37] rounded text-sm mb-2 focus:outline-none focus:border-indigo-400"
+                        className="w-full px-3 py-1.5 border border-border rounded text-sm mb-2 focus:outline-none focus:border-indigo-400"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleAddVariant();
                           if (e.key === "Escape") { setAddingVariant(false); setVariantName(""); }
@@ -515,20 +515,20 @@ export default function SistemasPage() {
                       />
                       <div className="flex gap-2">
                         <button onClick={handleAddVariant} className="px-2 py-1 bg-indigo-600 text-white rounded text-xs">Crear</button>
-                        <button onClick={() => { setAddingVariant(false); setVariantName(""); }} className="text-xs text-gray-400">Cancelar</button>
+                        <button onClick={() => { setAddingVariant(false); setVariantName(""); }} className="text-xs text-foreground-secondary">Cancelar</button>
                       </div>
                     </div>
                   )}
                   {selectedVariants.length === 0 && !addingVariant ? (
-                    <p className="text-xs text-gray-500 text-center py-3">Sin variantes definidas</p>
+                    <p className="text-xs text-muted text-center py-3">Sin variantes definidas</p>
                   ) : (
                     <div className="space-y-1">
                       {selectedVariants.map((v) => (
-                        <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-[#22252f] rounded-lg group">
-                          <span className="text-xs text-gray-300">{v.name}</span>
+                        <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-surface-hover rounded-lg group">
+                          <span className="text-xs text-foreground-secondary">{v.name}</span>
                           <button
                             onClick={() => handleDeleteVariant(v.id)}
-                            className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="text-xs text-foreground-secondary hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             ✕
                           </button>
@@ -542,9 +542,9 @@ export default function SistemasPage() {
 
             {/* Tareas asociadas */}
             {selectedId && (
-              <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#22252f]">
-                  <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+              <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-3 border-b border-surface-hover">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
                     </svg>
@@ -555,18 +555,18 @@ export default function SistemasPage() {
                   {systemFavTasks.length > 0 ? (
                     <div className="space-y-2">
                       {systemFavTasks.map(task => (
-                        <div key={task.id} className="bg-[#22252f] rounded-lg px-3 py-2">
-                          <p className="text-xs font-medium text-gray-300 line-clamp-2">{task.name}</p>
+                        <div key={task.id} className="bg-surface-hover rounded-lg px-3 py-2">
+                          <p className="text-xs font-medium text-foreground-secondary line-clamp-2">{task.name}</p>
                           {task.duration_minutes > 0 && (
-                            <p className="text-[10px] text-gray-500 mt-1">{task.duration_minutes} min</p>
+                            <p className="text-[10px] text-muted mt-1">{task.duration_minutes} min</p>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="text-center py-3">
-                      <p className="text-xs text-gray-500">Sin tareas favoritas</p>
-                      <p className="text-[10px] text-gray-600 mt-1">Marca tareas con ★ para verlas aquí</p>
+                      <p className="text-xs text-muted">Sin tareas favoritas</p>
+                      <p className="text-[10px] text-muted mt-1">Marca tareas con ★ para verlas aquí</p>
                     </div>
                   )}
                 </div>
@@ -575,7 +575,7 @@ export default function SistemasPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
+        <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
           <p className="text-lg font-medium mb-2">
             {systems.length === 0 ? "Sin sistemas" : "Selecciona un sistema"}
           </p>
@@ -591,13 +591,13 @@ export default function SistemasPage() {
       {labelDropdown && (
         <div
           ref={dropdownRef}
-          className="fixed z-50 bg-[#1a1d27] border border-[#2a2d37] rounded-lg shadow-xl py-1 min-w-[120px]"
+          className="fixed z-50 bg-surface border border-border rounded-lg shadow-xl py-1 min-w-[120px]"
           style={{
             left: Math.min(labelDropdown.x, window.innerWidth - 140),
             top: Math.min(labelDropdown.y, window.innerHeight - 300),
           }}
         >
-          <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium px-3 py-1.5 border-b border-[#22252f]">
+          <p className="text-[10px] text-muted uppercase tracking-wide font-medium px-3 py-1.5 border-b border-surface-hover">
             Posición #{labelDropdown.playerIndex}
           </p>
           <div className="max-h-[240px] overflow-y-auto">
@@ -608,8 +608,8 @@ export default function SistemasPage() {
                 <button
                   key={label}
                   onClick={() => handleLabelSelect(labelDropdown.playerIndex, label)}
-                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-[#22252f] transition-colors flex items-center justify-between ${
-                    isActive ? "text-indigo-400 font-semibold" : "text-gray-300"
+                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-hover transition-colors flex items-center justify-between ${
+                    isActive ? "text-indigo-400 font-semibold" : "text-foreground-secondary"
                   }`}
                 >
                   <span>{label}</span>

@@ -295,7 +295,7 @@ export default function PosicionesPage() {
   if (loading) {
     return (
       <div className="max-w-7xl flex items-center justify-center h-64">
-        <p className="text-gray-400">Cargando posiciones...</p>
+        <p className="text-foreground-secondary">Cargando posiciones...</p>
       </div>
     );
   }
@@ -304,8 +304,8 @@ export default function PosicionesPage() {
     <div className="max-w-7xl">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-200">Perfiles de posición</h1>
-          <p className="text-gray-500 text-sm mt-1">Define, estructura y consulta los perfiles de rendimiento por posición del campo.</p>
+          <h1 className="text-2xl font-bold text-foreground">Perfiles de posición</h1>
+          <p className="text-muted text-sm mt-1">Define, estructura y consulta los perfiles de rendimiento por posición del campo.</p>
         </div>
       </div>
 
@@ -326,7 +326,7 @@ export default function PosicionesPage() {
                   className={`flex-1 min-w-0 p-2 rounded-lg text-center transition-colors relative ${
                     selectedPosition === pos.id
                       ? "bg-blue-600 text-white"
-                      : "bg-[#1a1d27] border border-[#2a2d37] text-gray-300 hover:border-blue-700"
+                      : "bg-surface border border-border text-foreground-secondary hover:border-blue-700"
                   }`}
                 >
                   <span className="block text-sm font-bold">{pos.abbreviation}</span>
@@ -342,13 +342,13 @@ export default function PosicionesPage() {
           </div>
 
           {/* Position name header */}
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">
+          <h2 className="text-xl font-semibold text-foreground mb-4">
             {activePosition?.name} ({activePosition?.abbreviation})
           </h2>
 
           {/* Phase tabs */}
           <div className="mb-6">
-            <div className="flex gap-1 border-b border-[#2a2d37]">
+            <div className="flex gap-1 border-b border-border">
               {displayPhases.map((phase) => (
                 <button
                   key={phase.id}
@@ -356,7 +356,7 @@ export default function PosicionesPage() {
                   className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
                     selectedPhase === phase.id
                       ? "text-emerald-400"
-                      : "text-gray-500 hover:text-gray-300"
+                      : "text-muted hover:text-foreground-secondary"
                   }`}
                 >
                   {phase.name}
@@ -369,15 +369,15 @@ export default function PosicionesPage() {
           </div>
 
           {/* Behavior matrix for selected phase */}
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#2a2d37]">
-                    <th className="p-3 text-left text-gray-500 font-medium w-20">Zona</th>
-                    <th className="p-3 text-left text-gray-500 font-medium">Comportamientos clave</th>
-                    <th className="p-3 text-left text-gray-500 font-medium">Principios relacionados</th>
-                    <th className="p-3 text-left text-gray-500 font-medium">Indicadores</th>
+                  <tr className="border-b border-border">
+                    <th className="p-3 text-left text-muted font-medium w-20">Zona</th>
+                    <th className="p-3 text-left text-muted font-medium">Comportamientos clave</th>
+                    <th className="p-3 text-left text-muted font-medium">Principios relacionados</th>
+                    <th className="p-3 text-left text-muted font-medium">Indicadores</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -387,12 +387,12 @@ export default function PosicionesPage() {
                     const detailLines = details ? details.split("\n").filter(Boolean) : [];
                     const cellKey = `${zone.id}__${selectedPhase}`;
                     return (
-                      <tr key={zone.id} className="border-b border-[#22252f] last:border-0 align-top">
+                      <tr key={zone.id} className="border-b border-surface-hover last:border-0 align-top">
                         <td className="p-3">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">
+                          <span className="text-[10px] text-muted uppercase tracking-wider font-medium">
                             Zona {zone.name}
                           </span>
-                          <p className="text-xs text-gray-300 mt-0.5 leading-tight">
+                          <p className="text-xs text-foreground-secondary mt-0.5 leading-tight">
                             {getZoneDisplayName(zone.name)}
                           </p>
                         </td>
@@ -409,8 +409,8 @@ export default function PosicionesPage() {
                                 return (
                                   <>
                                     <ul className="space-y-1">
-                                      <li className="text-xs text-gray-300 flex items-center gap-1.5">
-                                        <span className="text-gray-500 mt-0.5">·</span>
+                                      <li className="text-xs text-foreground-secondary flex items-center gap-1.5">
+                                        <span className="text-muted mt-0.5">·</span>
                                         <span className="flex-1">{cell.title}</span>
                                         {/* YouTube icon — same as modelo-de-juego */}
                                         {editingYoutubeCell === cellKey ? (
@@ -434,7 +434,7 @@ export default function PosicionesPage() {
                                                 if (e.key === "Escape") { setEditingYoutubeCell(null); setYoutubeUrlInput(""); }
                                               }}
                                               placeholder="https://youtube.com/watch?v=..."
-                                              className="w-40 px-2 py-1 border border-[#2a2d37] rounded text-xs focus:outline-none focus:border-red-400 bg-[#22252f] text-gray-300"
+                                              className="w-40 px-2 py-1 border border-border rounded text-xs focus:outline-none focus:border-red-400 bg-surface-hover text-foreground-secondary"
                                             />
                                           </div>
                                         ) : (
@@ -459,7 +459,7 @@ export default function PosicionesPage() {
                                             className={`flex-shrink-0 p-1 rounded transition-colors ${
                                               hasYt
                                                 ? "text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                                                : "text-gray-600 hover:text-red-400 hover:bg-red-900/20"
+                                                : "text-muted hover:text-red-400 hover:bg-red-900/20"
                                             }`}
                                             title={hasYt ? "Ver vídeo (clic derecho para editar)" : "Añadir vídeo"}
                                           >
@@ -471,8 +471,8 @@ export default function PosicionesPage() {
                                         )}
                                       </li>
                                       {cleanDetails.slice(0, 2).map((line, i) => (
-                                        <li key={i} className="text-xs text-gray-300 flex items-start gap-1.5">
-                                          <span className="text-gray-500 mt-0.5">·</span>
+                                        <li key={i} className="text-xs text-foreground-secondary flex items-start gap-1.5">
+                                          <span className="text-muted mt-0.5">·</span>
                                           <span className="flex-1">{line}</span>
                                         </li>
                                       ))}
@@ -498,17 +498,17 @@ export default function PosicionesPage() {
                                 setCellTitle("");
                                 setCellDetails("");
                               }}
-                              className="text-xs text-gray-500 hover:text-emerald-400 transition-colors"
+                              className="text-xs text-muted hover:text-emerald-400 transition-colors"
                             >
                               + Definir comportamiento
                             </button>
                           )}
                         </td>
                         <td className="p-3">
-                          <p className="text-xs text-gray-500 italic">Sin vincular</p>
+                          <p className="text-xs text-muted italic">Sin vincular</p>
                         </td>
                         <td className="p-3">
-                          <p className="text-xs text-gray-500 italic">Sin definir</p>
+                          <p className="text-xs text-muted italic">Sin definir</p>
                         </td>
                       </tr>
                     );
@@ -519,7 +519,7 @@ export default function PosicionesPage() {
           </div>
 
           {/* Add custom phase button */}
-          <button className="w-full mt-4 py-3 border border-dashed border-[#2a2d37] rounded-xl text-sm text-gray-500 hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
+          <button className="w-full mt-4 py-3 border border-dashed border-border rounded-xl text-sm text-muted hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
             + Añadir fase personalizada
           </button>
         </div>
@@ -527,8 +527,8 @@ export default function PosicionesPage() {
         {/* Right sidebar */}
         <div className="w-72 flex-shrink-0 space-y-4">
           {/* ADN DE LA POSICIÓN */}
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          <div className="bg-surface rounded-xl border border-border p-4">
+            <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide mb-3">
               ADN DE LA POSICIÓN
             </h3>
             {currentADN ? (
@@ -536,15 +536,15 @@ export default function PosicionesPage() {
                 {/* Función */}
                 <div>
                   <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Función</span>
-                  <p className="text-xs text-gray-300 mt-1 leading-relaxed">{currentADN.funcion}</p>
+                  <p className="text-xs text-foreground-secondary mt-1 leading-relaxed">{currentADN.funcion}</p>
                 </div>
                 {/* Interacciones Clave */}
                 <div>
                   <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Interacciones Clave</span>
                   <ul className="mt-1 space-y-0.5">
                     {currentADN.interacciones.map((item, i) => (
-                      <li key={i} className="text-xs text-gray-300 flex items-start gap-1.5">
-                        <span className="text-gray-500 mt-0.5">·</span>
+                      <li key={i} className="text-xs text-foreground-secondary flex items-start gap-1.5">
+                        <span className="text-muted mt-0.5">·</span>
                         {item}
                       </li>
                     ))}
@@ -555,8 +555,8 @@ export default function PosicionesPage() {
                   <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Momentos de Mayor Impacto</span>
                   <ul className="mt-1 space-y-0.5">
                     {currentADN.momentos.map((item, i) => (
-                      <li key={i} className="text-xs text-gray-300 flex items-start gap-1.5">
-                        <span className="text-gray-500 mt-0.5">·</span>
+                      <li key={i} className="text-xs text-foreground-secondary flex items-start gap-1.5">
+                        <span className="text-muted mt-0.5">·</span>
                         {item}
                       </li>
                     ))}
@@ -564,27 +564,27 @@ export default function PosicionesPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-gray-500 italic">Sin datos de ADN para esta posición</p>
+              <p className="text-xs text-muted italic">Sin datos de ADN para esta posición</p>
             )}
           </div>
 
           {/* Mapa de zonas */}
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          <div className="bg-surface rounded-xl border border-border p-4">
+            <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide mb-3">
               Mapa de zonas
             </h3>
             <FieldZoneMap posAbbr={activePosition?.abbreviation ?? "MC"} />
           </div>
 
           {/* Tareas asociadas */}
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          <div className="bg-surface rounded-xl border border-border p-4">
+            <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide mb-3">
               Tareas asociadas
             </h3>
-            <p className="text-xs text-gray-500 text-center py-4">
+            <p className="text-xs text-muted text-center py-4">
               Sin tareas vinculadas a esta posición
             </p>
-            <p className="text-[10px] text-gray-600 text-center">
+            <p className="text-[10px] text-muted text-center">
               Vincula tareas desde la página de tareas
             </p>
           </div>
@@ -606,11 +606,11 @@ export default function PosicionesPage() {
       {/* Modal editar celda */}
       {editCell && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#1a1d27] rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="font-semibold text-gray-200 mb-1">
+          <div className="bg-surface rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="font-semibold text-foreground mb-1">
               Definir comportamiento
             </h3>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-muted mb-4">
               {activePosition?.name} — {zones.find((z) => z.id === editCell.zoneId)?.name} — {activePhase?.name}
             </p>
             <input
@@ -618,19 +618,19 @@ export default function PosicionesPage() {
               value={cellTitle}
               onChange={(e) => setCellTitle(e.target.value)}
               placeholder="Título del comportamiento"
-              className="w-full px-3 py-2 bg-[#22252f] border border-[#2a2d37] rounded-lg text-sm text-gray-200 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
             <textarea
               value={cellDetails}
               onChange={(e) => setCellDetails(e.target.value)}
               placeholder="Detalles (uno por línea)..."
               rows={4}
-              className="w-full px-3 py-2 bg-[#22252f] border border-[#2a2d37] rounded-lg text-sm text-gray-200 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
             />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setEditCell(null)}
-                className="px-4 py-2 bg-[#22252f] text-gray-400 rounded-lg text-sm hover:bg-[#2a2d37]"
+                className="px-4 py-2 bg-surface-hover text-foreground-secondary rounded-lg text-sm hover:bg-border"
               >
                 Cancelar
               </button>

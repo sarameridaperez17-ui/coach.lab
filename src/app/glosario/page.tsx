@@ -89,36 +89,36 @@ function MultiSelect({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm text-left bg-[#22252f] hover:border-[#3a3d47] transition-colors flex items-center justify-between"
+        className="w-full px-3 py-2 border border-border rounded-lg text-sm text-left bg-surface-hover hover:border-border-light transition-colors flex items-center justify-between"
       >
         <span className="truncate">
           {selected.length === 0 ? (
-            <span className="text-gray-500">{label}</span>
+            <span className="text-muted">{label}</span>
           ) : (
-            <span className="text-gray-300">{selected.length} seleccionado{selected.length > 1 ? "s" : ""}</span>
+            <span className="text-foreground-secondary">{selected.length} seleccionado{selected.length > 1 ? "s" : ""}</span>
           )}
         </span>
-        <svg className={`w-4 h-4 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        <svg className={`w-4 h-4 text-muted transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-[#1a1d27] border border-[#2a2d37] rounded-lg shadow-xl overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full bg-surface border border-border rounded-lg shadow-xl overflow-hidden">
           {options.map(opt => (
             <button
               key={opt}
               type="button"
               onClick={() => toggle(opt)}
               className={`w-full px-3 py-2 text-sm text-left flex items-center gap-2 transition-colors ${
-                selected.includes(opt) ? "bg-[#22252f] text-white" : "text-gray-400 hover:bg-[#22252f]"
+                selected.includes(opt) ? "bg-surface-hover text-foreground" : "text-foreground-secondary hover:bg-surface-hover"
               }`}
             >
               <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                selected.includes(opt) ? "bg-rose-600 border-rose-600" : "border-[#3a3d47]"
+                selected.includes(opt) ? "bg-rose-600 border-rose-600" : "border-border-light"
               }`}>
                 {selected.includes(opt) && (
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                 )}
               </span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${colorMap[opt] || "bg-gray-700/40 text-gray-400"}`}>{opt}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${colorMap[opt] || "bg-surface-hover text-foreground-secondary"}`}>{opt}</span>
             </button>
           ))}
         </div>
@@ -143,7 +143,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm bg-[#22252f] text-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+      className="px-3 py-2 border border-border rounded-lg text-sm bg-surface-hover text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-rose-500/30"
     >
       <option value="">{label}</option>
       {options.map(opt => (
@@ -294,7 +294,7 @@ export default function GlosarioPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Cargando diccionario...</p>
+        <p className="text-foreground-secondary">Cargando diccionario...</p>
       </div>
     );
   }
@@ -304,7 +304,7 @@ export default function GlosarioPage() {
       {/* ── Main content ── */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-200">Diccionario táctico</h1>
+          <h1 className="text-2xl font-bold text-foreground">Diccionario táctico</h1>
           <button
             onClick={() => setAdding(true)}
             className="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700 transition-colors"
@@ -320,7 +320,7 @@ export default function GlosarioPage() {
             placeholder="Buscar en el diccionario..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 bg-[#22252f]"
+            className="w-full px-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 bg-surface-hover"
           />
           <div className="flex gap-3">
             <FilterSelect
@@ -338,7 +338,7 @@ export default function GlosarioPage() {
             {(behaviorFilter || momentFilter) && (
               <button
                 onClick={() => { setBehaviorFilter(""); setMomentFilter(""); }}
-                className="px-3 py-2 text-xs text-gray-400 hover:text-rose-400 transition-colors"
+                className="px-3 py-2 text-xs text-foreground-secondary hover:text-rose-400 transition-colors"
               >
                 Limpiar filtros
               </button>
@@ -353,7 +353,7 @@ export default function GlosarioPage() {
             className={`w-12 h-7 rounded text-xs font-medium transition-colors ${
               !letterFilter
                 ? "bg-rose-600 text-white"
-                : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-rose-400"
+                : "bg-surface border border-border text-foreground-secondary hover:border-rose-400"
             }`}
           >
             Todo
@@ -365,7 +365,7 @@ export default function GlosarioPage() {
               className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
                 letterFilter === letter
                   ? "bg-rose-600 text-white"
-                  : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-rose-400 hover:text-rose-400"
+                  : "bg-surface border border-border text-foreground-secondary hover:border-rose-400 hover:text-rose-400"
               }`}
             >
               {letter}
@@ -375,20 +375,20 @@ export default function GlosarioPage() {
 
         {/* Formulario de creación */}
         {adding && (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
+          <div className="bg-surface rounded-xl border border-border p-4 mb-4">
             <input
               autoFocus
               value={newTerm}
               onChange={(e) => setNewTerm(e.target.value)}
               placeholder="Término (ej: profundidad, amplitud, fijar...)"
-              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300 bg-[#22252f]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300 bg-surface-hover"
             />
             <textarea
               value={newDef}
               onChange={(e) => setNewDef(e.target.value)}
               placeholder="Definición..."
               rows={3}
-              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none bg-[#22252f]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none bg-surface-hover"
             />
             <div className="grid grid-cols-2 gap-3 mb-3">
               <MultiSelect
@@ -426,7 +426,7 @@ export default function GlosarioPage() {
               </button>
               <button
                 onClick={() => { setAdding(false); setNewTerm(""); setNewDef(""); setNewBehaviorTags([]); setNewMomentTags([]); }}
-                className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
+                className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm hover:bg-border"
               >
                 Cancelar
               </button>
@@ -436,23 +436,23 @@ export default function GlosarioPage() {
 
         {/* Table */}
         {filtered.length === 0 ? (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
+          <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
             <p className="text-lg font-medium mb-2">Sin términos</p>
             <p className="text-sm">
               Crea tu primer término del diccionario para mantener una terminología consistente.
             </p>
           </div>
         ) : (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border overflow-hidden">
             {/* Table header: NOMBRE + ETIQUETAS + DESCRIPCIÓN + ESTADO */}
-            <div className="grid grid-cols-[180px_1fr_1fr_80px] gap-2 px-4 py-2.5 border-b border-[#2a2d37] text-xs text-gray-500 font-medium uppercase tracking-wider">
+            <div className="grid grid-cols-[180px_1fr_1fr_80px] gap-2 px-4 py-2.5 border-b border-border text-xs text-muted font-medium uppercase tracking-wider">
               <span>Nombre</span>
               <span>Etiquetas</span>
               <span>Descripción</span>
               <span className="text-center">Estado</span>
             </div>
             {/* Table rows */}
-            <div className="divide-y divide-[#22252f]">
+            <div className="divide-y divide-surface-hover">
               {filtered.map((t) => {
                 const bTags = parseTags(t.behavior_tags);
                 const mTags = parseTags(t.moment_tags);
@@ -463,13 +463,13 @@ export default function GlosarioPage() {
                       autoFocus
                       value={editTerm}
                       onChange={(e) => setEditTerm(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300 bg-[#22252f]"
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-rose-300 bg-surface-hover"
                     />
                     <textarea
                       value={editDef}
                       onChange={(e) => setEditDef(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none bg-[#22252f]"
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none bg-surface-hover"
                     />
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <MultiSelect
@@ -499,34 +499,34 @@ export default function GlosarioPage() {
                     )}
                     <div className="flex gap-2">
                       <button onClick={() => handleUpdate(t.id)} className="px-3 py-1.5 bg-rose-600 text-white rounded text-sm">Guardar</button>
-                      <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm">Cancelar</button>
+                      <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm">Cancelar</button>
                     </div>
                   </div>
                 ) : (
                   <div
                     key={t.id}
-                    className="grid grid-cols-[180px_1fr_1fr_80px] gap-2 px-4 py-3 items-center hover:bg-[#22252f]/50 transition-colors group cursor-default"
+                    className="grid grid-cols-[180px_1fr_1fr_80px] gap-2 px-4 py-3 items-center hover:bg-surface-hover/50 transition-colors group cursor-default"
                     onContextMenu={(e) => handleContextMenu(e, t.id, t.term)}
                   >
                     {/* Nombre */}
                     <div className="min-w-0">
-                      <span className="font-medium text-gray-200 text-sm">{t.term}</span>
+                      <span className="font-medium text-foreground text-sm">{t.term}</span>
                     </div>
                     {/* Etiquetas */}
                     <div className="flex flex-wrap gap-1 min-w-0">
                       {bTags.map(tag => (
-                        <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${BEHAVIOR_COLORS[tag] || "bg-gray-700/40 text-gray-400"}`}>{tag}</span>
+                        <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${BEHAVIOR_COLORS[tag] || "bg-surface-hover text-foreground-secondary"}`}>{tag}</span>
                       ))}
                       {mTags.map(tag => (
-                        <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${MOMENT_COLORS[tag] || "bg-gray-700/40 text-gray-400"}`}>{tag}</span>
+                        <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${MOMENT_COLORS[tag] || "bg-surface-hover text-foreground-secondary"}`}>{tag}</span>
                       ))}
                       {bTags.length === 0 && mTags.length === 0 && (
-                        <span className="text-[10px] text-gray-600">Sin etiquetas</span>
+                        <span className="text-[10px] text-muted">Sin etiquetas</span>
                       )}
                     </div>
                     {/* Descripción */}
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500 truncate">{t.definition || "—"}</p>
+                      <p className="text-xs text-muted truncate">{t.definition || "—"}</p>
                     </div>
                     {/* Estado (editar/borrar) */}
                     <div className="flex items-center justify-center gap-1">
@@ -540,14 +540,14 @@ export default function GlosarioPage() {
                             setEditBehaviorTags(parseTags(t.behavior_tags));
                             setEditMomentTags(parseTags(t.moment_tags));
                           }}
-                          className="p-1 text-xs text-gray-500 hover:text-rose-400 rounded"
+                          className="p-1 text-xs text-muted hover:text-rose-400 rounded"
                           title="Editar"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </button>
                         <button
                           onClick={() => handleDelete(t.id)}
-                          className="p-1 text-xs text-gray-500 hover:text-red-400 rounded"
+                          className="p-1 text-xs text-muted hover:text-red-400 rounded"
                           title="Eliminar"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -565,42 +565,42 @@ export default function GlosarioPage() {
       {/* ── Right sidebar ── */}
       <div className="w-72 flex-shrink-0 space-y-4">
         {/* Categorías */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Categorías</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Categorías</h3>
 
           {/* Comportamiento */}
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Comportamiento</p>
+          <p className="text-[10px] font-semibold text-foreground-secondary uppercase tracking-wider mb-2">Comportamiento</p>
           <div className="space-y-1.5 mb-4">
             {BEHAVIOR_OPTIONS.map(opt => (
               <div key={opt} className="flex items-center justify-between">
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${BEHAVIOR_COLORS[opt]}`}>{opt}</span>
-                <span className="text-xs text-gray-500 tabular-nums">{behaviorCounts[opt] || 0}</span>
+                <span className="text-xs text-muted tabular-nums">{behaviorCounts[opt] || 0}</span>
               </div>
             ))}
           </div>
 
           {/* Momento */}
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Momento</p>
+          <p className="text-[10px] font-semibold text-foreground-secondary uppercase tracking-wider mb-2">Momento</p>
           <div className="space-y-1.5">
             {MOMENT_OPTIONS.map(opt => (
               <div key={opt} className="flex items-center justify-between">
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${MOMENT_COLORS[opt]}`}>{opt}</span>
-                <span className="text-xs text-gray-500 tabular-nums">{momentCounts[opt] || 0}</span>
+                <span className="text-xs text-muted tabular-nums">{momentCounts[opt] || 0}</span>
               </div>
             ))}
           </div>
 
-          <div className="pt-3 mt-3 border-t border-[#22252f] flex items-center justify-between">
-            <span className="text-xs text-gray-400 font-medium">Total términos</span>
-            <span className="text-xs text-gray-300 font-semibold">{terms.length}</span>
+          <div className="pt-3 mt-3 border-t border-surface-hover flex items-center justify-between">
+            <span className="text-xs text-foreground-secondary font-medium">Total términos</span>
+            <span className="text-xs text-foreground-secondary font-semibold">{terms.length}</span>
           </div>
         </div>
 
         {/* Últimos añadidos */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Últimos añadidos</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Últimos añadidos</h3>
           {recentTerms.length === 0 ? (
-            <p className="text-xs text-gray-600">Sin términos</p>
+            <p className="text-xs text-muted">Sin términos</p>
           ) : (
             <div className="space-y-2">
               {recentTerms.map((t) => {
@@ -609,8 +609,8 @@ export default function GlosarioPage() {
                 return (
                   <div key={t.id}>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-gray-300 truncate">{t.term}</p>
-                      <p className="text-[10px] text-gray-600 flex-shrink-0 ml-2">{new Date(t.created_at).toLocaleDateString("es-ES")}</p>
+                      <p className="text-xs text-foreground-secondary truncate">{t.term}</p>
+                      <p className="text-[10px] text-muted flex-shrink-0 ml-2">{new Date(t.created_at).toLocaleDateString("es-ES")}</p>
                     </div>
                     {(bTags.length > 0 || mTags.length > 0) && (
                       <div className="flex flex-wrap gap-1 mt-1">

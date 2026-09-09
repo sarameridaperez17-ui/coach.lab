@@ -714,7 +714,7 @@ export default function TacticalBoardEditor({
         <div
           ref={containerRef}
           className="flex-1 rounded-lg overflow-hidden"
-          style={{ border: "1px solid var(--border)", background: "#0f1117" }}
+          style={{ border: "1px solid var(--border)", background: "var(--background)" }}
         >
           <canvas
             ref={canvasRef}

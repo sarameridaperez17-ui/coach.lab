@@ -302,7 +302,7 @@ export default function ABPPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Cargando ABP...</p>
+        <p className="text-foreground-secondary">Cargando ABP...</p>
       </div>
     );
   }
@@ -311,11 +311,11 @@ export default function ABPPage() {
     <div className="flex gap-6">
       {/* LEFT: Main content */}
       <div className="flex-1 min-w-0">
-        <h1 className="text-2xl font-bold text-gray-200 mb-6">Acciones a balón parado</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-6">Acciones a balón parado</h1>
 
         {/* Tipo ABP tabs — sin iconos */}
         <div className="mb-6">
-          <div className="flex border-b border-[#2a2d37]">
+          <div className="flex border-b border-border">
             {ABP_TYPES.map((type) => (
               <button
                 key={type.id}
@@ -323,7 +323,7 @@ export default function ABPPage() {
                 className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   selectedType === type.id
                     ? "border-orange-500 text-orange-400"
-                    : "border-transparent text-gray-500 hover:text-gray-300"
+                    : "border-transparent text-muted hover:text-foreground-secondary"
                 }`}
               >
                 {type.name}
@@ -335,7 +335,7 @@ export default function ABPPage() {
         {/* Search bar */}
         <div className="mb-6">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
             </svg>
             <input
@@ -343,22 +343,22 @@ export default function ABPPage() {
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
               placeholder="Buscar estrategia..."
-              className="w-full pl-10 pr-3 py-2 bg-[#1a1d27] border border-[#2a2d37] rounded-lg text-sm text-gray-300 focus:outline-none focus:border-orange-400"
+              className="w-full pl-10 pr-3 py-2 bg-surface border border-border rounded-lg text-sm text-foreground-secondary focus:outline-none focus:border-orange-400"
             />
           </div>
           {filterText && (
-            <div className="mt-2 bg-[#1a1d27] border border-[#2a2d37] rounded-lg overflow-hidden">
+            <div className="mt-2 bg-surface border border-border rounded-lg overflow-hidden">
               {filteredStrategies.length === 0 ? (
-                <p className="px-4 py-3 text-xs text-gray-500">Sin resultados para &ldquo;{filterText}&rdquo;</p>
+                <p className="px-4 py-3 text-xs text-muted">Sin resultados para &ldquo;{filterText}&rdquo;</p>
               ) : (
                 filteredStrategies.map(strat => (
                   <div
                     key={strat.id}
-                    className="px-4 py-2 border-b border-[#22252f] last:border-0 hover:bg-[#22252f] cursor-pointer"
+                    className="px-4 py-2 border-b border-surface-hover last:border-0 hover:bg-surface-hover cursor-pointer"
                     onClick={() => { setSelectedCategory(strat.subtype); setFilterText(""); }}
                   >
                     <p className="text-xs font-medium text-orange-300">{strat.title}</p>
-                    <p className="text-[10px] text-gray-500">{ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype)?.name}</p>
+                    <p className="text-[10px] text-muted">{ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype)?.name}</p>
                   </div>
                 ))
               )}
@@ -367,40 +367,40 @@ export default function ABPPage() {
         </div>
 
         {/* ── Filtro de acciones rápidas ───────────────────────────── */}
-        <div className="mb-6 bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Filtro de acciones rápidas</h2>
+        <div className="mb-6 bg-surface rounded-xl border border-border p-4">
+          <h2 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide mb-3">Filtro de acciones rápidas</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Categoría</label>
-              <select value={qfCategory} onChange={(e) => setQfCategory(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+              <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Categoría</label>
+              <select value={qfCategory} onChange={(e) => setQfCategory(e.target.value)} className="w-full px-2 py-1.5 bg-surface-hover border border-border rounded text-xs text-foreground-secondary focus:outline-none focus:border-orange-400">
                 <option value="">Todas</option>
                 {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Ejecución</label>
-              <select value={qfExecution} onChange={(e) => setQfExecution(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+              <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Ejecución</label>
+              <select value={qfExecution} onChange={(e) => setQfExecution(e.target.value)} className="w-full px-2 py-1.5 bg-surface-hover border border-border rounded text-xs text-foreground-secondary focus:outline-none focus:border-orange-400">
                 <option value="">Todas</option>
                 {EXECUTION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona objetivo</label>
-              <select value={qfTargetZone} onChange={(e) => setQfTargetZone(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+              <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Zona objetivo</label>
+              <select value={qfTargetZone} onChange={(e) => setQfTargetZone(e.target.value)} className="w-full px-2 py-1.5 bg-surface-hover border border-border rounded text-xs text-foreground-secondary focus:outline-none focus:border-orange-400">
                 <option value="">Todas</option>
                 {TARGET_ZONE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Estructura</label>
-              <select value={qfStructure} onChange={(e) => setQfStructure(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+              <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Estructura</label>
+              <select value={qfStructure} onChange={(e) => setQfStructure(e.target.value)} className="w-full px-2 py-1.5 bg-surface-hover border border-border rounded text-xs text-foreground-secondary focus:outline-none focus:border-orange-400">
                 <option value="">Todas</option>
                 {STRUCTURE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona protección</label>
-              <select value={qfProtectionZone} onChange={(e) => setQfProtectionZone(e.target.value)} className="w-full px-2 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded text-xs text-gray-300 focus:outline-none focus:border-orange-400">
+              <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Zona protección</label>
+              <select value={qfProtectionZone} onChange={(e) => setQfProtectionZone(e.target.value)} className="w-full px-2 py-1.5 bg-surface-hover border border-border rounded text-xs text-foreground-secondary focus:outline-none focus:border-orange-400">
                 <option value="">Todas</option>
                 {PROTECTION_ZONE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
@@ -409,7 +409,7 @@ export default function ABPPage() {
           {hasQuickFilter && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-400">{quickFilterResults.length} resultado{quickFilterResults.length !== 1 ? "s" : ""}</p>
+                <p className="text-xs text-foreground-secondary">{quickFilterResults.length} resultado{quickFilterResults.length !== 1 ? "s" : ""}</p>
                 <button onClick={() => { setQfCategory(""); setQfExecution(""); setQfTargetZone(""); setQfStructure(""); setQfProtectionZone(""); }} className="text-[10px] text-orange-400 hover:text-orange-300">Limpiar filtros</button>
               </div>
               {quickFilterResults.length > 0 ? (
@@ -417,12 +417,12 @@ export default function ABPPage() {
                   {quickFilterResults.map(strat => {
                     const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                     return (
-                      <div key={strat.id} className="bg-[#22252f] rounded-xl p-3 cursor-pointer hover:border-orange-500/30 border border-transparent transition-colors flex flex-col" onClick={() => setSelectedCategory(strat.subtype)}>
+                      <div key={strat.id} className="bg-surface-hover rounded-xl p-3 cursor-pointer hover:border-orange-500/30 border border-transparent transition-colors flex flex-col" onClick={() => setSelectedCategory(strat.subtype)}>
                         <div className="flex items-center justify-between mb-1.5">
                           <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
-                          <span className="text-[9px] text-gray-500 flex-shrink-0">{subtypeInfo?.name}</span>
+                          <span className="text-[9px] text-muted flex-shrink-0">{subtypeInfo?.name}</span>
                         </div>
-                        {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
+                        {strat.description && <p className="text-[10px] text-foreground-secondary mb-1.5 line-clamp-2">{strat.description}</p>}
                         {strat.image_url && (
                           <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                         )}
@@ -433,9 +433,9 @@ export default function ABPPage() {
                           {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
                         </div>
                         {strat.key_points && (
-                          <div className="bg-[#1a1d27] rounded-lg p-2 mt-1.5">
-                            <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
-                            <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
+                          <div className="bg-surface rounded-lg p-2 mt-1.5">
+                            <p className="text-[9px] text-muted uppercase tracking-wide mb-0.5">Puntos clave</p>
+                            <p className="text-[10px] text-foreground-secondary whitespace-pre-line line-clamp-3">{strat.key_points}</p>
                           </div>
                         )}
                       </div>
@@ -443,7 +443,7 @@ export default function ABPPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-gray-500 text-center py-3">Sin estrategias que coincidan con los filtros</p>
+                <p className="text-xs text-muted text-center py-3">Sin estrategias que coincidan con los filtros</p>
               )}
             </div>
           )}
@@ -454,36 +454,36 @@ export default function ABPPage() {
           <div>
             <button
               onClick={() => setSelectedCategory(null)}
-              className="text-xs text-gray-400 hover:text-gray-300 mb-4 flex items-center gap-1"
+              className="text-xs text-foreground-secondary hover:text-foreground-secondary mb-4 flex items-center gap-1"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
               Volver a categorías
             </button>
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-200">{selectedCatSubtype.name}</h2>
-              <p className="text-xs text-gray-500">{selectedCatStrategies.length} estrategias</p>
+              <h2 className="text-lg font-semibold text-foreground">{selectedCatSubtype.name}</h2>
+              <p className="text-xs text-muted">{selectedCatStrategies.length} estrategias</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               {selectedCatStrategies.map(strat => (
-                <div key={strat.id} className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-3 group flex flex-col">
+                <div key={strat.id} className="bg-surface rounded-xl border border-border p-3 group flex flex-col">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
                       <button
                         onClick={() => toggleFavorite(strat)}
-                        className={`text-xs flex-shrink-0 transition-colors ${strat.is_favorite ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
+                        className={`text-xs flex-shrink-0 transition-colors ${strat.is_favorite ? "text-yellow-400" : "text-muted hover:text-yellow-400"}`}
                         title={strat.is_favorite ? "Quitar de favoritos" : "Marcar como favorito"}
                       >
                         {strat.is_favorite ? "★" : "☆"}
                       </button>
                     </div>
                     <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      <button onClick={() => openModal(selectedCategory!, selectedCatSubtype.name, strat)} className="text-[10px] text-gray-400 hover:text-orange-400">Editar</button>
-                      <button onClick={() => handleDelete(strat.id)} className="text-[10px] text-gray-400 hover:text-red-500">✕</button>
+                      <button onClick={() => openModal(selectedCategory!, selectedCatSubtype.name, strat)} className="text-[10px] text-foreground-secondary hover:text-orange-400">Editar</button>
+                      <button onClick={() => handleDelete(strat.id)} className="text-[10px] text-foreground-secondary hover:text-red-500">✕</button>
                     </div>
                   </div>
-                  {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
+                  {strat.description && <p className="text-[10px] text-foreground-secondary mb-1.5 line-clamp-2">{strat.description}</p>}
                   {strat.image_url && (
                     <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                   )}
@@ -495,16 +495,16 @@ export default function ABPPage() {
                     {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
                   </div>
                   {strat.key_points && (
-                    <div className="bg-[#22252f] rounded-lg p-2 mt-1.5">
-                      <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
-                      <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
+                    <div className="bg-surface-hover rounded-lg p-2 mt-1.5">
+                      <p className="text-[9px] text-muted uppercase tracking-wide mb-0.5">Puntos clave</p>
+                      <p className="text-[10px] text-foreground-secondary whitespace-pre-line line-clamp-3">{strat.key_points}</p>
                     </div>
                   )}
                 </div>
               ))}
               <button
                 onClick={() => openModal(selectedCategory!, selectedCatSubtype.name)}
-                className="py-4 border-2 border-dashed border-[#2a2d37] rounded-xl text-sm font-medium text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
+                className="py-4 border-2 border-dashed border-border rounded-xl text-sm font-medium text-foreground-secondary hover:border-orange-400 hover:text-orange-400 transition-colors"
               >
                 + Definir estrategia
               </button>
@@ -519,10 +519,10 @@ export default function ABPPage() {
                 <button
                   key={subtype.id}
                   onClick={() => setSelectedCategory(subtype.id)}
-                  className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 text-left hover:border-orange-500/40 hover:bg-orange-900/5 transition-colors group"
+                  className="bg-surface rounded-xl border border-border p-4 text-left hover:border-orange-500/40 hover:bg-orange-900/5 transition-colors group"
                 >
-                  <h3 className="text-sm font-semibold text-gray-200 mb-1 group-hover:text-orange-300 transition-colors">{subtype.name}</h3>
-                  <p className="text-xs text-gray-500">
+                  <h3 className="text-sm font-semibold text-foreground mb-1 group-hover:text-orange-300 transition-colors">{subtype.name}</h3>
+                  <p className="text-xs text-muted">
                     {count} {count === 1 ? "estrategia" : "estrategias"}
                   </p>
                 </button>
@@ -534,14 +534,14 @@ export default function ABPPage() {
         {/* Estrategias recientes */}
         {!selectedCategory && strategies.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Estrategias recientes</h2>
+            <h2 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Estrategias recientes</h2>
             <div className="grid grid-cols-2 gap-3">
               {recentStrategies.map(strat => {
                 const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                 return (
                   <div
                     key={strat.id}
-                    className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-3 hover:border-orange-500/30 cursor-pointer transition-colors group flex flex-col"
+                    className="bg-surface rounded-xl border border-border p-3 hover:border-orange-500/30 cursor-pointer transition-colors group flex flex-col"
                     onClick={() => setSelectedCategory(strat.subtype)}
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -549,14 +549,14 @@ export default function ABPPage() {
                         <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(strat); }}
-                          className={`text-xs flex-shrink-0 transition-colors ${strat.is_favorite ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
+                          className={`text-xs flex-shrink-0 transition-colors ${strat.is_favorite ? "text-yellow-400" : "text-muted hover:text-yellow-400"}`}
                         >
                           {strat.is_favorite ? "★" : "☆"}
                         </button>
                       </div>
-                      <span className="text-[9px] text-gray-500 flex-shrink-0">{subtypeInfo?.name}</span>
+                      <span className="text-[9px] text-muted flex-shrink-0">{subtypeInfo?.name}</span>
                     </div>
-                    {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
+                    {strat.description && <p className="text-[10px] text-foreground-secondary mb-1.5 line-clamp-2">{strat.description}</p>}
                     {strat.image_url && (
                       <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                     )}
@@ -567,9 +567,9 @@ export default function ABPPage() {
                       {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
                     </div>
                     {strat.key_points && (
-                      <div className="bg-[#22252f] rounded-lg p-2 mt-1.5">
-                        <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
-                        <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
+                      <div className="bg-surface-hover rounded-lg p-2 mt-1.5">
+                        <p className="text-[9px] text-muted uppercase tracking-wide mb-0.5">Puntos clave</p>
+                        <p className="text-[10px] text-foreground-secondary whitespace-pre-line line-clamp-3">{strat.key_points}</p>
                       </div>
                     )}
                   </div>
@@ -582,14 +582,14 @@ export default function ABPPage() {
         {/* Estrategias favoritas */}
         {!selectedCategory && favoriteStrategies.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Estrategias favoritas</h2>
+            <h2 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Estrategias favoritas</h2>
             <div className="grid grid-cols-2 gap-3">
               {favoriteStrategies.map(strat => {
                 const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                 return (
                   <div
                     key={strat.id}
-                    className="bg-[#1a1d27] rounded-xl border border-yellow-500/20 p-3 hover:border-yellow-500/40 cursor-pointer transition-colors group flex flex-col"
+                    className="bg-surface rounded-xl border border-yellow-500/20 p-3 hover:border-yellow-500/40 cursor-pointer transition-colors group flex flex-col"
                     onClick={() => setSelectedCategory(strat.subtype)}
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -597,9 +597,9 @@ export default function ABPPage() {
                         <h3 className="text-xs font-semibold text-orange-300 truncate">{strat.title}</h3>
                         <span className="text-yellow-400 text-xs flex-shrink-0">★</span>
                       </div>
-                      <span className="text-[9px] text-gray-500 flex-shrink-0">{subtypeInfo?.name}</span>
+                      <span className="text-[9px] text-muted flex-shrink-0">{subtypeInfo?.name}</span>
                     </div>
-                    {strat.description && <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{strat.description}</p>}
+                    {strat.description && <p className="text-[10px] text-foreground-secondary mb-1.5 line-clamp-2">{strat.description}</p>}
                     {strat.image_url && (
                       <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                     )}
@@ -610,9 +610,9 @@ export default function ABPPage() {
                       {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 text-[9px]">{strat.protection_zone}</span>}
                     </div>
                     {strat.key_points && (
-                      <div className="bg-[#22252f] rounded-lg p-2 mt-1.5">
-                        <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Puntos clave</p>
-                        <p className="text-[10px] text-gray-300 whitespace-pre-line line-clamp-3">{strat.key_points}</p>
+                      <div className="bg-surface-hover rounded-lg p-2 mt-1.5">
+                        <p className="text-[9px] text-muted uppercase tracking-wide mb-0.5">Puntos clave</p>
+                        <p className="text-[10px] text-foreground-secondary whitespace-pre-line line-clamp-3">{strat.key_points}</p>
                       </div>
                     )}
                   </div>
@@ -627,57 +627,57 @@ export default function ABPPage() {
       {/* RIGHT: Sidebar */}
       <div className="w-72 flex-shrink-0 space-y-4">
         {/* Resumen ABP — dinámico */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#22252f]">
-            <h3 className="text-sm font-semibold text-gray-200">
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <div className="px-4 py-3 border-b border-surface-hover">
+            <h3 className="text-sm font-semibold text-foreground">
               Resumen {selectedType === "offensive" ? "ABP Ofensivo" : "ABP Defensivo"}
             </h3>
           </div>
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Total estrategias</span>
+              <span className="text-xs text-foreground-secondary">Total estrategias</span>
               <span className="text-sm font-bold text-orange-400">{currentTypeCount}</span>
             </div>
-            <div className="pt-2 border-t border-[#22252f]">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Por categoría</p>
+            <div className="pt-2 border-t border-surface-hover">
+              <p className="text-[10px] text-muted uppercase tracking-wide mb-2">Por categoría</p>
               {ABP_SUBTYPES[selectedType]
                 .filter(s => getStrategiesForSubtype(s.id).length > 0)
                 .map(s => (
                   <div key={s.id} className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-400">{s.name}</span>
+                    <span className="text-xs text-foreground-secondary">{s.name}</span>
                     <span className="text-xs text-orange-400">{getStrategiesForSubtype(s.id).length}</span>
                   </div>
                 ))
               }
               {ABP_SUBTYPES[selectedType].filter(s => getStrategiesForSubtype(s.id).length > 0).length === 0 && (
-                <p className="text-xs text-gray-600">Sin estrategias aún</p>
+                <p className="text-xs text-muted">Sin estrategias aún</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Patrones creados */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#22252f]">
-            <h3 className="text-sm font-semibold text-gray-200">Patrones creados</h3>
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <div className="px-4 py-3 border-b border-surface-hover">
+            <h3 className="text-sm font-semibold text-foreground">Patrones creados</h3>
           </div>
           <div className="p-4 space-y-3">
             {selectedType === "offensive" ? (
               <>
                 <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1.5">Ejecución</p>
+                  <p className="text-[10px] text-muted uppercase tracking-wide mb-1.5">Ejecución</p>
                   {executionCounts.map(({ label, count }) => (
                     <div key={label} className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400">{label}</span>
+                      <span className="text-xs text-foreground-secondary">{label}</span>
                       <span className="text-xs text-orange-400 font-medium">{count}</span>
                     </div>
                   ))}
                 </div>
-                <div className="pt-2 border-t border-[#22252f]">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1.5">Zona objetivo</p>
+                <div className="pt-2 border-t border-surface-hover">
+                  <p className="text-[10px] text-muted uppercase tracking-wide mb-1.5">Zona objetivo</p>
                   {targetZoneCounts.map(({ label, count }) => (
                     <div key={label} className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400">{label}</span>
+                      <span className="text-xs text-foreground-secondary">{label}</span>
                       <span className="text-xs text-orange-400 font-medium">{count}</span>
                     </div>
                   ))}
@@ -686,19 +686,19 @@ export default function ABPPage() {
             ) : (
               <>
                 <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1.5">Estructura</p>
+                  <p className="text-[10px] text-muted uppercase tracking-wide mb-1.5">Estructura</p>
                   {structureCounts.map(({ label, count }) => (
                     <div key={label} className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400">{label}</span>
+                      <span className="text-xs text-foreground-secondary">{label}</span>
                       <span className="text-xs text-orange-400 font-medium">{count}</span>
                     </div>
                   ))}
                 </div>
-                <div className="pt-2 border-t border-[#22252f]">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1.5">Zona de protección</p>
+                <div className="pt-2 border-t border-surface-hover">
+                  <p className="text-[10px] text-muted uppercase tracking-wide mb-1.5">Zona de protección</p>
                   {protectionZoneCounts.map(({ label, count }) => (
                     <div key={label} className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400">{label}</span>
+                      <span className="text-xs text-foreground-secondary">{label}</span>
                       <span className="text-xs text-orange-400 font-medium">{count}</span>
                     </div>
                   ))}
@@ -712,11 +712,11 @@ export default function ABPPage() {
       {/* Modal */}
       {modalSubtype && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeModal}>
-          <div className={`bg-[#1a1d27] rounded-xl p-6 w-full shadow-xl border border-[#2a2d37] max-h-[90vh] overflow-y-auto ${showBoardEditor ? "max-w-4xl" : "max-w-lg"}`} onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold text-gray-200 mb-1">
+          <div className={`bg-surface rounded-xl p-6 w-full shadow-xl border border-border max-h-[90vh] overflow-y-auto ${showBoardEditor ? "max-w-4xl" : "max-w-lg"}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-foreground mb-1">
               {editingStrategy ? "Editar estrategia" : "Nueva estrategia"}
             </h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-muted mb-4">
               {modalSubtypeName} · {selectedType === "offensive" ? "Ofensivo" : "Defensivo"}
             </p>
 
@@ -725,30 +725,30 @@ export default function ABPPage() {
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
               placeholder="Título (ej: Córner al primer palo)"
-              className="w-full px-3 py-2 bg-[#22252f] border border-[#2a2d37] rounded-lg text-sm text-gray-200 mb-2 focus:outline-none focus:border-orange-400"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground mb-2 focus:outline-none focus:border-orange-400"
             />
             <textarea
               value={formDesc}
               onChange={(e) => setFormDesc(e.target.value)}
               placeholder="Descripción de la estrategia..."
               rows={3}
-              className="w-full px-3 py-2 bg-[#22252f] border border-[#2a2d37] rounded-lg text-sm text-gray-200 mb-2 focus:outline-none focus:border-orange-400 resize-none"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground mb-2 focus:outline-none focus:border-orange-400 resize-none"
             />
             <textarea
               value={formKeyPoints}
               onChange={(e) => setFormKeyPoints(e.target.value)}
               placeholder="Puntos clave (uno por línea)..."
               rows={3}
-              className="w-full px-3 py-2 bg-[#22252f] border border-[#2a2d37] rounded-lg text-sm text-gray-200 mb-3 focus:outline-none focus:border-orange-400 resize-none"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground mb-3 focus:outline-none focus:border-orange-400 resize-none"
             />
 
             {/* Imagen */}
             <div className="mb-3">
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Imagen de la acción</label>
+              <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Imagen de la acción</label>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded-lg text-xs text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
+                  className="px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs text-foreground-secondary hover:border-orange-400 hover:text-orange-400 transition-colors"
                 >
                   Subir imagen
                 </button>
@@ -769,7 +769,7 @@ export default function ABPPage() {
                 )}
               </div>
               {formImageUrl && (
-                <img src={formImageUrl} alt="Preview" className="mt-2 w-full max-h-32 object-contain rounded-lg bg-[#22252f]" />
+                <img src={formImageUrl} alt="Preview" className="mt-2 w-full max-h-32 object-contain rounded-lg bg-surface-hover" />
               )}
             </div>
 
@@ -777,7 +777,7 @@ export default function ABPPage() {
             <div className="mb-3">
               <button
                 onClick={() => setShowBoardEditor(!showBoardEditor)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#22252f] border border-[#2a2d37] rounded-lg text-xs text-gray-400 hover:border-blue-400 hover:text-blue-400 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs text-foreground-secondary hover:border-blue-400 hover:text-blue-400 transition-colors"
               >
                 <span>⚽</span>
                 <span>{showBoardEditor ? "Ocultar tablero táctico" : "Abrir tablero táctico"}</span>
@@ -796,7 +796,7 @@ export default function ABPPage() {
             {selectedType === "offensive" ? (
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Ejecución</label>
+                  <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Ejecución</label>
                   <div className="flex gap-2">
                     {EXECUTION_OPTIONS.map(opt => (
                       <button
@@ -805,7 +805,7 @@ export default function ABPPage() {
                         className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                           formExecution === opt
                             ? "bg-orange-600 text-white"
-                            : "bg-[#22252f] border border-[#2a2d37] text-gray-400 hover:border-orange-400"
+                            : "bg-surface-hover border border-border text-foreground-secondary hover:border-orange-400"
                         }`}
                       >
                         {opt}
@@ -814,7 +814,7 @@ export default function ABPPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona objetivo</label>
+                  <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Zona objetivo</label>
                   <div className="flex flex-wrap gap-1.5">
                     {TARGET_ZONE_OPTIONS.map(opt => (
                       <button
@@ -823,7 +823,7 @@ export default function ABPPage() {
                         className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
                           formTargetZone === opt
                             ? "bg-blue-600 text-white"
-                            : "bg-[#22252f] border border-[#2a2d37] text-gray-400 hover:border-blue-400"
+                            : "bg-surface-hover border border-border text-foreground-secondary hover:border-blue-400"
                         }`}
                       >
                         {opt}
@@ -835,7 +835,7 @@ export default function ABPPage() {
             ) : (
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Estructura</label>
+                  <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Estructura</label>
                   <div className="flex gap-2">
                     {STRUCTURE_OPTIONS.map(opt => (
                       <button
@@ -844,7 +844,7 @@ export default function ABPPage() {
                         className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                           formStructure === opt
                             ? "bg-purple-600 text-white"
-                            : "bg-[#22252f] border border-[#2a2d37] text-gray-400 hover:border-purple-400"
+                            : "bg-surface-hover border border-border text-foreground-secondary hover:border-purple-400"
                         }`}
                       >
                         {opt}
@@ -853,7 +853,7 @@ export default function ABPPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Zona de protección</label>
+                  <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Zona de protección</label>
                   <div className="flex flex-wrap gap-1.5">
                     {PROTECTION_ZONE_OPTIONS.map(opt => (
                       <button
@@ -862,7 +862,7 @@ export default function ABPPage() {
                         className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
                           formProtectionZone === opt
                             ? "bg-emerald-600 text-white"
-                            : "bg-[#22252f] border border-[#2a2d37] text-gray-400 hover:border-emerald-400"
+                            : "bg-surface-hover border border-border text-foreground-secondary hover:border-emerald-400"
                         }`}
                       >
                         {opt}
@@ -874,7 +874,7 @@ export default function ABPPage() {
             )}
 
             <div className="flex gap-2 justify-end">
-              <button onClick={closeModal} className="px-4 py-2 text-xs text-gray-400 hover:text-gray-300">Cancelar</button>
+              <button onClick={closeModal} className="px-4 py-2 text-xs text-foreground-secondary hover:text-foreground-secondary">Cancelar</button>
               <button
                 onClick={editingStrategy ? handleUpdate : handleCreate}
                 className="px-4 py-2 bg-orange-600 text-white rounded-lg text-xs font-medium hover:bg-orange-700"

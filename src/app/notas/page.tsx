@@ -143,7 +143,7 @@ export default function NotasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Cargando notas...</p>
+        <p className="text-foreground-secondary">Cargando notas...</p>
       </div>
     );
   }
@@ -153,7 +153,7 @@ export default function NotasPage() {
       {/* ── Main content ── */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-200">Notas</h1>
+          <h1 className="text-2xl font-bold text-foreground">Notas</h1>
           <button
             onClick={() => setAdding(true)}
             className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700 transition-colors"
@@ -167,7 +167,7 @@ export default function NotasPage() {
           <button
             onClick={() => setTypeFilter("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              typeFilter === "all" ? "bg-cyan-600 text-white" : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-cyan-400"
+              typeFilter === "all" ? "bg-cyan-600 text-white" : "bg-surface border border-border text-foreground-secondary hover:border-cyan-400"
             }`}
           >
             Todas
@@ -179,7 +179,7 @@ export default function NotasPage() {
                 key={nt}
                 onClick={() => setTypeFilter(nt)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                  typeFilter === nt ? info.color + " ring-1 ring-current" : "bg-[#1a1d27] border border-[#2a2d37] text-gray-400 hover:border-cyan-400"
+                  typeFilter === nt ? info.color + " ring-1 ring-current" : "bg-surface border border-border text-foreground-secondary hover:border-cyan-400"
                 }`}
               >
                 <span>{info.icon}</span>
@@ -196,12 +196,12 @@ export default function NotasPage() {
             placeholder="Buscar notas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 px-4 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-cyan-300 bg-[#22252f]"
+            className="flex-1 px-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-cyan-300 bg-surface-hover"
           />
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as "desc" | "asc")}
-            className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm text-gray-400 bg-[#1a1d27]"
+            className="px-3 py-2 border border-border rounded-lg text-sm text-foreground-secondary bg-surface"
           >
             <option value="desc">Más recientes</option>
             <option value="asc">Más antiguas</option>
@@ -210,19 +210,19 @@ export default function NotasPage() {
 
         {/* Formulario de creación */}
         {adding && (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4 mb-4">
+          <div className="bg-surface rounded-xl border border-border p-4 mb-4">
             <div className="flex gap-2 mb-2">
               <input
                 autoFocus
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="Título de la nota"
-                className="flex-1 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 bg-[#22252f]"
+                className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 bg-surface-hover"
               />
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as NoteType)}
-                className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm bg-[#1a1d27]"
+                className="px-3 py-2 border border-border rounded-lg text-sm bg-surface"
               >
                 <option value="free">Libre</option>
                 <option value="post_session">Post-sesión</option>
@@ -234,7 +234,7 @@ export default function NotasPage() {
               onChange={(e) => setNewContent(e.target.value)}
               placeholder="Contenido de la nota..."
               rows={5}
-              className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none bg-[#22252f]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none bg-surface-hover"
             />
             <div className="flex gap-2">
               <button
@@ -245,7 +245,7 @@ export default function NotasPage() {
               </button>
               <button
                 onClick={() => { setAdding(false); setNewTitle(""); setNewContent(""); }}
-                className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm hover:bg-[#2a2d37]"
+                className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm hover:bg-border"
               >
                 Cancelar
               </button>
@@ -255,7 +255,7 @@ export default function NotasPage() {
 
         {/* Note cards */}
         {filtered.length === 0 ? (
-          <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-8 text-center text-gray-400">
+          <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
             <p className="text-lg font-medium mb-2">Sin notas</p>
             <p className="text-sm">
               Crea tu primera nota. Tipos: libre, post-sesión, post-partido.
@@ -267,18 +267,18 @@ export default function NotasPage() {
               const badge = NOTE_TYPE_LABELS[note.note_type];
               const isFavorite = favoriteIds.includes(note.id);
               return editingId === note.id ? (
-                <div key={note.id} className="col-span-1 md:col-span-2 bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
+                <div key={note.id} className="col-span-1 md:col-span-2 bg-surface rounded-xl border border-border p-4">
                   <div className="flex gap-2 mb-2">
                     <input
                       autoFocus
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-[#2a2d37] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 bg-[#22252f]"
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 bg-surface-hover"
                     />
                     <select
                       value={editType}
                       onChange={(e) => setEditType(e.target.value as NoteType)}
-                      className="px-3 py-2 border border-[#2a2d37] rounded-lg text-sm bg-[#1a1d27]"
+                      className="px-3 py-2 border border-border rounded-lg text-sm bg-surface"
                     >
                       <option value="free">Libre</option>
                       <option value="post_session">Post-sesión</option>
@@ -289,17 +289,17 @@ export default function NotasPage() {
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     rows={5}
-                    className="w-full px-3 py-2 border border-[#2a2d37] rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none bg-[#22252f]"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-cyan-300 resize-none bg-surface-hover"
                   />
                   <div className="flex gap-2">
                     <button onClick={() => handleUpdate(note.id)} className="px-3 py-1.5 bg-cyan-600 text-white rounded text-sm">Guardar</button>
-                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-[#22252f] text-gray-400 rounded text-sm">Cancelar</button>
+                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm">Cancelar</button>
                   </div>
                 </div>
               ) : (
                 <div
                   key={note.id}
-                  className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] overflow-hidden group hover:border-[#353840] transition-colors"
+                  className="bg-surface rounded-xl border border-border overflow-hidden group hover:border-border-light transition-colors"
                   onContextMenu={(e) => handleContextMenu(e, note.id, note.title)}
                 >
                   {/* Color accent bar */}
@@ -310,7 +310,7 @@ export default function NotasPage() {
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="text-lg flex-shrink-0">{badge.icon}</span>
                         <h3
-                          className="font-semibold text-gray-200 text-sm cursor-pointer hover:text-cyan-400 truncate"
+                          className="font-semibold text-foreground text-sm cursor-pointer hover:text-cyan-400 truncate"
                           onClick={() => setExpandedId(expandedId === note.id ? null : note.id)}
                         >
                           {note.title}
@@ -327,14 +327,14 @@ export default function NotasPage() {
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${badge.color}`}>
                         {badge.label}
                       </span>
-                      <span className="text-[10px] text-gray-600">
+                      <span className="text-[10px] text-muted">
                         {new Date(note.created_at).toLocaleDateString("es-ES")}
                       </span>
                     </div>
 
                     {/* Content preview */}
                     {note.content && (
-                      <p className={`text-xs text-gray-500 ${expandedId === note.id ? "whitespace-pre-wrap" : "line-clamp-3"}`}>
+                      <p className={`text-xs text-muted ${expandedId === note.id ? "whitespace-pre-wrap" : "line-clamp-3"}`}>
                         {note.content}
                       </p>
                     )}
@@ -348,13 +348,13 @@ export default function NotasPage() {
                           setEditContent(note.content || "");
                           setEditType(note.note_type);
                         }}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-cyan-400 hover:bg-cyan-900/20 rounded"
+                        className="px-2 py-1 text-xs text-muted hover:text-cyan-400 hover:bg-cyan-900/20 rounded"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleDelete(note.id)}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded"
+                        className="px-2 py-1 text-xs text-muted hover:text-red-400 hover:bg-red-900/20 rounded"
                       >
                         Eliminar
                       </button>
@@ -370,23 +370,23 @@ export default function NotasPage() {
       {/* ── Right sidebar ── */}
       <div className="w-72 flex-shrink-0 space-y-4">
         {/* Resumen */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Resumen</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Resumen</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-200">{totalNotes}</p>
-              <p className="text-[10px] text-gray-500 uppercase">Notas</p>
+              <p className="text-2xl font-bold text-foreground">{totalNotes}</p>
+              <p className="text-[10px] text-muted uppercase">Notas</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-200">{favoriteIds.length}</p>
-              <p className="text-[10px] text-gray-500 uppercase">Favoritas</p>
+              <p className="text-2xl font-bold text-foreground">{favoriteIds.length}</p>
+              <p className="text-[10px] text-muted uppercase">Favoritas</p>
             </div>
           </div>
         </div>
 
         {/* Tipos de nota - donut chart */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tipos de nota</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Tipos de nota</h3>
           {totalNotes > 0 ? (
             <div className="flex items-center justify-center mb-3">
               <svg viewBox="0 0 120 120" className="w-28 h-28">
@@ -409,9 +409,9 @@ export default function NotasPage() {
                     return <path key={type} d={path} fill={colors[type] || "#6b7280"} opacity={0.8} />;
                   });
                 })()}
-                <circle cx="60" cy="60" r="22" fill="#1a1d27" />
-                <text x="60" y="57" textAnchor="middle" fill="#d4d4d8" fontSize="14" fontWeight="bold">{totalNotes}</text>
-                <text x="60" y="70" textAnchor="middle" fill="#6b7280" fontSize="7">notas</text>
+                <circle cx="60" cy="60" r="22" fill="var(--surface)" />
+                <text x="60" y="57" textAnchor="middle" fill="var(--foreground)" fontSize="14" fontWeight="bold">{totalNotes}</text>
+                <text x="60" y="70" textAnchor="middle" fill="var(--muted)" fontSize="7">notas</text>
               </svg>
             </div>
           ) : null}
@@ -422,11 +422,11 @@ export default function NotasPage() {
               return (
                 <div key={nt} className="flex items-center gap-2 text-xs">
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: info.accent }} />
-                  <span className="text-gray-400 flex items-center gap-1">
+                  <span className="text-foreground-secondary flex items-center gap-1">
                     <span>{info.icon}</span>
                     {info.label}
                   </span>
-                  <span className="text-gray-600 ml-auto">{count}</span>
+                  <span className="text-muted ml-auto">{count}</span>
                 </div>
               );
             })}
@@ -434,10 +434,10 @@ export default function NotasPage() {
         </div>
 
         {/* Notas recientes */}
-        <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37] p-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Notas recientes</h3>
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Notas recientes</h3>
           {recentNotes.length === 0 ? (
-            <p className="text-xs text-gray-600">Sin notas</p>
+            <p className="text-xs text-muted">Sin notas</p>
           ) : (
             <div className="space-y-2">
               {recentNotes.map((n) => {
@@ -446,8 +446,8 @@ export default function NotasPage() {
                   <div key={n.id} className="flex items-center gap-2">
                     <span className="text-sm flex-shrink-0">{info.icon}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-gray-300 truncate">{n.title}</p>
-                      <p className="text-[10px] text-gray-600">{new Date(n.created_at).toLocaleDateString("es-ES")}</p>
+                      <p className="text-xs text-foreground-secondary truncate">{n.title}</p>
+                      <p className="text-[10px] text-muted">{new Date(n.created_at).toLocaleDateString("es-ES")}</p>
                     </div>
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${info.color} flex-shrink-0`}>{info.label}</span>
                   </div>
