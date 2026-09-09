@@ -427,10 +427,10 @@ export default function ABPPage() {
                           <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                         )}
                         <div className="flex flex-wrap gap-1 mt-auto">
-                          {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-100 light:text-orange-800 text-[9px]">{strat.execution_type}</span>}
-                          {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-100 light:text-blue-800 text-[9px]">{strat.target_zone}</span>}
-                          {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-100 light:text-purple-800 text-[9px]">{strat.structure_type}</span>}
-                          {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-100 light:text-emerald-800 text-[9px]">{strat.protection_zone}</span>}
+                          {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-200 light:text-orange-900 text-[9px]">{strat.execution_type}</span>}
+                          {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-200 light:text-blue-900 text-[9px]">{strat.target_zone}</span>}
+                          {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-200 light:text-purple-900 text-[9px]">{strat.structure_type}</span>}
+                          {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-200 light:text-emerald-900 text-[9px]">{strat.protection_zone}</span>}
                         </div>
                         {strat.key_points && (
                           <div className="bg-surface rounded-lg p-2 mt-1.5">
@@ -489,10 +489,10 @@ export default function ABPPage() {
                   )}
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1 mt-auto">
-                    {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-100 light:text-orange-800 text-[9px]">{strat.execution_type}</span>}
-                    {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-100 light:text-blue-800 text-[9px]">{strat.target_zone}</span>}
-                    {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-100 light:text-purple-800 text-[9px]">{strat.structure_type}</span>}
-                    {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-100 light:text-emerald-800 text-[9px]">{strat.protection_zone}</span>}
+                    {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-200 light:text-orange-900 text-[9px]">{strat.execution_type}</span>}
+                    {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-200 light:text-blue-900 text-[9px]">{strat.target_zone}</span>}
+                    {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-200 light:text-purple-900 text-[9px]">{strat.structure_type}</span>}
+                    {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-200 light:text-emerald-900 text-[9px]">{strat.protection_zone}</span>}
                   </div>
                   {strat.key_points && (
                     <div className="bg-surface-hover rounded-lg p-2 mt-1.5">
@@ -561,10 +561,10 @@ export default function ABPPage() {
                       <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                     )}
                     <div className="flex flex-wrap gap-1 mt-auto">
-                      {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-100 light:text-orange-800 text-[9px]">{strat.execution_type}</span>}
-                      {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-100 light:text-blue-800 text-[9px]">{strat.target_zone}</span>}
-                      {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-100 light:text-purple-800 text-[9px]">{strat.structure_type}</span>}
-                      {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-100 light:text-emerald-800 text-[9px]">{strat.protection_zone}</span>}
+                      {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-200 light:text-orange-900 text-[9px]">{strat.execution_type}</span>}
+                      {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-200 light:text-blue-900 text-[9px]">{strat.target_zone}</span>}
+                      {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-200 light:text-purple-900 text-[9px]">{strat.structure_type}</span>}
+                      {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-200 light:text-emerald-900 text-[9px]">{strat.protection_zone}</span>}
                     </div>
                     {strat.key_points && (
                       <div className="bg-surface-hover rounded-lg p-2 mt-1.5">
@@ -604,10 +604,10 @@ export default function ABPPage() {
                       <img src={strat.image_url} alt={strat.title} className="w-full object-contain rounded-lg mb-1.5" />
                     )}
                     <div className="flex flex-wrap gap-1 mt-auto">
-                      {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-100 light:text-orange-800 text-[9px]">{strat.execution_type}</span>}
-                      {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-100 light:text-blue-800 text-[9px]">{strat.target_zone}</span>}
-                      {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-100 light:text-purple-800 text-[9px]">{strat.structure_type}</span>}
-                      {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-100 light:text-emerald-800 text-[9px]">{strat.protection_zone}</span>}
+                      {strat.execution_type && <span className="px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-300 light:bg-orange-200 light:text-orange-900 text-[9px]">{strat.execution_type}</span>}
+                      {strat.target_zone && <span className="px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-300 light:bg-blue-200 light:text-blue-900 text-[9px]">{strat.target_zone}</span>}
+                      {strat.structure_type && <span className="px-1.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 light:bg-purple-200 light:text-purple-900 text-[9px]">{strat.structure_type}</span>}
+                      {strat.protection_zone && <span className="px-1.5 py-0.5 rounded-full bg-emerald-900/30 text-emerald-300 light:bg-emerald-200 light:text-emerald-900 text-[9px]">{strat.protection_zone}</span>}
                     </div>
                     {strat.key_points && (
                       <div className="bg-surface-hover rounded-lg p-2 mt-1.5">

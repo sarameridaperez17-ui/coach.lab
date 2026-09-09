@@ -31,18 +31,18 @@ const MOMENT_OPTIONS = [
 ];
 
 const BEHAVIOR_COLORS: Record<string, string> = {
-  "Táctico individual": "bg-amber-900/40 text-amber-400 border-amber-800/40 light:bg-amber-100 light:text-amber-800 light:border-amber-300",
-  "Táctico relacional": "bg-blue-900/40 text-blue-400 border-blue-800/40 light:bg-blue-100 light:text-blue-800 light:border-blue-300",
-  "Táctico colectivo": "bg-emerald-900/40 text-emerald-400 border-emerald-800/40 light:bg-emerald-100 light:text-emerald-800 light:border-emerald-300",
-  "Estratégico": "bg-purple-900/40 text-purple-400 border-purple-800/40 light:bg-purple-100 light:text-purple-800 light:border-purple-300",
-  "Comunicación": "bg-pink-900/40 text-pink-400 border-pink-800/40 light:bg-pink-100 light:text-pink-800 light:border-pink-300",
+  "Táctico individual": "bg-amber-900/40 text-amber-400 border-amber-800/40 light:bg-amber-200 light:text-amber-900 light:border-amber-400",
+  "Táctico relacional": "bg-blue-900/40 text-blue-400 border-blue-800/40 light:bg-blue-200 light:text-blue-900 light:border-blue-400",
+  "Táctico colectivo": "bg-emerald-900/40 text-emerald-400 border-emerald-800/40 light:bg-emerald-200 light:text-emerald-900 light:border-emerald-400",
+  "Estratégico": "bg-purple-900/40 text-purple-400 border-purple-800/40 light:bg-purple-200 light:text-purple-900 light:border-purple-400",
+  "Comunicación": "bg-pink-900/40 text-pink-400 border-pink-800/40 light:bg-pink-200 light:text-pink-900 light:border-pink-400",
 };
 
 const MOMENT_COLORS: Record<string, string> = {
-  "Fase ofensiva": "bg-emerald-900/40 text-emerald-400 border-emerald-800/40 light:bg-emerald-100 light:text-emerald-800 light:border-emerald-300",
-  "Fase defensiva": "bg-red-900/40 text-red-400 border-red-800/40 light:bg-red-100 light:text-red-800 light:border-red-300",
-  "Transición defensiva": "bg-orange-900/40 text-orange-400 border-orange-800/40 light:bg-orange-100 light:text-orange-800 light:border-orange-300",
-  "Transición ofensiva": "bg-cyan-900/40 text-cyan-400 border-cyan-800/40 light:bg-cyan-100 light:text-cyan-800 light:border-cyan-300",
+  "Fase ofensiva": "bg-emerald-900/40 text-emerald-400 border-emerald-800/40 light:bg-emerald-200 light:text-emerald-900 light:border-emerald-400",
+  "Fase defensiva": "bg-red-900/40 text-red-400 border-red-800/40 light:bg-red-200 light:text-red-900 light:border-red-400",
+  "Transición defensiva": "bg-orange-900/40 text-orange-400 border-orange-800/40 light:bg-orange-200 light:text-orange-900 light:border-orange-400",
+  "Transición ofensiva": "bg-cyan-900/40 text-cyan-400 border-cyan-800/40 light:bg-cyan-200 light:text-cyan-900 light:border-cyan-400",
 };
 
 function parseTags(csv: string): string[] {
