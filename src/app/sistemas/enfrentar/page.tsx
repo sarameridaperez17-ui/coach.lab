@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FORMATIONS,
@@ -62,6 +62,7 @@ export default function EnfrentarSistemasPage() {
   const [ownPlayers, setOwnPlayers] = useState<FormationPlayer[]>([]);
   const [rivalPlayers, setRivalPlayers] = useState<FormationPlayer[]>([]);
   const [dragging, setDragging] = useState<{ side: "own" | "rival"; id: string } | null>(null);
+  const draggingRef = useRef<{ side: "own" | "rival"; id: string } | null>(null);
 
   const regenerate = useCallback(() => {
     setOwnPlayers(generateFormation(activeOwnFormation, "own", activeOwnPosture, blockHeight));
@@ -72,20 +73,27 @@ export default function EnfrentarSistemasPage() {
     regenerate();
   }, [regenerate]);
 
-  const handleMouseDown = (side: "own" | "rival", id: string) => setDragging({ side, id });
+  const handleMouseDown = (side: "own" | "rival", id: string) => {
+    draggingRef.current = { side, id };
+    setDragging({ side, id });
+  };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!dragging) return;
+    const current = draggingRef.current;
+    if (!current) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * FIELD_W;
     const y = ((e.clientY - rect.top) / rect.height) * FIELD_H;
     const clampedX = Math.max(2, Math.min(FIELD_W - 2, x));
     const clampedY = Math.max(2, Math.min(FIELD_H - 2, y));
-    const setter = dragging.side === "own" ? setOwnPlayers : setRivalPlayers;
-    setter((prev) => prev.map((p) => (p.id === dragging.id ? { ...p, x: clampedX, y: clampedY } : p)));
+    const setter = current.side === "own" ? setOwnPlayers : setRivalPlayers;
+    setter((prev) => prev.map((p) => (p.id === current.id ? { ...p, x: clampedX, y: clampedY } : p)));
   };
 
-  const handleMouseUp = () => setDragging(null);
+  const handleMouseUp = () => {
+    draggingRef.current = null;
+    setDragging(null);
+  };
 
   const matchupLabel =
     matchup === "own-attack"
