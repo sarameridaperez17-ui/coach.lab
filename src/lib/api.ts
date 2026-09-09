@@ -171,7 +171,8 @@ export async function deletePrinciple(id: string): Promise<void> {
 export async function duplicatePrinciple(
   principleId: string,
   targetPhaseId: string,
-  targetContextIds: string[]
+  targetContextIds: string[],
+  targetBlockId?: string | null
 ): Promise<Principle> {
   // Cargar principio original con sub_principles y behaviors
   const { data: orig, error: loadErr } = await supabase
@@ -199,7 +200,13 @@ export async function duplicatePrinciple(
   // Crear copia del principio
   const { data: newP, error: pErr } = await supabase
     .from("principles")
-    .insert({ name: orig.name, description: orig.description, game_phase_id: targetPhaseId, position: nextPos })
+    .insert({
+      name: orig.name,
+      description: orig.description,
+      game_phase_id: targetPhaseId,
+      block_height_id: targetBlockId ?? null,
+      position: nextPos,
+    })
     .select()
     .single();
   if (pErr) throw pErr;
