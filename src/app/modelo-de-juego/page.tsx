@@ -192,9 +192,9 @@ function YoutubeIconButton({ hasVideo, onClick }: { hasVideo: boolean; onClick: 
 
 // ---- Behavior type badge ----
 const BEHAVIOR_LABELS: Record<BehaviorType, { label: string; color: string }> = {
-  individual: { label: "Individual", color: "bg-amber-900/50 text-amber-400" },
-  relations: { label: "Relaciones", color: "bg-sky-900/50 text-sky-400" },
-  collective: { label: "Colectivo", color: "bg-violet-900/50 text-violet-400" },
+  individual: { label: "Individual", color: "bg-amber-900/50 text-amber-400 light:bg-amber-100 light:text-amber-800" },
+  relations: { label: "Relaciones", color: "bg-sky-900/50 text-sky-400 light:bg-sky-100 light:text-sky-800" },
+  collective: { label: "Colectivo", color: "bg-violet-900/50 text-violet-400 light:bg-violet-100 light:text-violet-800" },
 };
 
 // Phase icons
