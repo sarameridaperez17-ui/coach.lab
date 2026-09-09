@@ -46,13 +46,54 @@ function FormationSelect({
   );
 }
 
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center justify-between">
+      <label className="text-[10px] text-muted uppercase tracking-wide font-medium">{label}</label>
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-8 h-8 rounded border border-border bg-transparent cursor-pointer"
+      />
+    </div>
+  );
+}
+
+function BlockHeightPicker({ value, onChange }: { value: BlockHeight; onChange: (v: BlockHeight) => void }) {
+  return (
+    <div>
+      <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Altura de bloque</label>
+      <div className="flex gap-2">
+        {BLOCK_OPTIONS.map((b) => (
+          <button
+            key={b.value}
+            onClick={() => onChange(b.value)}
+            className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              value === b.value ? "bg-indigo-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-indigo-300"
+            }`}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function EnfrentarSistemasPage() {
   const [ownAttack, setOwnAttack] = useState<Formation>("1-4-3-3");
   const [ownDefense, setOwnDefense] = useState<Formation>("1-4-4-2");
   const [rivalAttack, setRivalAttack] = useState<Formation>("1-4-2-3-1");
   const [rivalDefense, setRivalDefense] = useState<Formation>("1-4-4-2");
   const [matchup, setMatchup] = useState<Matchup>("own-attack");
-  const [blockHeight, setBlockHeight] = useState<BlockHeight>("medio");
+  const [ownBlockHeight, setOwnBlockHeight] = useState<BlockHeight>("medio");
+  const [rivalBlockHeight, setRivalBlockHeight] = useState<BlockHeight>("medio");
+
+  const [ownFillColor, setOwnFillColor] = useState("#2563eb");
+  const [ownTextColor, setOwnTextColor] = useState("#ffffff");
+  const [rivalFillColor, setRivalFillColor] = useState("#e11d48");
+  const [rivalTextColor, setRivalTextColor] = useState("#ffffff");
 
   const activeOwnFormation = matchup === "own-attack" ? ownAttack : ownDefense;
   const activeOwnPosture = matchup === "own-attack" ? "attack" : "defense";
@@ -65,9 +106,9 @@ export default function EnfrentarSistemasPage() {
   const draggingRef = useRef<{ side: "own" | "rival"; id: string } | null>(null);
 
   const regenerate = useCallback(() => {
-    setOwnPlayers(generateFormation(activeOwnFormation, "own", activeOwnPosture, blockHeight));
-    setRivalPlayers(generateFormation(activeRivalFormation, "rival", activeRivalPosture, blockHeight));
-  }, [activeOwnFormation, activeOwnPosture, activeRivalFormation, activeRivalPosture, blockHeight]);
+    setOwnPlayers(generateFormation(activeOwnFormation, "own", activeOwnPosture, ownBlockHeight));
+    setRivalPlayers(generateFormation(activeRivalFormation, "rival", activeRivalPosture, rivalBlockHeight));
+  }, [activeOwnFormation, activeOwnPosture, activeRivalFormation, activeRivalPosture, ownBlockHeight, rivalBlockHeight]);
 
   useEffect(() => {
     regenerate();
@@ -97,8 +138,8 @@ export default function EnfrentarSistemasPage() {
 
   const matchupLabel =
     matchup === "own-attack"
-      ? `${activeOwnFormation} (ataque) vs ${activeRivalFormation} (defensa)`
-      : `${activeRivalFormation} (ataque) vs ${activeOwnFormation} (defensa)`;
+      ? `${activeOwnFormation} (ataque) vs ${activeRivalFormation} (defensa · bloque ${rivalBlockHeight})`
+      : `${activeRivalFormation} (ataque) vs ${activeOwnFormation} (defensa · bloque ${ownBlockHeight})`;
 
   return (
     <div>
@@ -136,15 +177,15 @@ export default function EnfrentarSistemasPage() {
               <PitchMarkings />
 
               {rivalPlayers.map((p) => (
-                <PlayerToken key={p.id} player={p} color="#e11d48" dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} />
+                <PlayerToken key={p.id} player={p} fillColor={rivalFillColor} textColor={rivalTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} />
               ))}
               {ownPlayers.map((p) => (
-                <PlayerToken key={p.id} player={p} color="#2563eb" dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("own", p.id)} />
+                <PlayerToken key={p.id} player={p} fillColor={ownFillColor} textColor={ownTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("own", p.id)} />
               ))}
             </svg>
             <div className="flex items-center gap-4 mt-3 text-xs text-muted">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Equipo propio</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-600" /> Equipo rival</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: ownFillColor }} /> Equipo propio</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: rivalFillColor }} /> Equipo rival</span>
             </div>
           </div>
         </div>
@@ -158,6 +199,11 @@ export default function EnfrentarSistemasPage() {
             <div className="p-4 space-y-3">
               <FormationSelect label="Ataque" value={ownAttack} onChange={setOwnAttack} />
               <FormationSelect label="Defensa" value={ownDefense} onChange={setOwnDefense} />
+              <BlockHeightPicker value={ownBlockHeight} onChange={setOwnBlockHeight} />
+              <div className="pt-1 border-t border-surface-hover space-y-2">
+                <ColorField label="Color del círculo" value={ownFillColor} onChange={setOwnFillColor} />
+                <ColorField label="Color del dorsal" value={ownTextColor} onChange={setOwnTextColor} />
+              </div>
             </div>
           </div>
 
@@ -168,6 +214,11 @@ export default function EnfrentarSistemasPage() {
             <div className="p-4 space-y-3">
               <FormationSelect label="Ataque" value={rivalAttack} onChange={setRivalAttack} />
               <FormationSelect label="Defensa" value={rivalDefense} onChange={setRivalDefense} />
+              <BlockHeightPicker value={rivalBlockHeight} onChange={setRivalBlockHeight} />
+              <div className="pt-1 border-t border-surface-hover space-y-2">
+                <ColorField label="Color del círculo" value={rivalFillColor} onChange={setRivalFillColor} />
+                <ColorField label="Color del dorsal" value={rivalTextColor} onChange={setRivalTextColor} />
+              </div>
             </div>
           </div>
 
@@ -194,25 +245,6 @@ export default function EnfrentarSistemasPage() {
               </button>
             </div>
           </div>
-
-          <div className="bg-surface rounded-xl border border-border overflow-hidden">
-            <div className="px-4 py-3 border-b border-surface-hover">
-              <h3 className="text-sm font-semibold text-foreground">Altura del bloque</h3>
-            </div>
-            <div className="p-4 flex gap-2">
-              {BLOCK_OPTIONS.map((b) => (
-                <button
-                  key={b.value}
-                  onClick={() => setBlockHeight(b.value)}
-                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    blockHeight === b.value ? "bg-indigo-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-indigo-300"
-                  }`}
-                >
-                  {b.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -221,19 +253,21 @@ export default function EnfrentarSistemasPage() {
 
 function PlayerToken({
   player,
-  color,
+  fillColor,
+  textColor,
   dragging,
   onMouseDown,
 }: {
   player: FormationPlayer;
-  color: string;
+  fillColor: string;
+  textColor: string;
   dragging: boolean;
   onMouseDown: () => void;
 }) {
   return (
     <g onMouseDown={onMouseDown} style={{ cursor: dragging ? "grabbing" : "grab" }}>
-      <circle cx={player.x} cy={player.y} r="2.3" fill={color} stroke="white" strokeWidth="0.35" opacity={dragging ? 0.85 : 1} />
-      <text x={player.x} y={player.y + 0.75} textAnchor="middle" fill="white" fontSize="2" fontWeight="bold" style={{ pointerEvents: "none" }}>
+      <circle cx={player.x} cy={player.y} r="2.3" fill={fillColor} stroke="white" strokeWidth="0.35" opacity={dragging ? 0.85 : 1} />
+      <text x={player.x} y={player.y + 0.75} textAnchor="middle" fill={textColor} fontSize="2" fontWeight="bold" style={{ pointerEvents: "none" }}>
         {player.number}
       </text>
     </g>
