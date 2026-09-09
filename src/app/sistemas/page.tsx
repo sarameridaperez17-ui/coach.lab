@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import {
   getGameSystems,
   createGameSystem,
@@ -304,7 +305,13 @@ export default function SistemasPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Sistemas de juego</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Sistemas de juego</h1>
+          <div className="flex items-center gap-4 mt-2 text-sm">
+            <span className="text-indigo-400 font-medium border-b-2 border-indigo-400 pb-0.5">Mis sistemas</span>
+            <Link href="/sistemas/enfrentar" className="text-muted hover:text-foreground-secondary">Enfrentar sistemas</Link>
+          </div>
+        </div>
         <button
           onClick={() => {
             setCreating(true);
