@@ -31,17 +31,26 @@ const FIELD_W = 105;
 const FIELD_H = 68;
 const HALF = FIELD_W / 2;
 
+// Profundidad de la línea defensiva (bloque compacto de ~0.35 unidades)
 const BLOCK_DEPTH: Record<BlockHeight, number> = {
   bajo: 0.18,
   medio: 0.35,
   alto: 0.55,
 };
 
+// Rango de profundidad de la estructura ofensiva: el bloque también
+// adelanta o retrasa el punto hasta el que empuja el equipo en ataque.
+const ATTACK_DEPTH: Record<BlockHeight, [number, number]> = {
+  bajo: [0.1, 1.05],
+  medio: [0.12, 1.3],
+  alto: [0.16, 1.5],
+};
+
 // Devuelve la profundidad (0-1, en unidades de "hasta el medio campo")
 // de cada línea de campo (sin la portera) para una postura dada.
 function lineDepths(count: number, posture: Posture, blockHeight: BlockHeight): number[] {
   const [depthMin, depthMax] =
-    posture === "attack" ? [0.12, 1.3] : [BLOCK_DEPTH[blockHeight], BLOCK_DEPTH[blockHeight] + 0.35];
+    posture === "attack" ? ATTACK_DEPTH[blockHeight] : [BLOCK_DEPTH[blockHeight], BLOCK_DEPTH[blockHeight] + 0.35];
 
   if (count === 1) return [(depthMin + depthMax) / 2];
   return Array.from({ length: count }, (_, i) => depthMin + (i * (depthMax - depthMin)) / (count - 1));
