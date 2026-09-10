@@ -18,7 +18,7 @@ import {
 } from "@/lib/api";
 import type { ItemStatus, Bookmark } from "@/lib/api";
 import type { GameSystem, GameSystemVariant, Task } from "@/types";
-import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
+import { StatusMenu, StatusIcon } from "@/components/ui/StatusMenu";
 import { Pitch, FIELD, clientToField } from "@/components/pitch";
 
 
@@ -320,6 +320,13 @@ export default function SistemasPage() {
   const selectedSystem = systems.find((s) => s.id === selectedId);
   const selectedVariants: GameSystemVariant[] = selectedSystem?.variants ?? [];
 
+  // Los sistemas con estado marcado van primero (favorito → foco → trabajando → en pausa)
+  const STATUS_RANK: Record<string, number> = { favorite: 0, focus: 1, working: 2, paused: 3 };
+  const sortedSystems = systems
+    .map((s, i) => ({ s, i, rank: STATUS_RANK[itemStatuses.get(s.id) ?? ""] ?? 9 }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i)
+    .map((e) => e.s);
+
   const systemFavTasks = allTasks.filter(t => favTaskIds.has(t.id)).slice(0, 5);
 
   if (loading) {
@@ -359,7 +366,7 @@ export default function SistemasPage() {
       {/* Rejilla de sistemas — tarjeta con nombre + campograma */}
       {systems.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-          {systems.map((sys) => {
+          {sortedSystems.map((sys) => {
             const status = itemStatuses.get(sys.id);
             return (
               <div
@@ -372,22 +379,7 @@ export default function SistemasPage() {
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <h3 className="text-sm font-semibold text-foreground truncate">{sys.name}</h3>
-                  {status === "favorite" ? (
-                    <svg
-                      width="15"
-                      height="15"
-                      viewBox="0 0 20 20"
-                      fill="#f87171"
-                      stroke="#f87171"
-                      strokeWidth="1.5"
-                      strokeLinejoin="round"
-                      className="flex-shrink-0"
-                    >
-                      <path d="M10 3l2.1 4.3 4.7.7-3.4 3.3.8 4.7L10 13.5 5.8 16l.8-4.7L3.2 8l4.7-.7z" />
-                    </svg>
-                  ) : status ? (
-                    <StatusBadge status={status} />
-                  ) : null}
+                  {status && <StatusIcon status={status} />}
                 </div>
                 <div className="pointer-events-none">
                   <SystemThumb positions={sys.positions ?? []} />

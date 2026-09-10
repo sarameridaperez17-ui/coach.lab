@@ -88,6 +88,57 @@ export function StatusBadge({ status }: { status: ItemStatus }) {
   );
 }
 
+// Solo el icono del estado, con su color, sin etiqueta ni fondo.
+export function StatusIcon({ status, size = 15 }: { status: ItemStatus; size?: number }) {
+  const colors: Record<ItemStatus, string> = {
+    working: "#34d399",
+    paused: "#60a5fa",
+    focus: "#fbbf24",
+    favorite: "#f87171",
+  };
+  const shapes: Record<ItemStatus, React.ReactNode> = {
+    working: (
+      <>
+        <path d="M12.5 2.5l5 5" />
+        <path d="M10 5l5 5-3.5 1.5L10 16l-1.5-4.5L5 10z" />
+        <path d="M4 16l3.5-3.5" />
+      </>
+    ),
+    paused: (
+      <>
+        <circle cx="10" cy="10" r="7" />
+        <path d="M10 6v4l2.5 2.5" />
+        <path d="M15.5 3l1.5 2.5H14.5" />
+      </>
+    ),
+    focus: (
+      <>
+        <circle cx="10" cy="10" r="7" />
+        <circle cx="10" cy="10" r="4" />
+        <circle cx="10" cy="10" r="1.2" fill={colors.focus} />
+      </>
+    ),
+    favorite: (
+      <path d="M10 3l2.1 4.3 4.7.7-3.4 3.3.8 4.7L10 13.5 5.8 16l.8-4.7L3.2 8l4.7-.7z" fill={colors.favorite} />
+    ),
+  };
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke={colors[status]}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="flex-shrink-0"
+    >
+      {shapes[status]}
+    </svg>
+  );
+}
+
 interface StatusMenuProps {
   x: number;
   y: number;
