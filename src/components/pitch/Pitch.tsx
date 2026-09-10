@@ -14,7 +14,7 @@ import { FIELD, PITCH_DESIGN, ARC_HALF } from "./design";
 
 export { FIELD } from "./design";
 
-const PAD_X = FIELD.GOAL_DEPTH + 1.5;
+const PAD_X = PITCH_DESIGN.GOAL_VIS_DEPTH + 2;
 const PAD_Y = 2;
 const VB_MIN_X = -PAD_X;
 const VB_MIN_Y = -PAD_Y;
@@ -41,27 +41,31 @@ export function clientToField(svg: SVGSVGElement, clientX: number, clientY: numb
   };
 }
 
+const GOAL_DEPTH = PITCH_DESIGN.GOAL_VIS_DEPTH;
+const GOAL_LW = PITCH_DESIGN.GOAL_LINE_WIDTH_M;
+
 function Goal({ line, dir }: { line: number; dir: 1 | -1 }) {
   const top = CY - FIELD.GOAL_W / 2;
-  const outer = line + dir * FIELD.GOAL_DEPTH;
+  const outer = line + dir * GOAL_DEPTH;
   const x0 = Math.min(line, outer);
-  const verticals = 4;
-  const horizontals = 5;
+  const verticals = PITCH_DESIGN.NET_VERTICALS;
+  const horizontals = PITCH_DESIGN.NET_HORIZONTALS;
+  // color del tema: se ve tanto en modo día como noche (portería fuera del campo)
   return (
-    <g>
+    <g stroke="var(--foreground)">
       <rect
         x={x0}
         y={top}
-        width={FIELD.GOAL_DEPTH}
+        width={GOAL_DEPTH}
         height={FIELD.GOAL_W}
         fill="none"
-        stroke={LINE}
-        strokeOpacity={LINE_OPACITY}
-        strokeWidth={LW}
+        strokeOpacity={0.85}
+        strokeWidth={GOAL_LW}
+        strokeLinejoin="round"
       />
-      <g stroke={LINE} strokeOpacity={0.4} strokeWidth={LW * 0.55} fill="none">
+      <g strokeOpacity={PITCH_DESIGN.NET_OPACITY} strokeWidth={GOAL_LW * 0.5} fill="none">
         {Array.from({ length: verticals }, (_, i) => {
-          const gx = line + (dir * FIELD.GOAL_DEPTH * (i + 1)) / (verticals + 1);
+          const gx = line + (dir * GOAL_DEPTH * (i + 1)) / (verticals + 1);
           return <line key={`v${i}`} x1={gx} y1={top} x2={gx} y2={top + FIELD.GOAL_W} />;
         })}
         {Array.from({ length: horizontals }, (_, i) => {

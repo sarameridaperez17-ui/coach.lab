@@ -17,7 +17,6 @@ const PENALTY_SPOT = 11;
 const PENALTY_ARC_RADIUS = 9.15;
 const CORNER_ARC = 1;
 const GOAL_W = 7.32;
-const GOAL_DEPTH = 2.44;
 
 // Returns the visible rectangle of the field in meters for each perspective
 export function getFieldViewport(perspective: FieldPerspective): {
@@ -53,7 +52,7 @@ export function fieldToCanvas(
   panX: number,
   panY: number
 ): { x: number; y: number } {
-  const padding = 20;
+  const padding = 34;
   const drawW = canvasW - padding * 2;
   const drawH = canvasH - padding * 2;
   const scaleX = drawW / viewport.w;
@@ -78,7 +77,7 @@ export function canvasToField(
   panX: number,
   panY: number
 ): { x: number; y: number } {
-  const padding = 20;
+  const padding = 34;
   const drawW = canvasW - padding * 2;
   const drawH = canvasH - padding * 2;
   const scaleX = drawW / viewport.w;
@@ -98,7 +97,7 @@ export function getScale(
   viewport: { x: number; y: number; w: number; h: number },
   zoom: number
 ): number {
-  const padding = 20;
+  const padding = 34;
   const drawW = canvasW - padding * 2;
   const drawH = canvasH - padding * 2;
   const scaleX = drawW / viewport.w;
@@ -252,20 +251,32 @@ export function drawField(
   }
 
   // ── Porterías con red ──
+  // Se dibujan fuera del campo, sobre el fondo de la página: color de
+  // texto del tema para que se vean en modo día y noche, y a mayor
+  // escala que la real para que se lean.
+  const goalColor =
+    (typeof window !== 'undefined'
+      ? getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim()
+      : '') || '#e5e7eb';
+  const goalDepth = PITCH_DESIGN.GOAL_VIS_DEPTH;
+  const goalLw = Math.max(1.2, PITCH_DESIGN.GOAL_LINE_WIDTH_M * scale);
+
   const drawGoal = (line: number, dir: 1 | -1) => {
     const gTop = fc(line, (FIELD_H - GOAL_W) / 2);
-    const gBot = fc(line + dir * GOAL_DEPTH, (FIELD_H + GOAL_W) / 2);
+    const gBot = fc(line + dir * goalDepth, (FIELD_H + GOAL_W) / 2);
     const gx = Math.min(gTop.x, gBot.x);
     const gy = Math.min(gTop.y, gBot.y);
     const gw = Math.abs(gBot.x - gTop.x);
     const gh = Math.abs(gBot.y - gTop.y);
 
-    ctx.lineWidth = lw;
+    ctx.save();
+    ctx.strokeStyle = goalColor;
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = goalLw;
     ctx.strokeRect(gx, gy, gw, gh);
 
-    ctx.save();
-    ctx.globalAlpha = PITCH_DESIGN.LINE_OPACITY * PITCH_DESIGN.NET_OPACITY;
-    ctx.lineWidth = lw * 0.55;
+    ctx.globalAlpha = PITCH_DESIGN.NET_OPACITY;
+    ctx.lineWidth = goalLw * 0.5;
     ctx.beginPath();
     for (let i = 1; i <= PITCH_DESIGN.NET_VERTICALS; i++) {
       const x = gx + (gw * i) / (PITCH_DESIGN.NET_VERTICALS + 1);

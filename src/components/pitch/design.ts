@@ -29,7 +29,12 @@ export const PITCH_DESIGN = {
   LINE: "#ffffff",
   LINE_OPACITY: 0.9,
   LINE_WIDTH_M: 0.3, // grosor de línea en metros de campo
-  NET_OPACITY: 0.4,
+  // Porterías: se dibujan fuera del campo, sobre el fondo de la página.
+  // Se representan a mayor escala que la real (2.44 m) para que se lean,
+  // y con color de texto del tema para que se vean en modo día y noche.
+  GOAL_VIS_DEPTH: 3.6,
+  GOAL_LINE_WIDTH_M: 0.5,
+  NET_OPACITY: 0.55,
   NET_VERTICALS: 4,
   NET_HORIZONTALS: 5,
 } as const;
