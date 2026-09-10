@@ -3,6 +3,7 @@
 // ============================================
 
 import type { FieldPerspective } from './types';
+import { PITCH_DESIGN } from '../pitch/design';
 
 // Field dimensions in meters (official FIFA)
 const FIELD_W = 105;
@@ -122,22 +123,35 @@ export function drawField(
     fieldToCanvas(fx, fy, canvasW, canvasH, viewport, zoom, panX, panY);
 
   const scale = getScale(canvasW, canvasH, viewport, zoom);
-  const lw = Math.max(1, 0.12 * scale); // Line width scales with zoom
+  const lw = Math.max(1, PITCH_DESIGN.LINE_WIDTH_M * scale); // grosor consistente con <Pitch>
 
-  // Background
-  ctx.fillStyle = '#0f1117';
-  ctx.fillRect(0, 0, canvasW, canvasH);
+  // Fondo transparente — deja ver el fondo de la página (modo día/noche)
+  ctx.clearRect(0, 0, canvasW, canvasH);
 
-  // Field surface
+  // Césped con rayas de corte (mismo diseño que el componente <Pitch>)
   const topLeft = fc(0, 0);
   const botRight = fc(FIELD_W, FIELD_H);
-  ctx.fillStyle = fieldColor;
-  ctx.fillRect(topLeft.x, topLeft.y, botRight.x - topLeft.x, botRight.y - topLeft.y);
+  const fieldPxW = botRight.x - topLeft.x;
+  const fieldPxH = botRight.y - topLeft.y;
+  const stripePxH = fieldPxH / PITCH_DESIGN.STRIPE_COUNT;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(topLeft.x, topLeft.y, fieldPxW, fieldPxH);
+  ctx.clip();
+  for (let i = 0; i < PITCH_DESIGN.STRIPE_COUNT; i++) {
+    ctx.fillStyle = i % 2 === 0 ? PITCH_DESIGN.STRIPE_LIGHT : PITCH_DESIGN.STRIPE_DARK;
+    ctx.fillRect(topLeft.x, topLeft.y + i * stripePxH, fieldPxW, stripePxH + 1);
+  }
+  ctx.restore();
+  void fieldColor;
 
-  ctx.strokeStyle = lineColor;
+  ctx.strokeStyle = PITCH_DESIGN.LINE;
+  ctx.fillStyle = PITCH_DESIGN.LINE;
+  ctx.globalAlpha = PITCH_DESIGN.LINE_OPACITY;
   ctx.lineWidth = lw;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+  void lineColor;
 
   // Outer boundary
   const tl = fc(0, 0);
@@ -162,8 +176,7 @@ export function drawField(
 
   // Center spot
   ctx.beginPath();
-  ctx.arc(cc.x, cc.y, Math.max(2, 0.2 * scale), 0, Math.PI * 2);
-  ctx.fillStyle = lineColor;
+  ctx.arc(cc.x, cc.y, Math.max(1.5, 0.25 * scale), 0, Math.PI * 2);
   ctx.fill();
 
   // ── Left penalty area ──
@@ -238,21 +251,37 @@ export function drawField(
     ctx.stroke();
   }
 
-  // ── Goals (drawn as net rectangles behind goal line) ──
-  ctx.save();
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = lw * 0.7;
-  ctx.setLineDash([3, 3]);
+  // ── Porterías con red ──
+  const drawGoal = (line: number, dir: 1 | -1) => {
+    const gTop = fc(line, (FIELD_H - GOAL_W) / 2);
+    const gBot = fc(line + dir * GOAL_DEPTH, (FIELD_H + GOAL_W) / 2);
+    const gx = Math.min(gTop.x, gBot.x);
+    const gy = Math.min(gTop.y, gBot.y);
+    const gw = Math.abs(gBot.x - gTop.x);
+    const gh = Math.abs(gBot.y - gTop.y);
 
-  // Left goal
-  const lgTL = fc(-GOAL_DEPTH, (FIELD_H - GOAL_W) / 2);
-  const lgBR = fc(0, (FIELD_H + GOAL_W) / 2);
-  ctx.strokeRect(lgTL.x, lgTL.y, lgBR.x - lgTL.x, lgBR.y - lgTL.y);
+    ctx.lineWidth = lw;
+    ctx.strokeRect(gx, gy, gw, gh);
 
-  // Right goal
-  const rgTL = fc(FIELD_W, (FIELD_H - GOAL_W) / 2);
-  const rgBR = fc(FIELD_W + GOAL_DEPTH, (FIELD_H + GOAL_W) / 2);
-  ctx.strokeRect(rgTL.x, rgTL.y, rgBR.x - rgTL.x, rgBR.y - rgTL.y);
+    ctx.save();
+    ctx.globalAlpha = PITCH_DESIGN.LINE_OPACITY * PITCH_DESIGN.NET_OPACITY;
+    ctx.lineWidth = lw * 0.55;
+    ctx.beginPath();
+    for (let i = 1; i <= PITCH_DESIGN.NET_VERTICALS; i++) {
+      const x = gx + (gw * i) / (PITCH_DESIGN.NET_VERTICALS + 1);
+      ctx.moveTo(x, gy);
+      ctx.lineTo(x, gy + gh);
+    }
+    for (let i = 1; i <= PITCH_DESIGN.NET_HORIZONTALS; i++) {
+      const y = gy + (gh * i) / (PITCH_DESIGN.NET_HORIZONTALS + 1);
+      ctx.moveTo(gx, y);
+      ctx.lineTo(gx + gw, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  };
+  drawGoal(0, -1);
+  drawGoal(FIELD_W, 1);
 
-  ctx.restore();
+  ctx.globalAlpha = 1;
 }

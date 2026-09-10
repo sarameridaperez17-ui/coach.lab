@@ -1,6 +1,7 @@
 "use client";
 
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { FIELD, PITCH_DESIGN, ARC_HALF } from "./design";
 
 // ============================================
 // Pitch — Campograma táctico maestro de coach.lab
@@ -11,20 +12,7 @@ import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 // `children` y se posiciona con el MISMO sistema de coordenadas: metros,
 // 0..105 en el eje portería-portería y 0..68 de banda a banda.
 
-export const FIELD = {
-  W: 105,
-  H: 68,
-  PA_DEPTH: 16.5, // área grande — fondo
-  PA_WIDTH: 40.32, // área grande — ancho
-  GA_DEPTH: 5.5, // área pequeña — fondo
-  GA_WIDTH: 18.32, // área pequeña — ancho
-  CENTER_R: 9.15,
-  PEN_SPOT: 11,
-  PEN_ARC_R: 9.15,
-  CORNER_R: 1,
-  GOAL_W: 7.32,
-  GOAL_DEPTH: 2.44,
-} as const;
+export { FIELD } from "./design";
 
 const PAD_X = FIELD.GOAL_DEPTH + 1.5;
 const PAD_Y = 2;
@@ -34,17 +22,15 @@ const VB_W = FIELD.W + PAD_X * 2;
 const VB_H = FIELD.H + PAD_Y * 2;
 const VIEWBOX = `${VB_MIN_X} ${VB_MIN_Y} ${VB_W} ${VB_H}`;
 
-const STRIPE_COUNT = 9;
-const STRIPE_LIGHT = "#489e37";
-const STRIPE_DARK = "#3a8c30";
-const LINE = "#ffffff";
-const LINE_OPACITY = 0.9;
-const LW = 0.3;
+const STRIPE_COUNT = PITCH_DESIGN.STRIPE_COUNT;
+const STRIPE_LIGHT = PITCH_DESIGN.STRIPE_LIGHT;
+const STRIPE_DARK = PITCH_DESIGN.STRIPE_DARK;
+const LINE = PITCH_DESIGN.LINE;
+const LINE_OPACITY = PITCH_DESIGN.LINE_OPACITY;
+const LW = PITCH_DESIGN.LINE_WIDTH_M;
 
 const CX = FIELD.W / 2;
 const CY = FIELD.H / 2;
-// media cuerda del semicírculo del área (parte que sobresale del área grande)
-const ARC_HALF = Math.sqrt(FIELD.PEN_ARC_R ** 2 - (FIELD.PA_DEPTH - FIELD.PEN_SPOT) ** 2);
 
 /** Puntero del navegador → coordenadas de campo en metros (0..105, 0..68). */
 export function clientToField(svg: SVGSVGElement, clientX: number, clientY: number) {
