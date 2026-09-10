@@ -9,11 +9,9 @@ import {
   type FormationPlayer,
   type BlockHeight,
 } from "@/lib/formations";
+import { Pitch, FIELD, clientToField } from "@/components/pitch";
 
 type Matchup = "own-attack" | "rival-attack";
-
-const FIELD_W = 105;
-const FIELD_H = 68;
 
 const BLOCK_OPTIONS: { value: BlockHeight; label: string }[] = [
   { value: "alto", label: "Alto" },
@@ -122,11 +120,9 @@ export default function EnfrentarSistemasPage() {
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const current = draggingRef.current;
     if (!current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * FIELD_W;
-    const y = ((e.clientY - rect.top) / rect.height) * FIELD_H;
-    const clampedX = Math.max(2, Math.min(FIELD_W - 2, x));
-    const clampedY = Math.max(2, Math.min(FIELD_H - 2, y));
+    const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
+    const clampedX = Math.max(2, Math.min(FIELD.W - 2, x));
+    const clampedY = Math.max(2, Math.min(FIELD.H - 2, y));
     const setter = current.side === "own" ? setOwnPlayers : setRivalPlayers;
     setter((prev) => prev.map((p) => (p.id === current.id ? { ...p, x: clampedX, y: clampedY } : p)));
   };
@@ -166,23 +162,19 @@ export default function EnfrentarSistemasPage() {
                 Reiniciar
               </button>
             </div>
-            <svg
-              viewBox={`0 0 ${FIELD_W} ${FIELD_H}`}
-              className="w-full rounded-lg select-none"
-              style={{ background: "#1a5c2e" }}
+            <Pitch
+              className="rounded-lg"
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              <PitchMarkings />
-
               {rivalPlayers.map((p) => (
                 <PlayerToken key={p.id} player={p} fillColor={rivalFillColor} textColor={rivalTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} />
               ))}
               {ownPlayers.map((p) => (
                 <PlayerToken key={p.id} player={p} fillColor={ownFillColor} textColor={ownTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("own", p.id)} />
               ))}
-            </svg>
+            </Pitch>
             <div className="flex items-center gap-4 mt-3 text-xs text-muted">
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: ownFillColor }} /> Equipo propio</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: rivalFillColor }} /> Equipo rival</span>
@@ -274,36 +266,3 @@ function PlayerToken({
   );
 }
 
-function PitchMarkings() {
-  const stroke = "rgba(255,255,255,0.45)";
-  return (
-    <g stroke={stroke} strokeWidth="0.25" fill="none">
-      <rect x="0.3" y="0.3" width={FIELD_W - 0.6} height={FIELD_H - 0.6} rx="0.5" />
-      <line x1={FIELD_W / 2} y1="0" x2={FIELD_W / 2} y2={FIELD_H} />
-      <circle cx={FIELD_W / 2} cy={FIELD_H / 2} r="9.15" />
-      <circle cx={FIELD_W / 2} cy={FIELD_H / 2} r="0.4" fill={stroke} />
-
-      {/* Left penalty area (own goal) */}
-      <rect x="0" y={(FIELD_H - 40.32) / 2} width="16.5" height="40.32" />
-      <rect x="0" y={(FIELD_H - 18.32) / 2} width="5.5" height="18.32" />
-      <circle cx="11" cy={FIELD_H / 2} r="0.4" fill={stroke} />
-      <path d={`M 16.5 ${FIELD_H / 2 - 7.75} A 9.15 9.15 0 0 1 16.5 ${FIELD_H / 2 + 7.75}`} />
-
-      {/* Right penalty area (rival goal) */}
-      <rect x={FIELD_W - 16.5} y={(FIELD_H - 40.32) / 2} width="16.5" height="40.32" />
-      <rect x={FIELD_W - 5.5} y={(FIELD_H - 18.32) / 2} width="5.5" height="18.32" />
-      <circle cx={FIELD_W - 11} cy={FIELD_H / 2} r="0.4" fill={stroke} />
-      <path d={`M ${FIELD_W - 16.5} ${FIELD_H / 2 - 7.75} A 9.15 9.15 0 0 0 ${FIELD_W - 16.5} ${FIELD_H / 2 + 7.75}`} />
-
-      {/* Goals */}
-      <rect x="-2.44" y={(FIELD_H - 7.32) / 2} width="2.44" height="7.32" strokeDasharray="0.6 0.6" />
-      <rect x={FIELD_W} y={(FIELD_H - 7.32) / 2} width="2.44" height="7.32" strokeDasharray="0.6 0.6" />
-
-      {/* Corner arcs */}
-      <path d="M 0 1 A 1 1 0 0 0 1 0" />
-      <path d={`M ${FIELD_W - 1} 0 A 1 1 0 0 0 ${FIELD_W} 1`} />
-      <path d={`M 0 ${FIELD_H - 1} A 1 1 0 0 1 1 ${FIELD_H}`} />
-      <path d={`M ${FIELD_W} ${FIELD_H - 1} A 1 1 0 0 1 ${FIELD_W - 1} ${FIELD_H}`} />
-    </g>
-  );
-}
