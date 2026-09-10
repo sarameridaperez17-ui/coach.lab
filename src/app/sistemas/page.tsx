@@ -363,8 +363,8 @@ export default function SistemasPage() {
         </button>
       </div>
 
-      {/* Rejilla de sistemas — tarjeta con nombre + campograma */}
-      {systems.length > 0 && (
+      {/* Rejilla de sistemas — se oculta al abrir un sistema para editarlo */}
+      {systems.length > 0 && !(selectedId || creating) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           {sortedSystems.map((sys) => {
             const status = itemStatuses.get(sys.id);
@@ -392,6 +392,16 @@ export default function SistemasPage() {
 
       {/* Contenido principal */}
       {(selectedId || creating) ? (
+        <div>
+          <button
+            onClick={() => {
+              setSelectedId(null);
+              setCreating(false);
+            }}
+            className="mb-4 text-sm text-muted hover:text-foreground-secondary flex items-center gap-1"
+          >
+            ← Volver a mis sistemas
+          </button>
         <div className="flex gap-6">
           {/* LEFT: Campograma */}
           <div className="flex-1 min-w-0">
@@ -579,18 +589,13 @@ export default function SistemasPage() {
             )}
           </div>
         </div>
-      ) : (
-        <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
-          <p className="text-lg font-medium mb-2">
-            {systems.length === 0 ? "Sin sistemas" : "Selecciona un sistema"}
-          </p>
-          <p className="text-sm">
-            {systems.length === 0
-              ? "Crea tu primer sistema de juego con el campograma interactivo."
-              : "Haz clic en uno de los sistemas de arriba para editarlo."}
-          </p>
         </div>
-      )}
+      ) : systems.length === 0 ? (
+        <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
+          <p className="text-lg font-medium mb-2">Sin sistemas</p>
+          <p className="text-sm">Crea tu primer sistema de juego con el campograma interactivo.</p>
+        </div>
+      ) : null}
 
       {/* Position label dropdown (right-click on player) */}
       {labelDropdown && (
