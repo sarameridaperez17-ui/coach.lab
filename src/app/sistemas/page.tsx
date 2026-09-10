@@ -19,6 +19,7 @@ import {
 import type { ItemStatus, Bookmark } from "@/lib/api";
 import type { GameSystem, GameSystemVariant, Task } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
+import { Pitch, FIELD, clientToField } from "@/components/pitch";
 
 
 // Position labels for right-click dropdown
@@ -26,18 +27,20 @@ const POSITION_LABELS = [
   "PT", "CT", "CL", "CC", "LT", "MC", "IN", "MP", "Ca", "EX", "DC", "DP",
 ];
 
+// Coordenadas en metros — sistema maestro del componente <Pitch>
+// (x=0 portería propia izda -> x=105 rival dcha, y=0..68).
 const DEFAULT_POSITIONS = [
-  { player_index: 1, label: "PT", x: 50, y: 93 },
-  { player_index: 2, label: "LI", x: 20, y: 75 },
-  { player_index: 3, label: "CT", x: 40, y: 78 },
-  { player_index: 4, label: "CT", x: 60, y: 78 },
-  { player_index: 5, label: "LD", x: 80, y: 75 },
-  { player_index: 6, label: "MC", x: 35, y: 55 },
-  { player_index: 7, label: "MC", x: 50, y: 50 },
-  { player_index: 8, label: "MC", x: 65, y: 55 },
-  { player_index: 9, label: "EI", x: 15, y: 30 },
-  { player_index: 10, label: "DC", x: 50, y: 25 },
-  { player_index: 11, label: "ED", x: 85, y: 30 },
+  { player_index: 1, label: "PT", x: 7.4, y: 34 },
+  { player_index: 2, label: "LI", x: 26.3, y: 13.6 },
+  { player_index: 3, label: "CT", x: 23.1, y: 27.2 },
+  { player_index: 4, label: "CT", x: 23.1, y: 40.8 },
+  { player_index: 5, label: "LD", x: 26.3, y: 54.4 },
+  { player_index: 6, label: "MC", x: 47.3, y: 23.8 },
+  { player_index: 7, label: "MC", x: 52.5, y: 34 },
+  { player_index: 8, label: "MC", x: 47.3, y: 44.2 },
+  { player_index: 9, label: "EI", x: 73.5, y: 10.2 },
+  { player_index: 10, label: "DC", x: 78.8, y: 34 },
+  { player_index: 11, label: "ED", x: 73.5, y: 57.8 },
 ];
 
 export default function SistemasPage() {
@@ -180,14 +183,11 @@ export default function SistemasPage() {
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (dragging === null) return;
-    const svg = e.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
     setPlayers((prev) =>
       prev.map((p) =>
         p.player_index === dragging
-          ? { ...p, x: Math.max(2, Math.min(98, x)), y: Math.max(2, Math.min(98, y)) }
+          ? { ...p, x: Math.max(2, Math.min(FIELD.W - 2, x)), y: Math.max(2, Math.min(FIELD.H - 2, y)) }
           : p
       )
     );
@@ -355,84 +355,41 @@ export default function SistemasPage() {
           {/* LEFT: Campograma */}
           <div className="flex-1 min-w-0">
             <div className="bg-surface rounded-xl border border-border p-4">
-              <div className="flex justify-center">
-                <svg
-                  viewBox="0 0 68 80"
-                  className="w-full rounded-lg select-none"
-                  style={{ background: "#1a5c2e", maxWidth: 480 }}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                >
-                  {/* Field outline */}
-                  <rect x="2" y="2" width="64" height="76" rx="1" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.3" />
-
-                  {/* Goals */}
-                  {/* Top goal (attack) */}
-                  <rect x="27" y="0" width="14" height="2" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-                  {/* Bottom goal (defense) */}
-                  <rect x="27" y="78" width="14" height="2" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.3" />
-
-                  {/* Center line */}
-                  <line x1="2" y1="40" x2="66" y2="40" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <circle cx="34" cy="40" r="7" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <circle cx="34" cy="40" r="0.5" fill="rgba(255,255,255,0.4)" />
-
-                  {/* Top penalty area (attack) */}
-                  <rect x="14" y="2" width="40" height="12" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <rect x="22" y="2" width="24" height="4.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <circle cx="34" cy="9.5" r="0.4" fill="rgba(255,255,255,0.4)" />
-                  {/* Top penalty arc (semicircle outside area) */}
-                  <path d="M 25 14 A 9 9 0 0 0 43 14" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-
-                  {/* Bottom penalty area (defense) */}
-                  <rect x="14" y="66" width="40" height="12" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <rect x="22" y="73.5" width="24" height="4.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <circle cx="34" cy="70.5" r="0.4" fill="rgba(255,255,255,0.4)" />
-                  {/* Bottom penalty arc (semicircle outside area) */}
-                  <path d="M 25 66 A 9 9 0 0 1 43 66" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-
-                  {/* Corner arcs */}
-                  <path d="M 2 4 A 2 2 0 0 0 4 2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <path d="M 64 2 A 2 2 0 0 0 66 4" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <path d="M 2 76 A 2 2 0 0 1 4 78" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-                  <path d="M 64 78 A 2 2 0 0 1 66 76" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.25" />
-
-                  {/* Players */}
-                  {players.map((player) => {
-                    const fieldX = (player.x / 100) * 64 + 2;
-                    const fieldY = (player.y / 100) * 76 + 2;
-                    return (
-                      <g
-                        key={player.player_index}
-                        onMouseDown={() => handleMouseDown(player.player_index)}
-                        onContextMenu={(e) => handlePlayerContextMenu(e, player.player_index)}
-                        style={{ cursor: dragging === player.player_index ? "grabbing" : "grab" }}
-                      >
-                        <circle
-                          cx={fieldX}
-                          cy={fieldY}
-                          r="3"
-                          fill={dragging === player.player_index ? "#818cf8" : "#4f46e5"}
-                          stroke="white"
-                          strokeWidth="0.4"
-                        />
-                        <text
-                          x={fieldX}
-                          y={fieldY + 0.9}
-                          textAnchor="middle"
-                          fill="white"
-                          fontSize="2.2"
-                          fontWeight="bold"
-                          style={{ pointerEvents: "none" }}
-                        >
-                          {player.label}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
+              <Pitch
+                className="rounded-lg"
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                {players.map((player) => (
+                  <g
+                    key={player.player_index}
+                    onMouseDown={() => handleMouseDown(player.player_index)}
+                    onContextMenu={(e) => handlePlayerContextMenu(e, player.player_index)}
+                    style={{ cursor: dragging === player.player_index ? "grabbing" : "grab" }}
+                  >
+                    <circle
+                      cx={player.x}
+                      cy={player.y}
+                      r="3"
+                      fill={dragging === player.player_index ? "#818cf8" : "#4f46e5"}
+                      stroke="white"
+                      strokeWidth="0.4"
+                    />
+                    <text
+                      x={player.x}
+                      y={player.y + 0.9}
+                      textAnchor="middle"
+                      fill="white"
+                      fontSize="2.4"
+                      fontWeight="bold"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {player.label}
+                    </text>
+                  </g>
+                ))}
+              </Pitch>
             </div>
           </div>
 

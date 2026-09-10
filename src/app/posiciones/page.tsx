@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import type { ItemStatus } from "@/lib/api";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
+import { Pitch, FIELD } from "@/components/pitch";
 import type {
   TeamContext,
   GamePhase,
@@ -92,44 +93,55 @@ const POSITION_ADN: Record<string, PositionADN> = {
   },
 };
 
-// Position coordinates on a vertical field
+// Coordenadas de cada posición en el sistema maestro en metros del <Pitch>
+// (x=0 portería propia -> x=105 rival, y=0..68).
 const POSITION_COORDS: Record<string, { x: number; y: number }> = {
-  PT: { x: 50, y: 90 },
-  CT: { x: 35, y: 75 },
-  CL: { x: 35, y: 75 },
-  CC: { x: 50, y: 75 },
-  LT: { x: 15, y: 60 },
-  Ca: { x: 85, y: 60 },
-  EX: { x: 10, y: 40 },
-  MC: { x: 40, y: 55 },
-  IN: { x: 60, y: 45 },
-  MP: { x: 50, y: 35 },
-  DC: { x: 40, y: 20 },
-  DP: { x: 60, y: 20 },
+  PT: { x: 10.5, y: 34 },
+  CT: { x: 26.3, y: 23.8 },
+  CL: { x: 26.3, y: 23.8 },
+  CC: { x: 26.3, y: 34 },
+  LT: { x: 42, y: 10.2 },
+  Ca: { x: 42, y: 57.8 },
+  EX: { x: 63, y: 6.8 },
+  MC: { x: 47.3, y: 27.2 },
+  IN: { x: 57.8, y: 40.8 },
+  MP: { x: 68.3, y: 34 },
+  DC: { x: 84, y: 27.2 },
+  DP: { x: 84, y: 40.8 },
 };
 
+// Tercios del campo (mismo sistema de coordenadas maestro).
+const ZONES = [
+  { id: "Z1", x0: 0, x1: FIELD.W / 3, opacity: 0.28 },
+  { id: "Z2", x0: FIELD.W / 3, x1: (FIELD.W / 3) * 2, opacity: 0.2 },
+  { id: "Z3", x0: (FIELD.W / 3) * 2, x1: FIELD.W, opacity: 0.14 },
+];
+
 function FieldZoneMap({ posAbbr }: { posAbbr: string }) {
-  const coords = POSITION_COORDS[posAbbr] ?? { x: 50, y: 50 };
+  const coords = POSITION_COORDS[posAbbr] ?? { x: FIELD.W / 2, y: FIELD.H / 2 };
   return (
-    <svg viewBox="0 0 100 130" className="w-full rounded-lg" style={{ maxWidth: 200 }}>
-      <rect x="0" y="0" width="100" height="130" rx="4" fill="#1a5c2e" />
-      <rect x="5" y="5" width="90" height="120" fill="none" stroke="#2d8a4e" strokeWidth="0.5" />
-      <line x1="5" y1="65" x2="95" y2="65" stroke="#2d8a4e" strokeWidth="0.5" />
-      <circle cx="50" cy="65" r="12" fill="none" stroke="#2d8a4e" strokeWidth="0.5" />
-      <circle cx="50" cy="65" r="1" fill="#2d8a4e" />
-      <rect x="20" y="95" width="60" height="30" fill="none" stroke="#2d8a4e" strokeWidth="0.5" />
-      <rect x="30" y="110" width="40" height="15" fill="none" stroke="#2d8a4e" strokeWidth="0.5" />
-      <rect x="20" y="5" width="60" height="30" fill="none" stroke="#2d8a4e" strokeWidth="0.5" />
-      <rect x="30" y="5" width="40" height="15" fill="none" stroke="#2d8a4e" strokeWidth="0.5" />
-      <rect x="5" y="87" width="90" height="38" rx="2" fill="#166534" fillOpacity="0.3" stroke="#22c55e" strokeWidth="0.3" strokeDasharray="2" />
-      <text x="92" y="108" textAnchor="end" fill="#4ade80" fontSize="5" fontWeight="bold" opacity="0.7">Z1</text>
-      <rect x="5" y="43" width="90" height="44" rx="2" fill="#166534" fillOpacity="0.2" stroke="#22c55e" strokeWidth="0.3" strokeDasharray="2" />
-      <text x="92" y="67" textAnchor="end" fill="#4ade80" fontSize="5" fontWeight="bold" opacity="0.7">Z2</text>
-      <rect x="5" y="5" width="90" height="38" rx="2" fill="#166534" fillOpacity="0.15" stroke="#22c55e" strokeWidth="0.3" strokeDasharray="2" />
-      <text x="92" y="26" textAnchor="end" fill="#4ade80" fontSize="5" fontWeight="bold" opacity="0.7">Z3</text>
-      <circle cx={coords.x} cy={coords.y} r="6" fill="#3b82f6" stroke="white" strokeWidth="1" />
-      <text x={coords.x} y={coords.y + 1.8} textAnchor="middle" fill="white" fontSize="4.5" fontWeight="bold">{posAbbr}</text>
-    </svg>
+    <div style={{ maxWidth: 320 }}>
+      <Pitch className="rounded-lg">
+        {ZONES.map((z) => (
+          <g key={z.id}>
+            <rect
+              x={z.x0}
+              y={0}
+              width={z.x1 - z.x0}
+              height={FIELD.H}
+              fill="#166534"
+              fillOpacity={z.opacity}
+              stroke="#22c55e"
+              strokeWidth="0.3"
+              strokeDasharray="1.6"
+            />
+            <text x={z.x0 + 2.5} y={6} fill="#bbf7d0" fontSize="3.4" fontWeight="bold" opacity="0.85">{z.id}</text>
+          </g>
+        ))}
+        <circle cx={coords.x} cy={coords.y} r="4" fill="#3b82f6" stroke="white" strokeWidth="0.6" />
+        <text x={coords.x} y={coords.y + 1.3} textAnchor="middle" fill="white" fontSize="3.2" fontWeight="bold" style={{ pointerEvents: "none" }}>{posAbbr}</text>
+      </Pitch>
+    </div>
   );
 }
 
