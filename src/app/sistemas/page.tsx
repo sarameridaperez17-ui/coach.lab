@@ -43,6 +43,34 @@ const DEFAULT_POSITIONS = [
   { player_index: 11, label: "ED", x: 73.5, y: 57.8 },
 ];
 
+// Miniatura del campograma de un sistema (solo lectura)
+function SystemThumb({
+  positions,
+}: {
+  positions: { player_index: number; label: string; x: number; y: number }[];
+}) {
+  const pts = positions.length > 0 ? positions : DEFAULT_POSITIONS;
+  return (
+    <Pitch className="rounded-md">
+      {pts.map((p) => (
+        <g key={p.player_index}>
+          <circle cx={p.x} cy={p.y} r="2.8" fill="#4f46e5" stroke="white" strokeWidth="0.4" />
+          <text
+            x={p.x}
+            y={p.y + 0.9}
+            textAnchor="middle"
+            fill="white"
+            fontSize="2.4"
+            fontWeight="bold"
+          >
+            {p.label}
+          </text>
+        </g>
+      ))}
+    </Pitch>
+  );
+}
+
 export default function SistemasPage() {
   const [systems, setSystems] = useState<GameSystem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,24 +356,45 @@ export default function SistemasPage() {
         </button>
       </div>
 
-      {/* Lista de sistemas */}
+      {/* Rejilla de sistemas — tarjeta con nombre + campograma */}
       {systems.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          {systems.map((sys) => (
-            <div key={sys.id} className="flex items-center gap-1" onContextMenu={(e) => handleContextMenu(e, sys.id, sys.name)}>
-              <button
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          {systems.map((sys) => {
+            const status = itemStatuses.get(sys.id);
+            return (
+              <div
+                key={sys.id}
                 onClick={() => selectSystem(sys)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedId === sys.id
-                    ? "bg-indigo-600 text-white"
-                    : "bg-surface border border-border text-foreground-secondary hover:border-indigo-300"
+                onContextMenu={(e) => handleContextMenu(e, sys.id, sys.name)}
+                className={`bg-surface rounded-xl border p-3 cursor-pointer transition-colors ${
+                  selectedId === sys.id ? "border-indigo-500" : "border-border hover:border-indigo-300"
                 }`}
               >
-                {sys.name}
-              </button>
-              {itemStatuses.has(sys.id) && <StatusBadge status={itemStatuses.get(sys.id)!} />}
-            </div>
-          ))}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="text-sm font-semibold text-foreground truncate">{sys.name}</h3>
+                  {status === "favorite" ? (
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 20 20"
+                      fill="#f87171"
+                      stroke="#f87171"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                      className="flex-shrink-0"
+                    >
+                      <path d="M10 3l2.1 4.3 4.7.7-3.4 3.3.8 4.7L10 13.5 5.8 16l.8-4.7L3.2 8l4.7-.7z" />
+                    </svg>
+                  ) : status ? (
+                    <StatusBadge status={status} />
+                  ) : null}
+                </div>
+                <div className="pointer-events-none">
+                  <SystemThumb positions={sys.positions ?? []} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
