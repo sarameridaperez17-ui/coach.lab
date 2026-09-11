@@ -10,6 +10,12 @@ import {
   type BlockHeight,
 } from "@/lib/formations";
 import { Pitch, FIELD, clientToField } from "@/components/pitch";
+import {
+  getSystemClashes,
+  createSystemClash,
+  deleteSystemClash,
+  type SystemClash,
+} from "@/lib/api";
 
 type Matchup = "own-attack" | "rival-attack";
 
@@ -103,12 +109,31 @@ export default function EnfrentarSistemasPage() {
   const [dragging, setDragging] = useState<{ side: "own" | "rival"; id: string } | null>(null);
   const draggingRef = useRef<{ side: "own" | "rival"; id: string } | null>(null);
 
+  // Situaciones guardadas
+  const [savedClashes, setSavedClashes] = useState<SystemClash[]>([]);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveNotes, setSaveNotes] = useState("");
+  const [savingClash, setSavingClash] = useState(false);
+
+  useEffect(() => {
+    getSystemClashes().then(setSavedClashes).catch(console.error);
+  }, []);
+
   const regenerate = useCallback(() => {
     setOwnPlayers(generateFormation(activeOwnFormation, "own", activeOwnPosture, ownBlockHeight));
     setRivalPlayers(generateFormation(activeRivalFormation, "rival", activeRivalPosture, rivalBlockHeight));
   }, [activeOwnFormation, activeOwnPosture, activeRivalFormation, activeRivalPosture, ownBlockHeight, rivalBlockHeight]);
 
+  // Al cargar una situación guardada se aplican sus posiciones exactas;
+  // esta ref evita que la regeneración automática las sobrescriba.
+  const suppressRegen = useRef(false);
+
   useEffect(() => {
+    if (suppressRegen.current) {
+      suppressRegen.current = false;
+      return;
+    }
     regenerate();
   }, [regenerate]);
 
@@ -130,6 +155,66 @@ export default function EnfrentarSistemasPage() {
   const handleMouseUp = () => {
     draggingRef.current = null;
     setDragging(null);
+  };
+
+  const handleSaveClash = async () => {
+    if (!saveName.trim() || savingClash) return;
+    setSavingClash(true);
+    try {
+      await createSystemClash({
+        name: saveName.trim(),
+        notes: saveNotes.trim(),
+        own_attack: ownAttack,
+        own_defense: ownDefense,
+        rival_attack: rivalAttack,
+        rival_defense: rivalDefense,
+        matchup,
+        own_block_height: ownBlockHeight,
+        rival_block_height: rivalBlockHeight,
+        own_fill_color: ownFillColor,
+        own_text_color: ownTextColor,
+        rival_fill_color: rivalFillColor,
+        rival_text_color: rivalTextColor,
+        own_players: ownPlayers,
+        rival_players: rivalPlayers,
+      });
+      const list = await getSystemClashes();
+      setSavedClashes(list);
+      setSaveOpen(false);
+      setSaveName("");
+      setSaveNotes("");
+    } catch (err) {
+      console.error("Error saving clash:", err);
+    } finally {
+      setSavingClash(false);
+    }
+  };
+
+  const loadClash = (c: SystemClash) => {
+    suppressRegen.current = true;
+    setOwnAttack(c.own_attack as Formation);
+    setOwnDefense(c.own_defense as Formation);
+    setRivalAttack(c.rival_attack as Formation);
+    setRivalDefense(c.rival_defense as Formation);
+    setMatchup(c.matchup as Matchup);
+    setOwnBlockHeight(c.own_block_height as BlockHeight);
+    setRivalBlockHeight(c.rival_block_height as BlockHeight);
+    setOwnFillColor(c.own_fill_color);
+    setOwnTextColor(c.own_text_color);
+    setRivalFillColor(c.rival_fill_color);
+    setRivalTextColor(c.rival_text_color);
+    setOwnPlayers(c.own_players);
+    setRivalPlayers(c.rival_players);
+  };
+
+  const handleDeleteClash = async (id: string) => {
+    if (!confirm("¿Eliminar esta situación guardada?")) return;
+    try {
+      await deleteSystemClash(id);
+      setSavedClashes((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error("Error deleting clash:", err);
+    }
   };
 
   const matchupLabel =
@@ -155,13 +240,56 @@ export default function EnfrentarSistemasPage() {
           <div className="bg-surface rounded-xl border border-border p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-foreground-secondary">{matchupLabel}</p>
-              <button
-                onClick={regenerate}
-                className="px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs font-medium text-foreground-secondary hover:border-indigo-400 transition-colors"
-              >
-                Reiniciar
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSaveOpen((v) => !v)}
+                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  Guardar situación
+                </button>
+                <button
+                  onClick={regenerate}
+                  className="px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs font-medium text-foreground-secondary hover:border-indigo-400 transition-colors"
+                >
+                  Reiniciar
+                </button>
+              </div>
             </div>
+
+            {saveOpen && (
+              <div className="mb-3 p-3 bg-surface-hover border border-border rounded-lg space-y-2">
+                <input
+                  autoFocus
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  placeholder="Nombre de la situación (ej. Salida de presión vs bloque alto)"
+                  className="w-full px-3 py-1.5 border border-border rounded text-sm bg-surface focus:outline-none focus:border-indigo-400"
+                />
+                <textarea
+                  value={saveNotes}
+                  onChange={(e) => setSaveNotes(e.target.value)}
+                  placeholder="Notas de análisis (opcional)"
+                  rows={2}
+                  className="w-full px-3 py-1.5 border border-border rounded text-sm bg-surface focus:outline-none focus:border-indigo-400 resize-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveClash}
+                    disabled={!saveName.trim() || savingClash}
+                    className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 disabled:opacity-40"
+                  >
+                    {savingClash ? "Guardando..." : "Guardar"}
+                  </button>
+                  <button
+                    onClick={() => setSaveOpen(false)}
+                    className="px-3 py-1.5 text-xs text-foreground-secondary"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
             <Pitch
               className="rounded-lg"
               onMouseMove={handleMouseMove}
@@ -239,6 +367,39 @@ export default function EnfrentarSistemasPage() {
           </div>
         </div>
       </div>
+
+      {/* Situaciones guardadas */}
+      {savedClashes.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Situaciones guardadas</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {savedClashes.map((c) => (
+              <div
+                key={c.id}
+                onClick={() => loadClash(c)}
+                className="bg-surface rounded-xl border border-border hover:border-indigo-300 p-3 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="text-sm font-semibold text-foreground truncate">{c.name}</h3>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClash(c.id);
+                    }}
+                    className="text-xs text-muted hover:text-red-400 flex-shrink-0"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="pointer-events-none">
+                  <ClashThumb clash={c} />
+                </div>
+                {c.notes && <p className="text-[10px] text-muted mt-1.5 line-clamp-2">{c.notes}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -263,6 +424,26 @@ function PlayerToken({
         {player.number}
       </text>
     </g>
+  );
+}
+
+// Miniatura de una situación guardada (solo lectura)
+function ClashThumb({ clash }: { clash: SystemClash }) {
+  return (
+    <Pitch className="rounded-md">
+      {clash.rival_players.map((p) => (
+        <g key={`r${p.id}`}>
+          <circle cx={p.x} cy={p.y} r="2.3" fill={clash.rival_fill_color} stroke="white" strokeWidth="0.35" />
+          <text x={p.x} y={p.y + 0.75} textAnchor="middle" fill={clash.rival_text_color} fontSize="2" fontWeight="bold">{p.number}</text>
+        </g>
+      ))}
+      {clash.own_players.map((p) => (
+        <g key={`o${p.id}`}>
+          <circle cx={p.x} cy={p.y} r="2.3" fill={clash.own_fill_color} stroke="white" strokeWidth="0.35" />
+          <text x={p.x} y={p.y + 0.75} textAnchor="middle" fill={clash.own_text_color} fontSize="2" fontWeight="bold">{p.number}</text>
+        </g>
+      ))}
+    </Pitch>
   );
 }
 

@@ -1132,3 +1132,65 @@ export async function deleteTacticalDiagram(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw error;
 }
+
+// ============================================
+// SYSTEM CLASHES — situaciones guardadas de "Enfrentar sistemas"
+// ============================================
+
+export interface SystemClashPlayer {
+  id: string;
+  number: number;
+  x: number;
+  y: number;
+}
+
+export interface SystemClash {
+  id: string;
+  name: string;
+  notes: string;
+  own_attack: string;
+  own_defense: string;
+  rival_attack: string;
+  rival_defense: string;
+  matchup: string;
+  own_block_height: string;
+  rival_block_height: string;
+  own_fill_color: string;
+  own_text_color: string;
+  rival_fill_color: string;
+  rival_text_color: string;
+  own_players: SystemClashPlayer[];
+  rival_players: SystemClashPlayer[];
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getSystemClashes(): Promise<SystemClash[]> {
+  const { data, error } = await supabase
+    .from("system_clashes")
+    .select("*")
+    .eq("archived", false)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createSystemClash(
+  input: Omit<SystemClash, "id" | "created_at" | "updated_at">
+): Promise<SystemClash> {
+  const { data, error } = await supabase
+    .from("system_clashes")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSystemClash(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("system_clashes")
+    .update({ archived: true })
+    .eq("id", id);
+  if (error) throw error;
+}
