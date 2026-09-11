@@ -46,13 +46,13 @@ function FormationSelect({
 
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex items-center justify-between">
-      <label className="text-[10px] text-muted uppercase tracking-wide font-medium">{label}</label>
+    <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+      <label className="text-[10px] text-muted uppercase tracking-wide font-medium truncate">{label}</label>
       <input
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-8 h-8 rounded border border-border bg-transparent cursor-pointer"
+        className="w-8 h-8 flex-shrink-0 rounded border border-border bg-transparent cursor-pointer"
       />
     </div>
   );
@@ -192,9 +192,9 @@ export default function EnfrentarSistemasPage() {
               <FormationSelect label="Ataque" value={ownAttack} onChange={setOwnAttack} />
               <FormationSelect label="Defensa" value={ownDefense} onChange={setOwnDefense} />
               <BlockHeightPicker value={ownBlockHeight} onChange={setOwnBlockHeight} />
-              <div className="pt-1 border-t border-surface-hover space-y-2">
-                <ColorField label="Color del círculo" value={ownFillColor} onChange={setOwnFillColor} />
-                <ColorField label="Color del dorsal" value={ownTextColor} onChange={setOwnTextColor} />
+              <div className="pt-3 border-t border-surface-hover flex items-center gap-3">
+                <ColorField label="Círculo" value={ownFillColor} onChange={setOwnFillColor} />
+                <ColorField label="Dorsal" value={ownTextColor} onChange={setOwnTextColor} />
               </div>
             </div>
           </div>
@@ -207,9 +207,9 @@ export default function EnfrentarSistemasPage() {
               <FormationSelect label="Ataque" value={rivalAttack} onChange={setRivalAttack} />
               <FormationSelect label="Defensa" value={rivalDefense} onChange={setRivalDefense} />
               <BlockHeightPicker value={rivalBlockHeight} onChange={setRivalBlockHeight} />
-              <div className="pt-1 border-t border-surface-hover space-y-2">
-                <ColorField label="Color del círculo" value={rivalFillColor} onChange={setRivalFillColor} />
-                <ColorField label="Color del dorsal" value={rivalTextColor} onChange={setRivalTextColor} />
+              <div className="pt-3 border-t border-surface-hover flex items-center gap-3">
+                <ColorField label="Círculo" value={rivalFillColor} onChange={setRivalFillColor} />
+                <ColorField label="Dorsal" value={rivalTextColor} onChange={setRivalTextColor} />
               </div>
             </div>
           </div>

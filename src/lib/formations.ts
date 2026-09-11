@@ -9,6 +9,7 @@ export const FORMATIONS = [
   "1-4-3-3",
   "1-4-2-3-1",
   "1-4-4-2",
+  "1-4-4-2 (rombo)",
   "1-3-4-3",
   "1-3-5-2",
   "1-5-4-1",
@@ -62,7 +63,16 @@ function lineWidths(count: number): number[] {
   return Array.from({ length: count }, (_, j) => margin + ((j + 0.5) * usable) / count);
 }
 
+// Formaciones cuya estructura de líneas no se puede deducir del propio
+// nombre (ej. el rombo reparte los 4 centrocampistas en 4 líneas: pivote,
+// dos interiores y mediapunta, en vez de una línea plana de 4).
+const CUSTOM_LINES: Partial<Record<Formation, number[]>> = {
+  "1-4-4-2 (rombo)": [4, 1, 2, 1, 2],
+};
+
 export function parseFormationLines(formation: Formation): number[] {
+  const custom = CUSTOM_LINES[formation];
+  if (custom) return custom;
   return formation.split("-").slice(1).map(Number);
 }
 
