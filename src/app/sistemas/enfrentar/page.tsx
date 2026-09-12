@@ -18,6 +18,8 @@ import {
   createSystemClash,
   deleteSystemClash,
   getFormationTemplates,
+  saveFormationTemplate,
+  deleteFormationTemplate,
   type SystemClash,
 } from "@/lib/api";
 
@@ -122,18 +124,82 @@ export default function EnfrentarSistemasPage() {
 
   const [templates, setTemplates] = useState<Map<string, TemplatePlayer[]>>(new Map());
 
+  const loadTemplates = useCallback(async () => {
+    const list = await getFormationTemplates();
+    const m = new Map<string, TemplatePlayer[]>();
+    list.forEach((t) =>
+      m.set(templateKey(t.formation as Formation, t.posture as Posture, t.block_height as BlockHeight), t.players)
+    );
+    setTemplates(m);
+    return m;
+  }, []);
+
   useEffect(() => {
     getSystemClashes().then(setSavedClashes).catch(console.error);
-    getFormationTemplates()
-      .then((list) => {
-        const m = new Map<string, TemplatePlayer[]>();
-        list.forEach((t) =>
-          m.set(templateKey(t.formation as Formation, t.posture as Posture, t.block_height as BlockHeight), t.players)
-        );
-        setTemplates(m);
-      })
-      .catch(console.error);
-  }, []);
+    loadTemplates().catch(console.error);
+  }, [loadTemplates]);
+
+  // ---- Configurar posiciones (embebido, no es una situación/archivo) ----
+  const [configuring, setConfiguring] = useState(false);
+  const [cfgFormation, setCfgFormation] = useState<Formation>("1-4-3-3");
+  const [cfgPosture, setCfgPosture] = useState<Posture>("attack");
+  const [cfgBlockHeight, setCfgBlockHeight] = useState<BlockHeight>("medio");
+  const [cfgPlayers, setCfgPlayers] = useState<FormationPlayer[]>([]);
+  const [cfgDragging, setCfgDragging] = useState<string | null>(null);
+  const cfgDraggingRef = useRef<string | null>(null);
+  const [cfgSaving, setCfgSaving] = useState(false);
+
+  useEffect(() => {
+    setCfgPlayers(getFormationPositions(cfgFormation, "own", cfgPosture, cfgBlockHeight, templates));
+  }, [cfgFormation, cfgPosture, cfgBlockHeight, templates]);
+
+  const cfgHasTemplate = templates.has(templateKey(cfgFormation, cfgPosture, cfgBlockHeight));
+
+  const cfgHandleMouseDown = (id: string) => {
+    cfgDraggingRef.current = id;
+    setCfgDragging(id);
+  };
+
+  const cfgHandleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const id = cfgDraggingRef.current;
+    if (!id) return;
+    const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
+    const cx = Math.max(2, Math.min(FIELD.W - 2, x));
+    const cy = Math.max(2, Math.min(FIELD.H - 2, y));
+    setCfgPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, x: cx, y: cy } : p)));
+  };
+
+  const cfgHandleMouseUp = () => {
+    cfgDraggingRef.current = null;
+    setCfgDragging(null);
+  };
+
+  const cfgHandleSave = async () => {
+    setCfgSaving(true);
+    try {
+      await saveFormationTemplate(
+        cfgFormation,
+        cfgPosture,
+        cfgBlockHeight,
+        cfgPlayers.map((p) => ({ number: p.number, x: p.x, y: p.y }))
+      );
+      await loadTemplates();
+    } catch (err) {
+      console.error("Error saving template:", err);
+    } finally {
+      setCfgSaving(false);
+    }
+  };
+
+  const cfgHandleReset = async () => {
+    try {
+      await deleteFormationTemplate(cfgFormation, cfgPosture, cfgBlockHeight);
+      const m = await loadTemplates();
+      setCfgPlayers(getFormationPositions(cfgFormation, "own", cfgPosture, cfgBlockHeight, m));
+    } catch (err) {
+      console.error("Error resetting template:", err);
+    }
+  };
 
   const regenerate = useCallback(() => {
     setOwnPlayers(getFormationPositions(activeOwnFormation, "own", activeOwnPosture, ownBlockHeight, templates));
@@ -245,11 +311,163 @@ export default function EnfrentarSistemasPage() {
           <div className="flex items-center gap-4 mt-2 text-sm">
             <Link href="/sistemas" className="text-muted hover:text-foreground-secondary">Mis sistemas</Link>
             <span className="text-indigo-400 font-medium border-b-2 border-indigo-400 pb-0.5">Enfrentar sistemas</span>
-            <Link href="/sistemas/configurar" className="text-muted hover:text-foreground-secondary">Configurar posiciones</Link>
           </div>
         </div>
+        <button
+          onClick={() => setConfiguring((v) => !v)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            configuring ? "bg-indigo-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-indigo-300"
+          }`}
+        >
+          ⚙ Configurar posiciones
+        </button>
       </div>
 
+      {configuring ? (
+        <div>
+          <p className="text-sm text-foreground-secondary mb-4 max-w-2xl">
+            Ajusta la posición exacta de cada sistema, fase y altura de bloque. El cambio se aplica automáticamente
+            aquí siempre que se use esa combinación — no se guarda como situación ni archivo nuevo.
+          </p>
+          <div className="flex gap-6">
+            <div className="flex-1 min-w-0">
+              <div className="bg-surface rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-foreground-secondary flex items-center gap-2">
+                    {cfgFormation} · {cfgPosture === "attack" ? "ataque" : "defensa"} · bloque {cfgBlockHeight}
+                    {cfgHasTemplate && <span className="text-[10px] text-emerald-400 font-semibold">● PERSONALIZADO</span>}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={cfgHandleSave}
+                      disabled={cfgSaving}
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+                    >
+                      {cfgSaving ? "Guardando..." : "Guardar posición"}
+                    </button>
+                    {cfgHasTemplate && (
+                      <button
+                        onClick={cfgHandleReset}
+                        className="px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs font-medium text-foreground-secondary hover:border-red-400 transition-colors"
+                      >
+                        Restablecer
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <Pitch
+                  className="rounded-lg"
+                  onMouseMove={cfgHandleMouseMove}
+                  onMouseUp={cfgHandleMouseUp}
+                  onMouseLeave={cfgHandleMouseUp}
+                >
+                  {cfgPlayers.map((p) => (
+                    <g
+                      key={p.id}
+                      onMouseDown={() => cfgHandleMouseDown(p.id)}
+                      style={{ cursor: cfgDragging === p.id ? "grabbing" : "grab" }}
+                    >
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r="2.6"
+                        fill="#4f46e5"
+                        stroke="white"
+                        strokeWidth="0.4"
+                        opacity={cfgDragging === p.id ? 0.85 : 1}
+                      />
+                      <text
+                        x={p.x}
+                        y={p.y + 0.9}
+                        textAnchor="middle"
+                        fill="white"
+                        fontSize="2.2"
+                        fontWeight="bold"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {p.number}
+                      </text>
+                    </g>
+                  ))}
+                </Pitch>
+              </div>
+            </div>
+
+            <div className="w-72 flex-shrink-0 space-y-4">
+              <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-3 border-b border-surface-hover">
+                  <h3 className="text-sm font-semibold text-foreground">Sistema</h3>
+                </div>
+                <div className="p-4 space-y-3">
+                  <select
+                    value={cfgFormation}
+                    onChange={(e) => setCfgFormation(e.target.value as Formation)}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-hover text-foreground focus:outline-none focus:border-indigo-400"
+                  >
+                    {FORMATIONS.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+
+                  <div>
+                    <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Fase</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCfgPosture("attack")}
+                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          cfgPosture === "attack" ? "bg-indigo-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-indigo-300"
+                        }`}
+                      >
+                        Ataque
+                      </button>
+                      <button
+                        onClick={() => setCfgPosture("defense")}
+                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          cfgPosture === "defense" ? "bg-indigo-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-indigo-300"
+                        }`}
+                      >
+                        Defensa
+                      </button>
+                    </div>
+                  </div>
+
+                  <BlockHeightPicker value={cfgBlockHeight} onChange={setCfgBlockHeight} />
+                </div>
+              </div>
+
+              {templates.size > 0 && (
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                  <div className="px-4 py-3 border-b border-surface-hover">
+                    <h3 className="text-sm font-semibold text-foreground">Personalizados ({templates.size})</h3>
+                  </div>
+                  <div className="p-3 space-y-1 max-h-64 overflow-y-auto">
+                    {Array.from(templates.keys()).map((k) => {
+                      const [f, p, b] = k.split("|");
+                      const active = k === templateKey(cfgFormation, cfgPosture, cfgBlockHeight);
+                      return (
+                        <button
+                          key={k}
+                          onClick={() => {
+                            setCfgFormation(f as Formation);
+                            setCfgPosture(p as Posture);
+                            setCfgBlockHeight(b as BlockHeight);
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                            active ? "bg-surface-hover text-foreground" : "text-foreground-secondary hover:bg-surface-hover"
+                          }`}
+                        >
+                          {f} · {p === "attack" ? "ataque" : "defensa"} · {b}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="flex gap-6">
         {/* CAMPO — elemento principal */}
         <div className="flex-1 min-w-0">
@@ -415,6 +633,8 @@ export default function EnfrentarSistemasPage() {
             ))}
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
