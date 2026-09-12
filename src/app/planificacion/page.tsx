@@ -174,8 +174,14 @@ export default function PlanificacionPage() {
   const [dayPanel, setDayPanel] = useState<string | null>(null); // fecha ISO del panel de día (vista mes)
   const [saving, setSaving] = useState(false);
   const [deleteScope, setDeleteScope] = useState(false); // elección "solo este día / toda la serie"
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; event: PlanningEvent } | null>(null);
 
   const [form, setForm] = useState(emptyForm());
+
+  const showTooltip = (e: React.MouseEvent, event: PlanningEvent) => {
+    setTooltip({ x: e.clientX, y: e.clientY, event });
+  };
+  const hideTooltip = () => setTooltip(null);
 
   const load = useCallback(async () => {
     try {
@@ -399,9 +405,45 @@ export default function PlanificacionPage() {
       {loading ? (
         <p className="text-sm text-muted">Cargando...</p>
       ) : view === "week" ? (
-        <WeekView days={weekDays} occByDate={occByDate} onSlotClick={openCreate} onEventClick={openEdit} />
+        <WeekView
+          days={weekDays}
+          occByDate={occByDate}
+          onSlotClick={openCreate}
+          onEventClick={openEdit}
+          onEventHover={showTooltip}
+          onEventLeave={hideTooltip}
+        />
       ) : (
-        <MonthView days={monthGridDays} monthRef={monthStart} occByDate={occByDate} onDayClick={(iso) => setDayPanel(iso)} />
+        <MonthView
+          days={monthGridDays}
+          monthRef={monthStart}
+          occByDate={occByDate}
+          onDayClick={(iso) => setDayPanel(iso)}
+          onEventHover={showTooltip}
+          onEventLeave={hideTooltip}
+        />
+      )}
+
+      {/* Tooltip al pasar el ratón sobre un evento */}
+      {tooltip && (
+        <div
+          className="fixed z-[60] pointer-events-none max-w-[240px] bg-surface border border-border rounded-lg shadow-xl px-3 py-2"
+          style={{
+            left: Math.min(tooltip.x + 14, (typeof window !== "undefined" ? window.innerWidth : 1200) - 256),
+            top: tooltip.y + 14,
+          }}
+        >
+          <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: TYPE_CONFIG[tooltip.event.type].accent }}>
+            <span>{TYPE_CONFIG[tooltip.event.type].icon}</span>
+            <span className="truncate">{tooltip.event.title}</span>
+          </p>
+          {(tooltip.event.start_time || tooltip.event.end_time) && (
+            <p className="text-[10px] text-muted mt-0.5">
+              {tooltip.event.start_time ?? "?"} – {tooltip.event.end_time ?? "?"}
+            </p>
+          )}
+          {tooltip.event.notes && <p className="text-xs text-foreground-secondary mt-1.5 whitespace-pre-wrap">{tooltip.event.notes}</p>}
+        </div>
       )}
 
       {/* Panel de día (vista mes) */}
@@ -592,11 +634,15 @@ function WeekView({
   occByDate,
   onSlotClick,
   onEventClick,
+  onEventHover,
+  onEventLeave,
 }: {
   days: Date[];
   occByDate: Map<string, Occurrence[]>;
   onSlotClick: (date: string, startTime?: string) => void;
   onEventClick: (event: PlanningEvent, occurrenceDate: string) => void;
+  onEventHover: (e: React.MouseEvent, event: PlanningEvent) => void;
+  onEventLeave: () => void;
 }) {
   const today = toISODate(new Date());
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
@@ -635,6 +681,8 @@ function WeekView({
                 <button
                   key={`${o.event.id}-${o.date}`}
                   onClick={() => onEventClick(o.event, o.date)}
+                  onMouseEnter={(e) => onEventHover(e, o.event)}
+                  onMouseLeave={onEventLeave}
                   className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate block"
                   style={{ background: `${TYPE_CONFIG[o.event.type].accent}22`, color: TYPE_CONFIG[o.event.type].accent }}
                 >
@@ -689,6 +737,8 @@ function WeekView({
                         e.stopPropagation();
                         onEventClick(o.event, o.date);
                       }}
+                      onMouseEnter={(e) => onEventHover(e, o.event)}
+                      onMouseLeave={onEventLeave}
                       className="absolute rounded-md px-1.5 py-0.5 text-left overflow-hidden text-[10px] leading-tight"
                       style={{
                         top,
@@ -725,11 +775,15 @@ function MonthView({
   monthRef,
   occByDate,
   onDayClick,
+  onEventHover,
+  onEventLeave,
 }: {
   days: Date[];
   monthRef: Date;
   occByDate: Map<string, Occurrence[]>;
   onDayClick: (iso: string) => void;
+  onEventHover: (e: React.MouseEvent, event: PlanningEvent) => void;
+  onEventLeave: () => void;
 }) {
   const today = toISODate(new Date());
   const currentMonth = monthRef.getMonth();
@@ -768,6 +822,11 @@ function MonthView({
                 {visible.map((o) => (
                   <div
                     key={`${o.event.id}-${o.date}`}
+                    onMouseEnter={(e) => {
+                      e.stopPropagation();
+                      onEventHover(e, o.event);
+                    }}
+                    onMouseLeave={onEventLeave}
                     className="px-1 py-0.5 rounded text-[9px] font-medium truncate"
                     style={{ background: `${TYPE_CONFIG[o.event.type].accent}22`, color: TYPE_CONFIG[o.event.type].accent }}
                   >
@@ -839,6 +898,7 @@ function DayPanel({
                         {o.event.start_time ?? "?"} – {o.event.end_time ?? "?"}
                       </p>
                     )}
+                    {o.event.notes && <p className="text-xs text-foreground-secondary mt-1 whitespace-pre-wrap">{o.event.notes}</p>}
                   </div>
                 </button>
               );
