@@ -24,9 +24,16 @@ export type BlockHeight = "alto" | "medio" | "bajo";
 export interface FormationPlayer {
   id: string;
   number: number;
+  label: string; // PT, LI, CT, MC, DC... (mismo vocabulario que "Mis sistemas")
   x: number; // metros, 0-105 (0 = portería propia, 105 = portería rival)
   y: number; // metros, 0-68
 }
+
+// Mismas etiquetas de posición que "Mis sistemas" — editables por
+// clic derecho sobre cada jugadora.
+export const POSITION_LABELS = [
+  "PT", "CT", "CL", "CC", "LT", "MC", "IN", "MP", "Ca", "EX", "DC", "DP",
+];
 
 const FIELD_W = 105;
 const FIELD_H = 68;
@@ -78,8 +85,42 @@ export function parseFormationLines(formation: Formation): number[] {
 
 export interface TemplatePlayer {
   number: number;
+  label: string;
   x: number;
   y: number;
+}
+
+// Etiqueta por defecto de cada puesto de una línea, según su rol
+// (defensa / medio / ataque) y cuántas jugadoras hay en esa línea.
+// "frac" (0=línea más retrasada del centro del campo, 1=más avanzada)
+// distingue, cuando hay varias líneas de centrocampistas, el pivote
+// de la mediapunta.
+function labelsForLine(count: number, role: "defense" | "midfield" | "attack", frac: number): string[] {
+  if (role === "defense") {
+    switch (count) {
+      case 3: return ["CT", "CC", "CT"];
+      case 4: return ["LI", "CT", "CT", "LD"];
+      case 5: return ["LI", "CT", "CC", "CT", "LD"];
+      default: return Array(count).fill("CT");
+    }
+  }
+  if (role === "attack") {
+    switch (count) {
+      case 1: return ["DC"];
+      case 2: return ["DC", "DC"];
+      case 3: return ["EI", "DC", "ED"];
+      default: return Array(count).fill("DC");
+    }
+  }
+  // midfield
+  switch (count) {
+    case 1: return [frac < 0.5 ? "MC" : "MP"];
+    case 2: return frac >= 0.75 ? ["IN", "IN"] : ["MC", "MC"];
+    case 3: return frac >= 0.75 ? ["EI", "MP", "ED"] : ["MC", "MC", "MC"];
+    case 4: return ["EI", "MC", "MC", "ED"];
+    case 5: return ["EI", "IN", "MC", "IN", "ED"];
+    default: return Array(count).fill("MC");
+  }
 }
 
 export function templateKey(formation: Formation, posture: Posture, blockHeight: BlockHeight): string {
@@ -104,6 +145,7 @@ export function getFormationPositions(
     return tpl.map((p) => ({
       id: `${side}-${p.number}`,
       number: p.number,
+      label: p.label,
       x: side === "own" ? p.x : FIELD_W - p.x,
       y: p.y,
     }));
@@ -125,15 +167,19 @@ export function generateFormation(
     side === "own" ? depthFromOwnGoal * HALF : FIELD_W - depthFromOwnGoal * HALF;
 
   // Portera
-  players.push({ id: `${side}-${number}`, number, x: toFieldX(0.06), y: FIELD_H / 2 });
+  players.push({ id: `${side}-${number}`, number, label: "PT", x: toFieldX(0.06), y: FIELD_H / 2 });
   number++;
 
+  const midLines = lines.length - 2; // líneas de campo entre defensa y ataque
   lines.forEach((count, lineIndex) => {
     const depths = lineDepths(lines.length, posture, blockHeight);
     const widths = lineWidths(count);
     const depth = depths[lineIndex];
-    widths.forEach((y) => {
-      players.push({ id: `${side}-${number}`, number, x: toFieldX(depth), y });
+    const role = lineIndex === 0 ? "defense" : lineIndex === lines.length - 1 ? "attack" : "midfield";
+    const frac = role === "midfield" && midLines > 1 ? (lineIndex - 1) / (midLines - 1) : 0.5;
+    const labels = labelsForLine(count, role, frac);
+    widths.forEach((y, idx) => {
+      players.push({ id: `${side}-${number}`, number, label: labels[idx] ?? "MC", x: toFieldX(depth), y });
       number++;
     });
   });

@@ -1140,6 +1140,7 @@ export async function deleteTacticalDiagram(id: string): Promise<void> {
 export interface SystemClashPlayer {
   id: string;
   number: number;
+  label: string;
   x: number;
   y: number;
 }
@@ -1201,6 +1202,7 @@ export async function deleteSystemClash(id: string): Promise<void> {
 
 export interface FormationTemplatePlayer {
   number: number;
+  label: string;
   x: number;
   y: number;
 }

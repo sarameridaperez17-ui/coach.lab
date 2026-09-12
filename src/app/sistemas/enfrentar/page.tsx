@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FORMATIONS,
+  POSITION_LABELS,
   getFormationPositions,
   templateKey,
   type Formation,
@@ -115,6 +116,42 @@ export default function EnfrentarSistemasPage() {
   const [dragging, setDragging] = useState<{ side: "own" | "rival"; id: string } | null>(null);
   const draggingRef = useRef<{ side: "own" | "rival"; id: string } | null>(null);
 
+  // Desplegable de etiqueta de posición (clic derecho), igual que en "Mis sistemas"
+  const [labelDropdown, setLabelDropdown] = useState<{
+    scope: "own" | "rival" | "cfg";
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const labelDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!labelDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (labelDropdownRef.current && !labelDropdownRef.current.contains(e.target as Node)) {
+        setLabelDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [labelDropdown]);
+
+  const handlePlayerContextMenu = (e: React.MouseEvent, scope: "own" | "rival" | "cfg", id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLabelDropdown({ scope, id, x: e.clientX, y: e.clientY });
+  };
+
+  const handleLabelSelect = (newLabel: string) => {
+    if (!labelDropdown) return;
+    const { scope, id } = labelDropdown;
+    const updater = (prev: FormationPlayer[]) => prev.map((p) => (p.id === id ? { ...p, label: newLabel } : p));
+    if (scope === "own") setOwnPlayers(updater);
+    else if (scope === "rival") setRivalPlayers(updater);
+    else setCfgPlayers(updater);
+    setLabelDropdown(null);
+  };
+
   // Situaciones guardadas
   const [savedClashes, setSavedClashes] = useState<SystemClash[]>([]);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -181,7 +218,7 @@ export default function EnfrentarSistemasPage() {
         cfgFormation,
         cfgPosture,
         cfgBlockHeight,
-        cfgPlayers.map((p) => ({ number: p.number, x: p.x, y: p.y }))
+        cfgPlayers.map((p) => ({ number: p.number, label: p.label, x: p.x, y: p.y }))
       );
       await loadTemplates();
     } catch (err) {
@@ -365,12 +402,13 @@ export default function EnfrentarSistemasPage() {
                     <g
                       key={p.id}
                       onMouseDown={() => cfgHandleMouseDown(p.id)}
+                      onContextMenu={(e) => handlePlayerContextMenu(e, "cfg", p.id)}
                       style={{ cursor: cfgDragging === p.id ? "grabbing" : "grab" }}
                     >
                       <circle
                         cx={p.x}
                         cy={p.y}
-                        r="2.6"
+                        r="2.8"
                         fill="#4f46e5"
                         stroke="white"
                         strokeWidth="0.4"
@@ -378,14 +416,14 @@ export default function EnfrentarSistemasPage() {
                       />
                       <text
                         x={p.x}
-                        y={p.y + 0.9}
+                        y={p.y + 0.8}
                         textAnchor="middle"
                         fill="white"
-                        fontSize="2.2"
+                        fontSize="2"
                         fontWeight="bold"
                         style={{ pointerEvents: "none" }}
                       >
-                        {p.number}
+                        {p.label}
                       </text>
                     </g>
                   ))}
@@ -531,10 +569,10 @@ export default function EnfrentarSistemasPage() {
               onMouseLeave={handleMouseUp}
             >
               {rivalPlayers.map((p) => (
-                <PlayerToken key={p.id} player={p} fillColor={rivalFillColor} textColor={rivalTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} />
+                <PlayerToken key={p.id} player={p} fillColor={rivalFillColor} textColor={rivalTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} onContextMenu={(e) => handlePlayerContextMenu(e, "rival", p.id)} />
               ))}
               {ownPlayers.map((p) => (
-                <PlayerToken key={p.id} player={p} fillColor={ownFillColor} textColor={ownTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("own", p.id)} />
+                <PlayerToken key={p.id} player={p} fillColor={ownFillColor} textColor={ownTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("own", p.id)} onContextMenu={(e) => handlePlayerContextMenu(e, "own", p.id)} />
               ))}
             </Pitch>
             <div className="flex items-center gap-4 mt-3 text-xs text-muted">
@@ -636,6 +674,41 @@ export default function EnfrentarSistemasPage() {
       )}
       </>
       )}
+
+      {/* Desplegable de etiqueta de posición (clic derecho) */}
+      {labelDropdown && (
+        <div
+          ref={labelDropdownRef}
+          className="fixed z-50 bg-surface border border-border rounded-lg shadow-xl py-1 min-w-[120px]"
+          style={{
+            left: Math.min(labelDropdown.x, window.innerWidth - 140),
+            top: Math.min(labelDropdown.y, window.innerHeight - 300),
+          }}
+        >
+          <p className="text-[10px] text-muted uppercase tracking-wide font-medium px-3 py-1.5 border-b border-surface-hover">
+            Posición
+          </p>
+          <div className="max-h-[240px] overflow-y-auto">
+            {POSITION_LABELS.map((label) => {
+              const source = labelDropdown.scope === "own" ? ownPlayers : labelDropdown.scope === "rival" ? rivalPlayers : cfgPlayers;
+              const current = source.find((p) => p.id === labelDropdown.id);
+              const isActive = current?.label === label;
+              return (
+                <button
+                  key={label}
+                  onClick={() => handleLabelSelect(label)}
+                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-hover transition-colors flex items-center justify-between ${
+                    isActive ? "text-indigo-400 font-semibold" : "text-foreground-secondary"
+                  }`}
+                >
+                  <span>{label}</span>
+                  {isActive && <span className="text-indigo-400">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -646,18 +719,20 @@ function PlayerToken({
   textColor,
   dragging,
   onMouseDown,
+  onContextMenu,
 }: {
   player: FormationPlayer;
   fillColor: string;
   textColor: string;
   dragging: boolean;
   onMouseDown: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
-    <g onMouseDown={onMouseDown} style={{ cursor: dragging ? "grabbing" : "grab" }}>
-      <circle cx={player.x} cy={player.y} r="2.3" fill={fillColor} stroke="white" strokeWidth="0.35" opacity={dragging ? 0.85 : 1} />
-      <text x={player.x} y={player.y + 0.75} textAnchor="middle" fill={textColor} fontSize="2" fontWeight="bold" style={{ pointerEvents: "none" }}>
-        {player.number}
+    <g onMouseDown={onMouseDown} onContextMenu={onContextMenu} style={{ cursor: dragging ? "grabbing" : "grab" }}>
+      <circle cx={player.x} cy={player.y} r="2.7" fill={fillColor} stroke="white" strokeWidth="0.35" opacity={dragging ? 0.85 : 1} />
+      <text x={player.x} y={player.y + 0.75} textAnchor="middle" fill={textColor} fontSize="1.9" fontWeight="bold" style={{ pointerEvents: "none" }}>
+        {player.label}
       </text>
     </g>
   );
@@ -669,14 +744,14 @@ function ClashThumb({ clash }: { clash: SystemClash }) {
     <Pitch className="rounded-md">
       {clash.rival_players.map((p) => (
         <g key={`r${p.id}`}>
-          <circle cx={p.x} cy={p.y} r="2.3" fill={clash.rival_fill_color} stroke="white" strokeWidth="0.35" />
-          <text x={p.x} y={p.y + 0.75} textAnchor="middle" fill={clash.rival_text_color} fontSize="2" fontWeight="bold">{p.number}</text>
+          <circle cx={p.x} cy={p.y} r="2.7" fill={clash.rival_fill_color} stroke="white" strokeWidth="0.35" />
+          <text x={p.x} y={p.y + 0.75} textAnchor="middle" fill={clash.rival_text_color} fontSize="1.9" fontWeight="bold">{p.label}</text>
         </g>
       ))}
       {clash.own_players.map((p) => (
         <g key={`o${p.id}`}>
-          <circle cx={p.x} cy={p.y} r="2.3" fill={clash.own_fill_color} stroke="white" strokeWidth="0.35" />
-          <text x={p.x} y={p.y + 0.75} textAnchor="middle" fill={clash.own_text_color} fontSize="2" fontWeight="bold">{p.number}</text>
+          <circle cx={p.x} cy={p.y} r="2.7" fill={clash.own_fill_color} stroke="white" strokeWidth="0.35" />
+          <text x={p.x} y={p.y + 0.75} textAnchor="middle" fill={clash.own_text_color} fontSize="1.9" fontWeight="bold">{p.label}</text>
         </g>
       ))}
     </Pitch>
