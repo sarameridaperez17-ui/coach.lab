@@ -139,6 +139,10 @@ export default function EnfrentarSistemasPage() {
   const [zones, setZones] = useState<SystemClashZone[]>([]);
   const [drawingZone, setDrawingZone] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const zoneStartRef = useRef<{ x: number; y: number } | null>(null);
+  // Copia síncrona del rectángulo en curso: setDrawingZone (estado) solo sirve
+  // para repintar la vista previa; el commit en handleMouseUp lee de aquí para
+  // no depender de que React ya haya aplicado el último render.
+  const drawingZoneRef = useRef<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
   // Desplegable de etiqueta de posición (clic derecho), igual que en "Mis sistemas"
   const [labelDropdown, setLabelDropdown] = useState<{
@@ -308,7 +312,9 @@ export default function EnfrentarSistemasPage() {
     if (!zoneMode) return;
     const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
     zoneStartRef.current = { x, y };
-    setDrawingZone({ x0: x, y0: y, x1: x, y1: y });
+    const z = { x0: x, y0: y, x1: x, y1: y };
+    drawingZoneRef.current = z;
+    setDrawingZone(z);
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -316,7 +322,9 @@ export default function EnfrentarSistemasPage() {
       const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
       const cx = Math.max(0, Math.min(FIELD.W, x));
       const cy = Math.max(0, Math.min(FIELD.H, y));
-      setDrawingZone({ x0: zoneStartRef.current.x, y0: zoneStartRef.current.y, x1: cx, y1: cy });
+      const z = { x0: zoneStartRef.current.x, y0: zoneStartRef.current.y, x1: cx, y1: cy };
+      drawingZoneRef.current = z;
+      setDrawingZone(z);
       return;
     }
     const current = draggingRef.current;
@@ -330,8 +338,9 @@ export default function EnfrentarSistemasPage() {
 
   const handleMouseUp = () => {
     if (zoneStartRef.current) {
-      const z = drawingZone;
+      const z = drawingZoneRef.current;
       zoneStartRef.current = null;
+      drawingZoneRef.current = null;
       setDrawingZone(null);
       if (z && Math.abs(z.x1 - z.x0) > 1.5 && Math.abs(z.y1 - z.y0) > 1.5) {
         setZones((prev) => [...prev, { id: `zone-${Date.now()}`, ...z, color: zoneColor, label: zoneLabel.trim() }]);
