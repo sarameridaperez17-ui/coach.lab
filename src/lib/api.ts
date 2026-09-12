@@ -1194,3 +1194,61 @@ export async function deleteSystemClash(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw error;
 }
+
+// ============================================
+// FORMATION TEMPLATES — posición configurada por sistema/fase/bloque
+// ============================================
+
+export interface FormationTemplatePlayer {
+  number: number;
+  x: number;
+  y: number;
+}
+
+export interface FormationTemplate {
+  id: string;
+  formation: string;
+  posture: string;
+  block_height: string;
+  players: FormationTemplatePlayer[];
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getFormationTemplates(): Promise<FormationTemplate[]> {
+  const { data, error } = await supabase.from("formation_templates").select("*");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function saveFormationTemplate(
+  formation: string,
+  posture: string,
+  blockHeight: string,
+  players: FormationTemplatePlayer[]
+): Promise<FormationTemplate> {
+  const { data, error } = await supabase
+    .from("formation_templates")
+    .upsert(
+      { formation, posture, block_height: blockHeight, players, updated_at: new Date().toISOString() },
+      { onConflict: "formation,posture,block_height" }
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteFormationTemplate(
+  formation: string,
+  posture: string,
+  blockHeight: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("formation_templates")
+    .delete()
+    .eq("formation", formation)
+    .eq("posture", posture)
+    .eq("block_height", blockHeight);
+  if (error) throw error;
+}

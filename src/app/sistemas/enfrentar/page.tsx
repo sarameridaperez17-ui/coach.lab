@@ -4,16 +4,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FORMATIONS,
-  generateFormation,
+  getFormationPositions,
+  templateKey,
   type Formation,
   type FormationPlayer,
   type BlockHeight,
+  type Posture,
+  type TemplatePlayer,
 } from "@/lib/formations";
 import { Pitch, FIELD, clientToField } from "@/components/pitch";
 import {
   getSystemClashes,
   createSystemClash,
   deleteSystemClash,
+  getFormationTemplates,
   type SystemClash,
 } from "@/lib/api";
 
@@ -116,14 +120,25 @@ export default function EnfrentarSistemasPage() {
   const [saveNotes, setSaveNotes] = useState("");
   const [savingClash, setSavingClash] = useState(false);
 
+  const [templates, setTemplates] = useState<Map<string, TemplatePlayer[]>>(new Map());
+
   useEffect(() => {
     getSystemClashes().then(setSavedClashes).catch(console.error);
+    getFormationTemplates()
+      .then((list) => {
+        const m = new Map<string, TemplatePlayer[]>();
+        list.forEach((t) =>
+          m.set(templateKey(t.formation as Formation, t.posture as Posture, t.block_height as BlockHeight), t.players)
+        );
+        setTemplates(m);
+      })
+      .catch(console.error);
   }, []);
 
   const regenerate = useCallback(() => {
-    setOwnPlayers(generateFormation(activeOwnFormation, "own", activeOwnPosture, ownBlockHeight));
-    setRivalPlayers(generateFormation(activeRivalFormation, "rival", activeRivalPosture, rivalBlockHeight));
-  }, [activeOwnFormation, activeOwnPosture, activeRivalFormation, activeRivalPosture, ownBlockHeight, rivalBlockHeight]);
+    setOwnPlayers(getFormationPositions(activeOwnFormation, "own", activeOwnPosture, ownBlockHeight, templates));
+    setRivalPlayers(getFormationPositions(activeRivalFormation, "rival", activeRivalPosture, rivalBlockHeight, templates));
+  }, [activeOwnFormation, activeOwnPosture, activeRivalFormation, activeRivalPosture, ownBlockHeight, rivalBlockHeight, templates]);
 
   // Al cargar una situación guardada se aplican sus posiciones exactas;
   // esta ref evita que la regeneración automática las sobrescriba.
@@ -230,6 +245,7 @@ export default function EnfrentarSistemasPage() {
           <div className="flex items-center gap-4 mt-2 text-sm">
             <Link href="/sistemas" className="text-muted hover:text-foreground-secondary">Mis sistemas</Link>
             <span className="text-indigo-400 font-medium border-b-2 border-indigo-400 pb-0.5">Enfrentar sistemas</span>
+            <Link href="/sistemas/configurar" className="text-muted hover:text-foreground-secondary">Configurar posiciones</Link>
           </div>
         </div>
       </div>

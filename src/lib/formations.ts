@@ -76,6 +76,41 @@ export function parseFormationLines(formation: Formation): number[] {
   return formation.split("-").slice(1).map(Number);
 }
 
+export interface TemplatePlayer {
+  number: number;
+  x: number;
+  y: number;
+}
+
+export function templateKey(formation: Formation, posture: Posture, blockHeight: BlockHeight): string {
+  return `${formation}|${posture}|${blockHeight}`;
+}
+
+/**
+ * Igual que generateFormation, pero primero comprueba si hay una
+ * plantilla configurada a mano para (sistema, fase, bloque). Las
+ * plantillas se guardan en orientación "propia" (ataca hacia la
+ * derecha) y se espejan en X cuando side="rival".
+ */
+export function getFormationPositions(
+  formation: Formation,
+  side: Side,
+  posture: Posture,
+  blockHeight: BlockHeight,
+  templates?: Map<string, TemplatePlayer[]>
+): FormationPlayer[] {
+  const tpl = templates?.get(templateKey(formation, posture, blockHeight));
+  if (tpl && tpl.length > 0) {
+    return tpl.map((p) => ({
+      id: `${side}-${p.number}`,
+      number: p.number,
+      x: side === "own" ? p.x : FIELD_W - p.x,
+      y: p.y,
+    }));
+  }
+  return generateFormation(formation, side, posture, blockHeight);
+}
+
 export function generateFormation(
   formation: Formation,
   side: Side,
