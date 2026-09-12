@@ -345,7 +345,6 @@ export default function SistemasPage() {
           <div className="flex items-center gap-4 mt-2 text-sm">
             <span className="text-indigo-400 font-medium border-b-2 border-indigo-400 pb-0.5">Mis sistemas</span>
             <Link href="/sistemas/enfrentar" className="text-muted hover:text-foreground-secondary">Enfrentar sistemas</Link>
-            <Link href="/sistemas/configurar" className="text-muted hover:text-foreground-secondary">Configurar posiciones</Link>
           </div>
         </div>
         <button
