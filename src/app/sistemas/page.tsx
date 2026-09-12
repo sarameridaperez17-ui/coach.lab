@@ -365,7 +365,7 @@ export default function SistemasPage() {
 
       {/* Rejilla de sistemas — se oculta al abrir un sistema para editarlo */}
       {systems.length > 0 && !(selectedId || creating) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
           {sortedSystems.map((sys) => {
             const status = itemStatuses.get(sys.id);
             return (
