@@ -1153,6 +1153,9 @@ export interface SystemClashZone {
   y1: number;
   color: "advantage" | "weakness" | "watch";
   label: string;
+  labelSize: number; // tamaño de fuente, en metros de campo
+  labelX: number; // posición relativa dentro del rectángulo, 0-1
+  labelY: number; // posición relativa dentro del rectángulo, 0-1
 }
 
 export interface SystemClash {

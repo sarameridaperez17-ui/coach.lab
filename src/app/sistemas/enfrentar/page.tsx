@@ -32,15 +32,18 @@ const DEFAULT_MARKER_SIZE = 2.7;
 const MARKER_SIZE_KEY = "enfrentar-marker-size";
 
 const ZONE_COLORS: { value: ZoneColor; label: string; hex: string }[] = [
-  { value: "advantage", label: "Ventaja", hex: "#22c55e" },
-  { value: "weakness", label: "Debilidad", hex: "#ef4444" },
-  { value: "watch", label: "A vigilar", hex: "#f59e0b" },
+  { value: "advantage", label: "Zona objetivo", hex: "#22c55e" },
+  { value: "watch", label: "Zonas de provocación", hex: "#f59e0b" },
+  { value: "weakness", label: "Zonas protegidas", hex: "#ef4444" },
 ];
 const ZONE_HEX: Record<ZoneColor, string> = {
   advantage: "#22c55e",
   weakness: "#ef4444",
   watch: "#f59e0b",
 };
+const DEFAULT_ZONE_LABEL_SIZE = 2.2;
+const MIN_ZONE_LABEL_SIZE = 0.8;
+const MAX_ZONE_LABEL_SIZE = 6;
 
 const BLOCK_OPTIONS: { value: BlockHeight; label: string }[] = [
   { value: "alto", label: "Alto" },
@@ -143,6 +146,8 @@ export default function EnfrentarSistemasPage() {
   // para repintar la vista previa; el commit en handleMouseUp lee de aquí para
   // no depender de que React ya haya aplicado el último render.
   const drawingZoneRef = useRef<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  // Arrastre de la etiqueta de una zona ya pintada (para reposicionarla)
+  const labelDragRef = useRef<{ zoneId: string; rectX: number; rectY: number; rectW: number; rectH: number } | null>(null);
 
   // Desplegable de etiqueta de posición (clic derecho), igual que en "Mis sistemas"
   const [labelDropdown, setLabelDropdown] = useState<{
@@ -317,7 +322,34 @@ export default function EnfrentarSistemasPage() {
     setDrawingZone(z);
   };
 
+  const handleLabelMouseDown = (e: React.MouseEvent, zone: SystemClashZone) => {
+    e.stopPropagation(); // no iniciar una zona nueva debajo
+    const rectX = Math.min(zone.x0, zone.x1);
+    const rectY = Math.min(zone.y0, zone.y1);
+    const rectW = Math.abs(zone.x1 - zone.x0);
+    const rectH = Math.abs(zone.y1 - zone.y0);
+    labelDragRef.current = { zoneId: zone.id, rectX, rectY, rectW, rectH };
+  };
+
+  const handleZoneLabelSize = (zoneId: string, delta: number) => {
+    setZones((prev) =>
+      prev.map((z) =>
+        z.id === zoneId
+          ? { ...z, labelSize: Math.max(MIN_ZONE_LABEL_SIZE, Math.min(MAX_ZONE_LABEL_SIZE, (z.labelSize ?? DEFAULT_ZONE_LABEL_SIZE) + delta)) }
+          : z
+      )
+    );
+  };
+
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (labelDragRef.current) {
+      const { zoneId, rectX, rectY, rectW, rectH } = labelDragRef.current;
+      const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
+      const fx = rectW > 0 ? Math.max(0.08, Math.min(0.92, (x - rectX) / rectW)) : 0.5;
+      const fy = rectH > 0 ? Math.max(0.08, Math.min(0.92, (y - rectY) / rectH)) : 0.5;
+      setZones((prev) => prev.map((z) => (z.id === zoneId ? { ...z, labelX: fx, labelY: fy } : z)));
+      return;
+    }
     if (zoneStartRef.current) {
       const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
       const cx = Math.max(0, Math.min(FIELD.W, x));
@@ -337,13 +369,24 @@ export default function EnfrentarSistemasPage() {
   };
 
   const handleMouseUp = () => {
+    if (labelDragRef.current) {
+      labelDragRef.current = null;
+      return;
+    }
     if (zoneStartRef.current) {
       const z = drawingZoneRef.current;
       zoneStartRef.current = null;
       drawingZoneRef.current = null;
       setDrawingZone(null);
       if (z && Math.abs(z.x1 - z.x0) > 1.5 && Math.abs(z.y1 - z.y0) > 1.5) {
-        setZones((prev) => [...prev, { id: `zone-${Date.now()}`, ...z, color: zoneColor, label: zoneLabel.trim() }]);
+        const label = zoneLabel.trim();
+        const w = Math.abs(z.x1 - z.x0);
+        const h = Math.abs(z.y1 - z.y0);
+        // Tamaño inicial de la etiqueta ajustado para que quepa dentro del rectángulo
+        const fitByWidth = label.length > 0 ? (w * 0.85) / (label.length * 0.62) : DEFAULT_ZONE_LABEL_SIZE;
+        const fitByHeight = h * 0.4;
+        const labelSize = Math.max(MIN_ZONE_LABEL_SIZE, Math.min(fitByWidth, fitByHeight, DEFAULT_ZONE_LABEL_SIZE));
+        setZones((prev) => [...prev, { id: `zone-${Date.now()}`, ...z, color: zoneColor, label, labelSize, labelX: 0.5, labelY: 0.5 }]);
         setZoneLabel("");
       }
       return;
@@ -714,7 +757,14 @@ export default function EnfrentarSistemasPage() {
               onMouseLeave={handleMouseUp}
             >
               {zones.map((z) => (
-                <ZoneRect key={z.id} zone={z} onDelete={zoneMode ? () => handleDeleteZone(z.id) : undefined} />
+                <ZoneRect
+                  key={z.id}
+                  zone={z}
+                  editable={zoneMode}
+                  onDelete={zoneMode ? () => handleDeleteZone(z.id) : undefined}
+                  onLabelMouseDown={(e) => handleLabelMouseDown(e, z)}
+                  onSizeChange={(delta) => handleZoneLabelSize(z.id, delta)}
+                />
               ))}
               {drawingZone && (
                 <rect
@@ -874,19 +924,55 @@ export default function EnfrentarSistemasPage() {
   );
 }
 
-function ZoneRect({ zone, onDelete }: { zone: SystemClashZone; onDelete?: () => void }) {
+function ZoneRect({
+  zone,
+  editable,
+  onDelete,
+  onLabelMouseDown,
+  onSizeChange,
+}: {
+  zone: SystemClashZone;
+  editable?: boolean;
+  onDelete?: () => void;
+  onLabelMouseDown?: (e: React.MouseEvent) => void;
+  onSizeChange?: (delta: number) => void;
+}) {
   const x = Math.min(zone.x0, zone.x1);
   const y = Math.min(zone.y0, zone.y1);
   const w = Math.abs(zone.x1 - zone.x0);
   const h = Math.abs(zone.y1 - zone.y0);
   const hex = ZONE_HEX[zone.color];
+  const labelSize = zone.labelSize ?? DEFAULT_ZONE_LABEL_SIZE;
+  const labelX = x + w * (zone.labelX ?? 0.5);
+  const labelY = y + h * (zone.labelY ?? 0.5);
   return (
     <g>
       <rect x={x} y={y} width={w} height={h} fill={hex} fillOpacity={0.22} stroke={hex} strokeWidth={0.3} />
       {zone.label && (
-        <text x={x + w / 2} y={y + h / 2 + 0.7} textAnchor="middle" fill={hex} fontSize="2.2" fontWeight="bold" style={{ pointerEvents: "none" }}>
+        <text
+          x={labelX}
+          y={labelY + labelSize * 0.32}
+          textAnchor="middle"
+          fill={hex}
+          fontSize={labelSize}
+          fontWeight="bold"
+          onMouseDown={editable ? onLabelMouseDown : undefined}
+          style={{ pointerEvents: editable ? "auto" : "none", cursor: editable ? "move" : "default" }}
+        >
           {zone.label}
         </text>
+      )}
+      {editable && onSizeChange && (
+        <g>
+          <g onClick={(e) => { e.stopPropagation(); onSizeChange(-0.3); }} style={{ cursor: "pointer" }}>
+            <circle cx={x + w - 6.8} cy={y + 1.6} r="1.6" fill="white" stroke={hex} strokeWidth="0.3" />
+            <text x={x + w - 6.8} y={y + 2.15} textAnchor="middle" fill={hex} fontSize="2" fontWeight="bold" style={{ pointerEvents: "none" }}>－</text>
+          </g>
+          <g onClick={(e) => { e.stopPropagation(); onSizeChange(0.3); }} style={{ cursor: "pointer" }}>
+            <circle cx={x + w - 4.2} cy={y + 1.6} r="1.6" fill="white" stroke={hex} strokeWidth="0.3" />
+            <text x={x + w - 4.2} y={y + 2.15} textAnchor="middle" fill={hex} fontSize="2" fontWeight="bold" style={{ pointerEvents: "none" }}>＋</text>
+          </g>
+        </g>
       )}
       {onDelete && (
         <g onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{ cursor: "pointer" }}>
