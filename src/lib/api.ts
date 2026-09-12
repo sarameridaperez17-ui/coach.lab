@@ -22,6 +22,7 @@ import type {
   ABPStrategy,
   ABPType,
   TacticalDiagram,
+  PlanningEvent,
 } from "@/types";
 
 // ============================================
@@ -1274,5 +1275,40 @@ export async function deleteFormationTemplate(
     .eq("formation", formation)
     .eq("posture", posture)
     .eq("block_height", blockHeight);
+  if (error) throw error;
+}
+
+// ============================================
+// PLANIFICACIÓN — calendario de sesiones
+// ============================================
+
+export async function getPlanningEvents(): Promise<PlanningEvent[]> {
+  const { data, error } = await supabase
+    .from("planning_events")
+    .select("*")
+    .eq("archived", false)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createPlanningEvent(
+  input: Omit<PlanningEvent, "id" | "created_at" | "updated_at">
+): Promise<PlanningEvent> {
+  const { data, error } = await supabase.from("planning_events").insert(input).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePlanningEvent(
+  id: string,
+  updates: Partial<Omit<PlanningEvent, "id" | "created_at" | "updated_at">>
+): Promise<void> {
+  const { error } = await supabase.from("planning_events").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deletePlanningEvent(id: string): Promise<void> {
+  const { error } = await supabase.from("planning_events").update({ archived: true }).eq("id", id);
   if (error) throw error;
 }

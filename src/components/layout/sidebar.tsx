@@ -30,6 +30,7 @@ const NAV_SECTIONS = [
     title: "REGISTRO",
     items: [
       { href: "/notas", label: "Notas", icon: "▥" },
+      { href: "/planificacion", label: "Planificación", icon: "▦" },
     ],
   },
 ];

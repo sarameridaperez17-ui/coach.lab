@@ -223,6 +223,27 @@ export interface Note {
   tags?: NoteTag[];
 }
 
+// --- Planificación ---
+
+export type PlanningEventType = 'training' | 'gym' | 'match' | 'rest' | 'travel' | 'other';
+
+export interface PlanningEvent {
+  id: string;
+  title: string;
+  type: PlanningEventType;
+  notes: string;
+  date: string; // YYYY-MM-DD — fecha del evento, o fecha de inicio si es recurrente
+  start_time: string | null; // HH:MM — vacío = evento de todo el día
+  end_time: string | null;
+  is_recurring: boolean;
+  recurrence_days: number[] | null; // 0=lunes ... 6=domingo
+  recurrence_until: string | null; // YYYY-MM-DD, null = sin fecha de fin
+  excluded_dates: string[]; // fechas puntuales excluidas de una serie recurrente
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Sistemas de juego ---
 
 export interface GameSystem {
