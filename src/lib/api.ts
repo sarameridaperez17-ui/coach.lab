@@ -1210,6 +1210,14 @@ export async function deleteSystemClash(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateSystemClash(
+  id: string,
+  updates: Partial<Omit<SystemClash, "id" | "created_at" | "updated_at">>
+): Promise<void> {
+  const { error } = await supabase.from("system_clashes").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
 // ============================================
 // FORMATION TEMPLATES — posición configurada por sistema/fase/bloque
 // ============================================

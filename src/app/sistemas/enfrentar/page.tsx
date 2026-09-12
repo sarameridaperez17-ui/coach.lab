@@ -17,6 +17,7 @@ import { Pitch, FIELD, clientToField } from "@/components/pitch";
 import {
   getSystemClashes,
   createSystemClash,
+  updateSystemClash,
   deleteSystemClash,
   getFormationTemplates,
   saveFormationTemplate,
@@ -191,6 +192,7 @@ export default function EnfrentarSistemasPage() {
   const [saveName, setSaveName] = useState("");
   const [saveNotes, setSaveNotes] = useState("");
   const [savingClash, setSavingClash] = useState(false);
+  const [editingClashId, setEditingClashId] = useState<string | null>(null);
 
   const [templates, setTemplates] = useState<Map<string, TemplatePlayer[]>>(new Map());
 
@@ -426,6 +428,7 @@ export default function EnfrentarSistemasPage() {
       setSaveOpen(false);
       setSaveName("");
       setSaveNotes("");
+      setEditingClashId(null);
     } catch (err) {
       console.error("Error saving clash:", err);
     } finally {
@@ -450,6 +453,48 @@ export default function EnfrentarSistemasPage() {
     setRivalPlayers(c.rival_players);
     setZones(c.zones ?? []);
     setZoneMode(false);
+    setEditingClashId(c.id);
+    setSaveName(c.name);
+    setSaveNotes(c.notes ?? "");
+    setSaveOpen(false);
+  };
+
+  const handleStopEditing = () => {
+    setEditingClashId(null);
+    setSaveName("");
+    setSaveNotes("");
+  };
+
+  const handleUpdateClash = async () => {
+    if (!editingClashId || !saveName.trim() || savingClash) return;
+    setSavingClash(true);
+    try {
+      await updateSystemClash(editingClashId, {
+        name: saveName.trim(),
+        notes: saveNotes.trim(),
+        own_attack: ownAttack,
+        own_defense: ownDefense,
+        rival_attack: rivalAttack,
+        rival_defense: rivalDefense,
+        matchup,
+        own_block_height: ownBlockHeight,
+        rival_block_height: rivalBlockHeight,
+        own_fill_color: ownFillColor,
+        own_text_color: ownTextColor,
+        rival_fill_color: rivalFillColor,
+        rival_text_color: rivalTextColor,
+        own_players: ownPlayers,
+        rival_players: rivalPlayers,
+        zones,
+      });
+      const list = await getSystemClashes();
+      setSavedClashes(list);
+      setSaveOpen(false);
+    } catch (err) {
+      console.error("Error updating clash:", err);
+    } finally {
+      setSavingClash(false);
+    }
   };
 
   const handleDeleteClash = async (id: string) => {
@@ -457,6 +502,7 @@ export default function EnfrentarSistemasPage() {
     try {
       await deleteSystemClash(id);
       setSavedClashes((prev) => prev.filter((c) => c.id !== id));
+      if (editingClashId === id) handleStopEditing();
     } catch (err) {
       console.error("Error deleting clash:", err);
     }
@@ -657,11 +703,23 @@ export default function EnfrentarSistemasPage() {
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-foreground-secondary">{matchupLabel}</p>
               <div className="flex items-center gap-2">
+                {editingClashId && (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-xs font-medium">
+                    Editando: {saveName || "situación"}
+                    <button
+                      onClick={handleStopEditing}
+                      className="text-indigo-400 hover:text-red-400"
+                      title="Dejar de editar"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
                 <button
                   onClick={() => setSaveOpen((v) => !v)}
                   className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors"
                 >
-                  Guardar situación
+                  {editingClashId ? "Actualizar situación" : "Guardar situación"}
                 </button>
                 <button
                   onClick={() => setZoneMode((v) => !v)}
@@ -732,13 +790,32 @@ export default function EnfrentarSistemasPage() {
                   className="w-full px-3 py-1.5 border border-border rounded text-sm bg-surface focus:outline-none focus:border-indigo-400 resize-none"
                 />
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveClash}
-                    disabled={!saveName.trim() || savingClash}
-                    className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 disabled:opacity-40"
-                  >
-                    {savingClash ? "Guardando..." : "Guardar"}
-                  </button>
+                  {editingClashId ? (
+                    <>
+                      <button
+                        onClick={handleUpdateClash}
+                        disabled={!saveName.trim() || savingClash}
+                        className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 disabled:opacity-40"
+                      >
+                        {savingClash ? "Guardando..." : "Guardar cambios"}
+                      </button>
+                      <button
+                        onClick={handleSaveClash}
+                        disabled={!saveName.trim() || savingClash}
+                        className="px-3 py-1.5 bg-surface-hover border border-border rounded text-xs font-medium text-foreground-secondary hover:border-indigo-400 disabled:opacity-40"
+                      >
+                        Guardar como nueva
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleSaveClash}
+                      disabled={!saveName.trim() || savingClash}
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 disabled:opacity-40"
+                    >
+                      {savingClash ? "Guardando..." : "Guardar"}
+                    </button>
+                  )}
                   <button
                     onClick={() => setSaveOpen(false)}
                     className="px-3 py-1.5 text-xs text-foreground-secondary"
@@ -860,7 +937,9 @@ export default function EnfrentarSistemasPage() {
               <div
                 key={c.id}
                 onClick={() => loadClash(c)}
-                className="bg-surface rounded-xl border border-border hover:border-indigo-300 p-3 cursor-pointer transition-colors"
+                className={`bg-surface rounded-xl border p-3 cursor-pointer transition-colors ${
+                  editingClashId === c.id ? "border-indigo-400 ring-1 ring-indigo-400" : "border-border hover:border-indigo-300"
+                }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <h3 className="text-sm font-semibold text-foreground truncate">{c.name}</h3>
