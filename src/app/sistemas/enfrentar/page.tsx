@@ -26,6 +26,9 @@ import {
 
 type Matchup = "own-attack" | "rival-attack";
 
+const DEFAULT_MARKER_SIZE = 2.7;
+const MARKER_SIZE_KEY = "enfrentar-marker-size";
+
 const BLOCK_OPTIONS: { value: BlockHeight; label: string }[] = [
   { value: "alto", label: "Alto" },
   { value: "medio", label: "Medio" },
@@ -178,6 +181,25 @@ export default function EnfrentarSistemasPage() {
 
   // ---- Configurar posiciones (embebido, no es una situación/archivo) ----
   const [configuring, setConfiguring] = useState(false);
+  const [markerSize, setMarkerSize] = useState(DEFAULT_MARKER_SIZE);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(MARKER_SIZE_KEY);
+      if (stored) setMarkerSize(parseFloat(stored));
+    } catch {
+      // localStorage no disponible — se queda el tamaño por defecto
+    }
+  }, []);
+
+  const handleMarkerSizeChange = (size: number) => {
+    setMarkerSize(size);
+    try {
+      localStorage.setItem(MARKER_SIZE_KEY, String(size));
+    } catch {
+      // si falla el guardado, el tamaño sigue funcionando solo en esta sesión
+    }
+  };
   const [cfgFormation, setCfgFormation] = useState<Formation>("1-4-3-3");
   const [cfgPosture, setCfgPosture] = useState<Posture>("attack");
   const [cfgBlockHeight, setCfgBlockHeight] = useState<BlockHeight>("medio");
@@ -408,7 +430,7 @@ export default function EnfrentarSistemasPage() {
                       <circle
                         cx={p.x}
                         cy={p.y}
-                        r="2.8"
+                        r={markerSize}
                         fill="#4f46e5"
                         stroke="white"
                         strokeWidth="0.4"
@@ -416,10 +438,10 @@ export default function EnfrentarSistemasPage() {
                       />
                       <text
                         x={p.x}
-                        y={p.y + 0.8}
+                        y={p.y + markerSize * 0.28}
                         textAnchor="middle"
                         fill="white"
-                        fontSize="2"
+                        fontSize={markerSize * 0.7}
                         fontWeight="bold"
                         style={{ pointerEvents: "none" }}
                       >
@@ -470,6 +492,23 @@ export default function EnfrentarSistemasPage() {
                   </div>
 
                   <BlockHeightPicker value={cfgBlockHeight} onChange={setCfgBlockHeight} />
+
+                  <div className="pt-3 border-t border-surface-hover">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] text-muted uppercase tracking-wide font-medium">Tamaño de las jugadoras</label>
+                      <span className="text-xs text-foreground-secondary">{markerSize.toFixed(1)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1.8}
+                      max={4}
+                      step={0.1}
+                      value={markerSize}
+                      onChange={(e) => handleMarkerSizeChange(parseFloat(e.target.value))}
+                      className="w-full accent-indigo-600"
+                    />
+                    <p className="text-[10px] text-muted mt-1">Se aplica también en el enfrentamiento principal.</p>
+                  </div>
                 </div>
               </div>
 
@@ -569,10 +608,10 @@ export default function EnfrentarSistemasPage() {
               onMouseLeave={handleMouseUp}
             >
               {rivalPlayers.map((p) => (
-                <PlayerToken key={p.id} player={p} fillColor={rivalFillColor} textColor={rivalTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} onContextMenu={(e) => handlePlayerContextMenu(e, "rival", p.id)} />
+                <PlayerToken key={p.id} player={p} size={markerSize} fillColor={rivalFillColor} textColor={rivalTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} onContextMenu={(e) => handlePlayerContextMenu(e, "rival", p.id)} />
               ))}
               {ownPlayers.map((p) => (
-                <PlayerToken key={p.id} player={p} fillColor={ownFillColor} textColor={ownTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("own", p.id)} onContextMenu={(e) => handlePlayerContextMenu(e, "own", p.id)} />
+                <PlayerToken key={p.id} player={p} size={markerSize} fillColor={ownFillColor} textColor={ownTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("own", p.id)} onContextMenu={(e) => handlePlayerContextMenu(e, "own", p.id)} />
               ))}
             </Pitch>
             <div className="flex items-center gap-4 mt-3 text-xs text-muted">
@@ -715,6 +754,7 @@ export default function EnfrentarSistemasPage() {
 
 function PlayerToken({
   player,
+  size,
   fillColor,
   textColor,
   dragging,
@@ -722,6 +762,7 @@ function PlayerToken({
   onContextMenu,
 }: {
   player: FormationPlayer;
+  size: number;
   fillColor: string;
   textColor: string;
   dragging: boolean;
@@ -730,8 +771,8 @@ function PlayerToken({
 }) {
   return (
     <g onMouseDown={onMouseDown} onContextMenu={onContextMenu} style={{ cursor: dragging ? "grabbing" : "grab" }}>
-      <circle cx={player.x} cy={player.y} r="2.7" fill={fillColor} stroke="white" strokeWidth="0.35" opacity={dragging ? 0.85 : 1} />
-      <text x={player.x} y={player.y + 0.75} textAnchor="middle" fill={textColor} fontSize="1.9" fontWeight="bold" style={{ pointerEvents: "none" }}>
+      <circle cx={player.x} cy={player.y} r={size} fill={fillColor} stroke="white" strokeWidth="0.35" opacity={dragging ? 0.85 : 1} />
+      <text x={player.x} y={player.y + size * 0.28} textAnchor="middle" fill={textColor} fontSize={size * 0.7} fontWeight="bold" style={{ pointerEvents: "none" }}>
         {player.label}
       </text>
     </g>
