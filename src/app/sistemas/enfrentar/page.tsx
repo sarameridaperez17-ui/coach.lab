@@ -22,12 +22,25 @@ import {
   saveFormationTemplate,
   deleteFormationTemplate,
   type SystemClash,
+  type SystemClashZone,
 } from "@/lib/api";
 
 type Matchup = "own-attack" | "rival-attack";
+type ZoneColor = SystemClashZone["color"];
 
 const DEFAULT_MARKER_SIZE = 2.7;
 const MARKER_SIZE_KEY = "enfrentar-marker-size";
+
+const ZONE_COLORS: { value: ZoneColor; label: string; hex: string }[] = [
+  { value: "advantage", label: "Ventaja", hex: "#22c55e" },
+  { value: "weakness", label: "Debilidad", hex: "#ef4444" },
+  { value: "watch", label: "A vigilar", hex: "#f59e0b" },
+];
+const ZONE_HEX: Record<ZoneColor, string> = {
+  advantage: "#22c55e",
+  weakness: "#ef4444",
+  watch: "#f59e0b",
+};
 
 const BLOCK_OPTIONS: { value: BlockHeight; label: string }[] = [
   { value: "alto", label: "Alto" },
@@ -118,6 +131,14 @@ export default function EnfrentarSistemasPage() {
   const [rivalPlayers, setRivalPlayers] = useState<FormationPlayer[]>([]);
   const [dragging, setDragging] = useState<{ side: "own" | "rival"; id: string } | null>(null);
   const draggingRef = useRef<{ side: "own" | "rival"; id: string } | null>(null);
+
+  // Zonas pintadas (ventajas/debilidades del enfrentamiento)
+  const [zoneMode, setZoneMode] = useState(false);
+  const [zoneColor, setZoneColor] = useState<ZoneColor>("advantage");
+  const [zoneLabel, setZoneLabel] = useState("");
+  const [zones, setZones] = useState<SystemClashZone[]>([]);
+  const [drawingZone, setDrawingZone] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const zoneStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Desplegable de etiqueta de posición (clic derecho), igual que en "Mis sistemas"
   const [labelDropdown, setLabelDropdown] = useState<{
@@ -278,11 +299,26 @@ export default function EnfrentarSistemasPage() {
   }, [regenerate]);
 
   const handleMouseDown = (side: "own" | "rival", id: string) => {
+    if (zoneMode) return; // en modo zona, las jugadoras no se arrastran
     draggingRef.current = { side, id };
     setDragging({ side, id });
   };
 
+  const handlePitchMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!zoneMode) return;
+    const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
+    zoneStartRef.current = { x, y };
+    setDrawingZone({ x0: x, y0: y, x1: x, y1: y });
+  };
+
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (zoneStartRef.current) {
+      const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
+      const cx = Math.max(0, Math.min(FIELD.W, x));
+      const cy = Math.max(0, Math.min(FIELD.H, y));
+      setDrawingZone({ x0: zoneStartRef.current.x, y0: zoneStartRef.current.y, x1: cx, y1: cy });
+      return;
+    }
     const current = draggingRef.current;
     if (!current) return;
     const { x, y } = clientToField(e.currentTarget, e.clientX, e.clientY);
@@ -293,8 +329,22 @@ export default function EnfrentarSistemasPage() {
   };
 
   const handleMouseUp = () => {
+    if (zoneStartRef.current) {
+      const z = drawingZone;
+      zoneStartRef.current = null;
+      setDrawingZone(null);
+      if (z && Math.abs(z.x1 - z.x0) > 1.5 && Math.abs(z.y1 - z.y0) > 1.5) {
+        setZones((prev) => [...prev, { id: `zone-${Date.now()}`, ...z, color: zoneColor, label: zoneLabel.trim() }]);
+        setZoneLabel("");
+      }
+      return;
+    }
     draggingRef.current = null;
     setDragging(null);
+  };
+
+  const handleDeleteZone = (id: string) => {
+    setZones((prev) => prev.filter((z) => z.id !== id));
   };
 
   const handleSaveClash = async () => {
@@ -317,6 +367,7 @@ export default function EnfrentarSistemasPage() {
         rival_text_color: rivalTextColor,
         own_players: ownPlayers,
         rival_players: rivalPlayers,
+        zones,
       });
       const list = await getSystemClashes();
       setSavedClashes(list);
@@ -345,6 +396,8 @@ export default function EnfrentarSistemasPage() {
     setRivalTextColor(c.rival_text_color);
     setOwnPlayers(c.own_players);
     setRivalPlayers(c.rival_players);
+    setZones(c.zones ?? []);
+    setZoneMode(false);
   };
 
   const handleDeleteClash = async (id: string) => {
@@ -559,6 +612,14 @@ export default function EnfrentarSistemasPage() {
                   Guardar situación
                 </button>
                 <button
+                  onClick={() => setZoneMode((v) => !v)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    zoneMode ? "bg-indigo-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-indigo-400"
+                  }`}
+                >
+                  ▭ Zonas
+                </button>
+                <button
                   onClick={regenerate}
                   className="px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs font-medium text-foreground-secondary hover:border-indigo-400 transition-colors"
                 >
@@ -566,6 +627,41 @@ export default function EnfrentarSistemasPage() {
                 </button>
               </div>
             </div>
+
+            {zoneMode && (
+              <div className="mb-3 p-3 bg-surface-hover border border-border rounded-lg flex flex-wrap items-center gap-3">
+                <div className="flex gap-1.5">
+                  {ZONE_COLORS.map((z) => (
+                    <button
+                      key={z.value}
+                      onClick={() => setZoneColor(z.value)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                        zoneColor === z.value ? "ring-2 ring-offset-1 ring-offset-surface-hover" : "opacity-70 hover:opacity-100"
+                      }`}
+                      style={{ background: `${z.hex}22`, color: z.hex }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: z.hex }} />
+                      {z.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  value={zoneLabel}
+                  onChange={(e) => setZoneLabel(e.target.value)}
+                  placeholder="Etiqueta de la próxima zona (opcional)"
+                  className="flex-1 min-w-[160px] px-2.5 py-1 border border-border rounded text-xs bg-surface focus:outline-none focus:border-indigo-400"
+                />
+                {zones.length > 0 && (
+                  <button
+                    onClick={() => setZones([])}
+                    className="px-2.5 py-1 text-xs text-muted hover:text-red-400 transition-colors"
+                  >
+                    Limpiar zonas
+                  </button>
+                )}
+                <p className="w-full text-[10px] text-muted">Arrastra sobre el campo para pintar una zona.</p>
+              </div>
+            )}
 
             {saveOpen && (
               <div className="mb-3 p-3 bg-surface-hover border border-border rounded-lg space-y-2">
@@ -602,11 +698,28 @@ export default function EnfrentarSistemasPage() {
             )}
 
             <Pitch
-              className="rounded-lg"
+              className={`rounded-lg ${zoneMode ? "cursor-crosshair" : ""}`}
+              onMouseDown={handlePitchMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
+              {zones.map((z) => (
+                <ZoneRect key={z.id} zone={z} onDelete={zoneMode ? () => handleDeleteZone(z.id) : undefined} />
+              ))}
+              {drawingZone && (
+                <rect
+                  x={Math.min(drawingZone.x0, drawingZone.x1)}
+                  y={Math.min(drawingZone.y0, drawingZone.y1)}
+                  width={Math.abs(drawingZone.x1 - drawingZone.x0)}
+                  height={Math.abs(drawingZone.y1 - drawingZone.y0)}
+                  fill={ZONE_HEX[zoneColor]}
+                  fillOpacity={0.25}
+                  stroke={ZONE_HEX[zoneColor]}
+                  strokeWidth={0.3}
+                  strokeDasharray="1.2"
+                />
+              )}
               {rivalPlayers.map((p) => (
                 <PlayerToken key={p.id} player={p} size={markerSize} fillColor={rivalFillColor} textColor={rivalTextColor} dragging={dragging?.id === p.id} onMouseDown={() => handleMouseDown("rival", p.id)} onContextMenu={(e) => handlePlayerContextMenu(e, "rival", p.id)} />
               ))}
@@ -752,6 +865,32 @@ export default function EnfrentarSistemasPage() {
   );
 }
 
+function ZoneRect({ zone, onDelete }: { zone: SystemClashZone; onDelete?: () => void }) {
+  const x = Math.min(zone.x0, zone.x1);
+  const y = Math.min(zone.y0, zone.y1);
+  const w = Math.abs(zone.x1 - zone.x0);
+  const h = Math.abs(zone.y1 - zone.y0);
+  const hex = ZONE_HEX[zone.color];
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill={hex} fillOpacity={0.22} stroke={hex} strokeWidth={0.3} />
+      {zone.label && (
+        <text x={x + w / 2} y={y + h / 2 + 0.7} textAnchor="middle" fill={hex} fontSize="2.2" fontWeight="bold" style={{ pointerEvents: "none" }}>
+          {zone.label}
+        </text>
+      )}
+      {onDelete && (
+        <g onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{ cursor: "pointer" }}>
+          <circle cx={x + w - 1.6} cy={y + 1.6} r="1.6" fill="white" stroke={hex} strokeWidth="0.3" />
+          <text x={x + w - 1.6} y={y + 2.15} textAnchor="middle" fill={hex} fontSize="2" fontWeight="bold" style={{ pointerEvents: "none" }}>
+            ✕
+          </text>
+        </g>
+      )}
+    </g>
+  );
+}
+
 function PlayerToken({
   player,
   size,
@@ -783,6 +922,9 @@ function PlayerToken({
 function ClashThumb({ clash }: { clash: SystemClash }) {
   return (
     <Pitch className="rounded-md">
+      {(clash.zones ?? []).map((z) => (
+        <ZoneRect key={z.id} zone={z} />
+      ))}
       {clash.rival_players.map((p) => (
         <g key={`r${p.id}`}>
           <circle cx={p.x} cy={p.y} r="2.7" fill={clash.rival_fill_color} stroke="white" strokeWidth="0.35" />

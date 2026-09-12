@@ -1145,6 +1145,16 @@ export interface SystemClashPlayer {
   y: number;
 }
 
+export interface SystemClashZone {
+  id: string;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  color: "advantage" | "weakness" | "watch";
+  label: string;
+}
+
 export interface SystemClash {
   id: string;
   name: string;
@@ -1162,6 +1172,7 @@ export interface SystemClash {
   rival_text_color: string;
   own_players: SystemClashPlayer[];
   rival_players: SystemClashPlayer[];
+  zones: SystemClashZone[];
   created_at: string;
   updated_at: string;
 }

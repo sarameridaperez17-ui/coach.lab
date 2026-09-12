@@ -129,17 +129,19 @@ function PitchBase() {
 interface PitchProps {
   children?: ReactNode;
   className?: string;
+  onMouseDown?: (e: ReactMouseEvent<SVGSVGElement>) => void;
   onMouseMove?: (e: ReactMouseEvent<SVGSVGElement>) => void;
   onMouseUp?: (e: ReactMouseEvent<SVGSVGElement>) => void;
   onMouseLeave?: (e: ReactMouseEvent<SVGSVGElement>) => void;
 }
 
-export function Pitch({ children, className, onMouseMove, onMouseUp, onMouseLeave }: PitchProps) {
+export function Pitch({ children, className, onMouseDown, onMouseMove, onMouseUp, onMouseLeave }: PitchProps) {
   return (
     <svg
       viewBox={VIEWBOX}
       preserveAspectRatio="xMidYMid meet"
       className={`w-full select-none ${className ?? ""}`}
+      onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
