@@ -32,7 +32,7 @@ export interface FormationPlayer {
 // Mismas etiquetas de posición que "Mis sistemas" — editables por
 // clic derecho sobre cada jugadora.
 export const POSITION_LABELS = [
-  "PT", "CT", "CL", "CC", "LT", "MC", "IN", "MP", "Ca", "EX", "DC", "DP",
+  "PT", "LI", "LD", "CT", "CL", "CC", "LT", "MC", "IN", "MP", "Ca", "EX", "EI", "ED", "DC", "DP",
 ];
 
 const FIELD_W = 105;

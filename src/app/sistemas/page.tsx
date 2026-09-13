@@ -22,10 +22,33 @@ import { StatusMenu, StatusIcon } from "@/components/ui/StatusMenu";
 import { Pitch, FIELD, clientToField } from "@/components/pitch";
 
 
-// Position labels for right-click dropdown
+// Position labels for right-click dropdown (misma lista que "Enfrentar sistemas")
 const POSITION_LABELS = [
-  "PT", "CT", "CL", "CC", "LT", "MC", "IN", "MP", "Ca", "EX", "DC", "DP",
+  "PT", "LI", "LD", "CT", "CL", "CC", "LT", "MC", "IN", "MP", "Ca", "EX", "EI", "ED", "DC", "DP",
 ];
+
+// Apariencia del campograma — preferencia general para toda la biblioteca,
+// guardada en el navegador (igual que el tamaño en "Enfrentar sistemas").
+const DEFAULT_MARKER_SIZE = 3;
+const DEFAULT_FILL_COLOR = "#4f46e5";
+const DEFAULT_TEXT_COLOR = "#ffffff";
+const MARKER_SIZE_KEY = "sistemas-marker-size";
+const FILL_COLOR_KEY = "sistemas-fill-color";
+const TEXT_COLOR_KEY = "sistemas-text-color";
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+      <label className="text-[10px] text-muted uppercase tracking-wide font-medium truncate">{label}</label>
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-8 h-8 flex-shrink-0 rounded border border-border bg-transparent cursor-pointer"
+      />
+    </div>
+  );
+}
 
 // Coordenadas en metros — sistema maestro del componente <Pitch>
 // (x=0 portería propia izda -> x=105 rival dcha, y=0..68).
@@ -46,21 +69,28 @@ const DEFAULT_POSITIONS = [
 // Miniatura del campograma de un sistema (solo lectura)
 function SystemThumb({
   positions,
+  fillColor = DEFAULT_FILL_COLOR,
+  textColor = DEFAULT_TEXT_COLOR,
+  markerSize = DEFAULT_MARKER_SIZE,
 }: {
   positions: { player_index: number; label: string; x: number; y: number }[];
+  fillColor?: string;
+  textColor?: string;
+  markerSize?: number;
 }) {
   const pts = positions.length > 0 ? positions : DEFAULT_POSITIONS;
+  const r = markerSize * 0.93; // ligeramente más pequeño que en el editor grande
   return (
     <Pitch className="rounded-md">
       {pts.map((p) => (
         <g key={p.player_index}>
-          <circle cx={p.x} cy={p.y} r="2.8" fill="#4f46e5" stroke="white" strokeWidth="0.4" />
+          <circle cx={p.x} cy={p.y} r={r} fill={fillColor} stroke="white" strokeWidth="0.4" />
           <text
             x={p.x}
-            y={p.y + 0.9}
+            y={p.y + r * 0.32}
             textAnchor="middle"
-            fill="white"
-            fontSize="2.4"
+            fill={textColor}
+            fontSize={r * 0.8}
             fontWeight="bold"
           >
             {p.label}
@@ -79,6 +109,38 @@ export default function SistemasPage() {
   // Campograma state
   const [players, setPlayers] = useState(DEFAULT_POSITIONS);
   const [dragging, setDragging] = useState<number | null>(null);
+
+  // Apariencia del campograma (tamaño y colores) — preferencia general,
+  // guardada en el navegador, igual para todos los sistemas.
+  const [markerSize, setMarkerSize] = useState(DEFAULT_MARKER_SIZE);
+  const [fillColor, setFillColor] = useState(DEFAULT_FILL_COLOR);
+  const [textColor, setTextColor] = useState(DEFAULT_TEXT_COLOR);
+
+  useEffect(() => {
+    try {
+      const storedSize = localStorage.getItem(MARKER_SIZE_KEY);
+      if (storedSize) setMarkerSize(parseFloat(storedSize));
+      const storedFill = localStorage.getItem(FILL_COLOR_KEY);
+      if (storedFill) setFillColor(storedFill);
+      const storedText = localStorage.getItem(TEXT_COLOR_KEY);
+      if (storedText) setTextColor(storedText);
+    } catch {
+      // localStorage no disponible — se quedan los valores por defecto
+    }
+  }, []);
+
+  const handleMarkerSizeChange = (size: number) => {
+    setMarkerSize(size);
+    try { localStorage.setItem(MARKER_SIZE_KEY, String(size)); } catch {}
+  };
+  const handleFillColorChange = (color: string) => {
+    setFillColor(color);
+    try { localStorage.setItem(FILL_COLOR_KEY, color); } catch {}
+  };
+  const handleTextColorChange = (color: string) => {
+    setTextColor(color);
+    try { localStorage.setItem(TEXT_COLOR_KEY, color); } catch {}
+  };
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -250,6 +312,36 @@ export default function SistemasPage() {
     }
   };
 
+  // Guarda un array de posiciones concreto (no depende del estado ya
+  // actualizado, para evitar guardar datos obsoletos justo después de
+  // un setPlayers en el mismo evento).
+  const persistPositions = async (updated: typeof players) => {
+    if (!selectedId) return;
+    try {
+      await saveSystemPositions(selectedId, updated);
+    } catch (err) {
+      console.error("Error saving positions:", err);
+    }
+  };
+
+  const handleAddPosition = () => {
+    setPlayers((prev) => {
+      const nextIndex = prev.length > 0 ? Math.max(...prev.map((p) => p.player_index)) + 1 : 1;
+      const updated = [...prev, { player_index: nextIndex, label: "MC", x: FIELD.W / 2, y: FIELD.H / 2 }];
+      persistPositions(updated);
+      return updated;
+    });
+  };
+
+  const handleRemovePosition = (playerIndex: number) => {
+    setPlayers((prev) => {
+      const updated = prev.filter((p) => p.player_index !== playerIndex);
+      persistPositions(updated);
+      return updated;
+    });
+    setLabelDropdown(null);
+  };
+
   // CRUD
   const handleCreate = async () => {
     if (!formName.trim()) return;
@@ -382,7 +474,7 @@ export default function SistemasPage() {
                   {status && <StatusIcon status={status} />}
                 </div>
                 <div className="pointer-events-none">
-                  <SystemThumb positions={sys.positions ?? []} />
+                  <SystemThumb positions={sys.positions ?? []} fillColor={fillColor} textColor={textColor} markerSize={markerSize} />
                 </div>
               </div>
             );
@@ -422,17 +514,18 @@ export default function SistemasPage() {
                     <circle
                       cx={player.x}
                       cy={player.y}
-                      r="3"
-                      fill={dragging === player.player_index ? "#818cf8" : "#4f46e5"}
+                      r={markerSize}
+                      fill={fillColor}
                       stroke="white"
-                      strokeWidth="0.4"
+                      strokeWidth="0.35"
+                      opacity={dragging === player.player_index ? 0.85 : 1}
                     />
                     <text
                       x={player.x}
-                      y={player.y + 0.9}
+                      y={player.y + markerSize * 0.28}
                       textAnchor="middle"
-                      fill="white"
-                      fontSize="2.4"
+                      fill={textColor}
+                      fontSize={markerSize * 0.7}
                       fontWeight="bold"
                       style={{ pointerEvents: "none" }}
                     >
@@ -499,6 +592,44 @@ export default function SistemasPage() {
                     </>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Posiciones y apariencia del campograma */}
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 border-b border-surface-hover flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Posiciones</h3>
+                <button
+                  onClick={handleAddPosition}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                >
+                  + Añadir
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                <p className="text-xs text-muted">
+                  {players.length} posiciones en el campo. Clic derecho sobre una para cambiar su nombre o eliminarla.
+                </p>
+                <div className="pt-1 border-t border-surface-hover">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-muted uppercase tracking-wide font-medium">Tamaño</label>
+                    <span className="text-xs text-foreground-secondary">{markerSize.toFixed(1)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1.8}
+                    max={4}
+                    step={0.1}
+                    value={markerSize}
+                    onChange={(e) => handleMarkerSizeChange(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-600"
+                  />
+                </div>
+                <div className="flex items-center gap-3 pt-1 border-t border-surface-hover">
+                  <ColorField label="Círculo" value={fillColor} onChange={handleFillColorChange} />
+                  <ColorField label="Dorsal" value={textColor} onChange={handleTextColorChange} />
+                </div>
+                <p className="text-[10px] text-muted">Se aplica a todos los sistemas de la biblioteca.</p>
               </div>
             </div>
 
@@ -604,13 +735,13 @@ export default function SistemasPage() {
           className="fixed z-50 bg-surface border border-border rounded-lg shadow-xl py-1 min-w-[120px]"
           style={{
             left: Math.min(labelDropdown.x, window.innerWidth - 140),
-            top: Math.min(labelDropdown.y, window.innerHeight - 300),
+            top: Math.min(labelDropdown.y, window.innerHeight - 340),
           }}
         >
           <p className="text-[10px] text-muted uppercase tracking-wide font-medium px-3 py-1.5 border-b border-surface-hover">
             Posición #{labelDropdown.playerIndex}
           </p>
-          <div className="max-h-[240px] overflow-y-auto">
+          <div className="max-h-[260px] overflow-y-auto">
             {POSITION_LABELS.map((label) => {
               const current = players.find(p => p.player_index === labelDropdown.playerIndex);
               const isActive = current?.label === label;
@@ -628,6 +759,12 @@ export default function SistemasPage() {
               );
             })}
           </div>
+          <button
+            onClick={() => handleRemovePosition(labelDropdown.playerIndex)}
+            className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-900/20 transition-colors border-t border-surface-hover"
+          >
+            🗑 Eliminar posición
+          </button>
         </div>
       )}
 
