@@ -413,7 +413,7 @@ export default function ABPPage() {
                 <button onClick={() => { setQfCategory(""); setQfExecution(""); setQfTargetZone(""); setQfStructure(""); setQfProtectionZone(""); }} className="text-[10px] text-orange-400 hover:text-orange-300">Limpiar filtros</button>
               </div>
               {quickFilterResults.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {quickFilterResults.map(strat => {
                     const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                     return (
@@ -464,7 +464,7 @@ export default function ABPPage() {
               <p className="text-xs text-muted">{selectedCatStrategies.length} estrategias</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {selectedCatStrategies.map(strat => (
                 <div key={strat.id} className="bg-surface rounded-xl border border-border p-3 group flex flex-col">
                   <div className="flex items-center justify-between mb-1.5">
@@ -535,7 +535,7 @@ export default function ABPPage() {
         {!selectedCategory && strategies.length > 0 && (
           <div className="mt-6">
             <h2 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Estrategias recientes</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {recentStrategies.map(strat => {
                 const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                 return (
@@ -583,7 +583,7 @@ export default function ABPPage() {
         {!selectedCategory && favoriteStrategies.length > 0 && (
           <div className="mt-6">
             <h2 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Estrategias favoritas</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {favoriteStrategies.map(strat => {
                 const subtypeInfo = ABP_SUBTYPES[selectedType].find(s => s.id === strat.subtype);
                 return (
