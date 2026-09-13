@@ -37,6 +37,7 @@ export interface Principle {
   description: string;
   game_phase_id: string;
   block_height_id: string | null;
+  field_zone_id: string | null;
   youtube_url: string | null;
   position: number;
   archived: boolean;
@@ -44,6 +45,7 @@ export interface Principle {
   updated_at: string;
   // Relaciones cargadas
   game_phase?: GamePhase;
+  field_zone?: FieldZone;
   principle_contexts?: PrincipleContext[];
   sub_principles?: SubPrinciple[];
   team_contexts?: TeamContext[];

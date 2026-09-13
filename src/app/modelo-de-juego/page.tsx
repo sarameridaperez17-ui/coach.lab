@@ -8,6 +8,7 @@ import {
   deleteTeamContext,
   getGamePhases,
   getBlockHeights,
+  getFieldZones,
   getPrinciples,
   createPrinciple,
   updatePrinciple,
@@ -24,18 +25,27 @@ import {
   getItemStatuses,
   getBookmarksByStatus,
   getTasks,
+  linkTaskToPrinciple,
+  unlinkTaskFromPrinciple,
 } from "@/lib/api";
 import type { ItemStatus, Bookmark } from "@/lib/api";
 import type {
   TeamContext,
   GamePhase,
   BlockHeight,
+  FieldZone,
   Principle,
+  SubPrinciple,
+  Behavior,
   BehaviorType,
   Task,
 } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
+import { Pitch, FIELD } from "@/components/pitch";
 
+// ============================================
+// Ayudantes ya existentes en la página (sin cambios)
+// ============================================
 
 // ---- Inline edit component ----
 function InlineEdit({
@@ -228,17 +238,211 @@ const PHASE_COLORS: Record<string, { accent: string; bg: string; border: string 
   "Transición ofensiva": { accent: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.2)" },
   "Transición defensiva": { accent: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.2)" },
 };
+const DEFAULT_PHASE_COLORS = PHASE_COLORS["Fase ofensiva"];
+
+// ============================================
+// NUEVO: zonas del campo — mismos conceptos que "Posiciones"
+// ============================================
+
+const ATTACK_ZONE_LABELS: Record<string, string> = { Z1: "Inicio", Z2: "Creación", Z3: "Progresión", Z4: "Finalización" };
+const DEFENSE_ZONE_LABELS: Record<string, string> = { Z1: "Protección", Z2: "Contención", Z3: "Destrucción", Z4: "Orientación" };
+
+function isOffensivePhaseName(name?: string): boolean {
+  return !!name && /ofensiva/i.test(name) && !/defensiva/i.test(name);
+}
+function isDefensivePhaseName(name?: string): boolean {
+  return !!name && /defensiva/i.test(name) && !/ofensiva/i.test(name);
+}
+
+function zoneConceptLabel(phaseName: string | undefined, zoneName: string): string {
+  const z = zoneName.trim().toUpperCase();
+  if (isOffensivePhaseName(phaseName)) return ATTACK_ZONE_LABELS[z] ?? z;
+  if (isDefensivePhaseName(phaseName)) return DEFENSE_ZONE_LABELS[z] ?? z;
+  return z;
+}
+
+// Selector de zona (Z1..Z4 + "Sin zona"), reutilizado al crear/editar un principio
+function ZonePicker({
+  zones,
+  phaseName,
+  value,
+  onChange,
+  accent,
+}: {
+  zones: FieldZone[];
+  phaseName?: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+  accent: string;
+}) {
+  const sorted = [...zones].sort((a, b) => a.position - b.position);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {sorted.map((z) => (
+        <button
+          key={z.id}
+          type="button"
+          onClick={() => onChange(z.id)}
+          className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+          style={value === z.id ? { background: accent, color: "white" } : { background: "var(--surface-hover)", color: "var(--foreground-secondary)" }}
+        >
+          Z{z.position} · {zoneConceptLabel(phaseName, z.name)}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+        style={value === null ? { background: "var(--muted)", color: "var(--background)" } : { background: "var(--surface-hover)", color: "var(--muted)" }}
+      >
+        Sin zona
+      </button>
+    </div>
+  );
+}
+
+// Etiqueta compacta de zona para tarjetas/paneles
+function ZoneBadge({
+  principle,
+  zones,
+  phaseName,
+  accent,
+}: {
+  principle: Principle;
+  zones: FieldZone[];
+  phaseName?: string;
+  accent: string;
+}) {
+  const zone = zones.find((z) => z.id === principle.field_zone_id);
+  if (!zone) {
+    return <span className="text-[10px] text-muted italic">Sin zona asignada</span>;
+  }
+  return (
+    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: `${accent}1f`, color: accent }}>
+      Zona {zone.position} · {zoneConceptLabel(phaseName, zone.name)}
+    </span>
+  );
+}
+
+// Mini campograma decorativo — resalta la zona de un principio (tarjetas y detalle)
+function ZoneMiniMap({ zones, zoneId, accent }: { zones: FieldZone[]; zoneId: string | null; accent: string }) {
+  const sorted = [...zones].sort((a, b) => a.position - b.position);
+  const n = sorted.length || 4;
+  const bandW = FIELD.W / n;
+  const idx = zoneId ? sorted.findIndex((z) => z.id === zoneId) : -1;
+  return (
+    <Pitch className="rounded-md">
+      {idx >= 0 && (
+        <>
+          <rect x={bandW * idx} y={0} width={bandW} height={FIELD.H} fill={accent} fillOpacity={0.22} />
+          <circle cx={bandW * idx + bandW / 2} cy={FIELD.H / 2} r="3.2" fill={accent} stroke="white" strokeWidth="0.4" />
+        </>
+      )}
+    </Pitch>
+  );
+}
+
+// Campograma central — 4 zonas de la fase activa con los principios ubicados dentro
+function PrincipleFieldMap({
+  zones,
+  phaseName,
+  accent,
+  principlesByZone,
+  selectedId,
+  onSelect,
+}: {
+  zones: FieldZone[];
+  phaseName?: string;
+  accent: string;
+  principlesByZone: Map<string, Principle[]>;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const sorted = [...zones].sort((a, b) => a.position - b.position);
+  const n = sorted.length || 1;
+  const bandW = FIELD.W / n;
+  return (
+    <Pitch className="rounded-lg">
+      {sorted.map((z, i) => (
+        <g key={z.id}>
+          <rect
+            x={bandW * i}
+            y={0}
+            width={bandW}
+            height={FIELD.H}
+            fill={accent}
+            fillOpacity={0.05 + i * 0.015}
+            stroke={accent}
+            strokeOpacity={0.4}
+            strokeWidth="0.25"
+            strokeDasharray="1.4"
+          />
+          <text x={bandW * i + bandW / 2} y={4.6} textAnchor="middle" fill={accent} fontSize="2.6" fontWeight="bold" opacity={0.9}>
+            {zoneConceptLabel(phaseName, z.name).toUpperCase()}
+          </text>
+        </g>
+      ))}
+      {sorted.map((z, i) => {
+        const list = principlesByZone.get(z.id) ?? [];
+        return list.map((p, j) => {
+          const cx = bandW * i + bandW / 2;
+          const cy = (FIELD.H * (j + 1)) / (list.length + 1);
+          const isSel = p.id === selectedId;
+          const label = p.name.length > 18 ? `${p.name.slice(0, 17)}…` : p.name;
+          return (
+            <g key={p.id} onClick={() => onSelect(p.id)} style={{ cursor: "pointer" }}>
+              {/* Zona de clic ampliada: cubre el punto y la etiqueta de debajo */}
+              <rect x={cx - bandW / 2 + 0.5} y={cy - 4} width={bandW - 1} height={11} fill="transparent" />
+              {isSel && <circle cx={cx} cy={cy} r="5.2" fill={accent} fillOpacity={0.25} style={{ pointerEvents: "none" }} />}
+              <circle cx={cx} cy={cy} r="2.8" fill={isSel ? accent : "var(--surface)"} stroke={accent} strokeWidth="0.5" style={{ pointerEvents: "none" }} />
+              <text
+                x={cx}
+                y={cy + 4.8}
+                textAnchor="middle"
+                fontSize="2.1"
+                fontWeight={isSel ? "bold" : "normal"}
+                fill={isSel ? accent : "var(--foreground-secondary)"}
+                style={{ pointerEvents: "none" }}
+              >
+                {label}
+              </text>
+            </g>
+          );
+        });
+      })}
+    </Pitch>
+  );
+}
+
+type DetailTab = "resumen" | "subprincipios" | "comportamientos" | "tareas" | "relaciones";
+const DETAIL_TABS: { key: DetailTab; label: string }[] = [
+  { key: "resumen", label: "Resumen" },
+  { key: "subprincipios", label: "Subprincipios" },
+  { key: "comportamientos", label: "Comportamientos" },
+  { key: "tareas", label: "Tareas" },
+  { key: "relaciones", label: "Relaciones" },
+];
 
 export default function ModeloDeJuegoPage() {
   const [contexts, setContexts] = useState<TeamContext[]>([]);
   const [phases, setPhases] = useState<GamePhase[]>([]);
   const [blocks, setBlocks] = useState<BlockHeight[]>([]);
+  const [zones, setZones] = useState<FieldZone[]>([]);
   const [principles, setPrinciples] = useState<Principle[]>([]);
   const [allPhasePrinciples, setAllPhasePrinciples] = useState<Record<string, Principle[]>>({});
 
   const [selectedContext, setSelectedContext] = useState<string>("");
   const [selectedPhase, setSelectedPhase] = useState<string>("");
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
+
+  // NUEVO: vista campograma/mapa, principio seleccionado (panel) y en detalle (vista completa)
+  const [topView, setTopView] = useState<"campo" | "mapa">("campo");
+  const [selectedPrincipleId, setSelectedPrincipleId] = useState<string | null>(null);
+  const [viewingPrincipleId, setViewingPrincipleId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<DetailTab>("resumen");
+  const [newPrincipleZone, setNewPrincipleZone] = useState<string | null>(null);
+  const [taskPickerOpen, setTaskPickerOpen] = useState(false);
+  const [taskLinkBusy, setTaskLinkBusy] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -279,14 +483,16 @@ export default function ModeloDeJuegoPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [ctx, ph, bh] = await Promise.all([
+        const [ctx, ph, bh, zn] = await Promise.all([
           getTeamContexts(),
           getGamePhases(),
           getBlockHeights(),
+          getFieldZones(),
         ]);
         setContexts(ctx);
         setPhases(ph);
         setBlocks(bh);
+        setZones(zn);
         if (ctx.length > 0) setSelectedContext(ctx[0].id);
         if (ph.length > 0) setSelectedPhase(ph[0].id);
       } catch (err) {
@@ -326,6 +532,15 @@ export default function ModeloDeJuegoPage() {
     loadSidebarData();
   }, []);
 
+  const reloadTasks = useCallback(async () => {
+    try {
+      const tasks = await getTasks();
+      setAllTasks(tasks);
+    } catch (err) {
+      console.error("Error reloading tasks:", err);
+    }
+  }, []);
+
   // Load all phase principles for "relations" sidebar section
   useEffect(() => {
     async function loadAllPhases() {
@@ -343,6 +558,13 @@ export default function ModeloDeJuegoPage() {
     }
     loadAllPhases();
   }, [phases]);
+
+  // Al cambiar de fase, se cierra cualquier selección/detalle de la fase anterior
+  useEffect(() => {
+    setSelectedPrincipleId(null);
+    setViewingPrincipleId(null);
+    setDetailTab("resumen");
+  }, [selectedPhase]);
 
   const handleContextMenu = (e: React.MouseEvent, id: string, title: string) => {
     e.preventDefault();
@@ -396,12 +618,22 @@ export default function ModeloDeJuegoPage() {
   const handleCreatePrinciple = async () => {
     if (!newPrincipleName.trim()) return;
     try {
-      await createPrinciple(newPrincipleName.trim(), selectedPhase, [selectedContext], selectedBlock);
+      await createPrinciple(newPrincipleName.trim(), selectedPhase, [selectedContext], selectedBlock, newPrincipleZone);
       setNewPrincipleName("");
+      setNewPrincipleZone(null);
       setAddingPrinciple(false);
       await loadPrinciples();
     } catch (err) {
       console.error("Error creating principle:", err);
+    }
+  };
+
+  const handleSetPrincipleZone = async (principleId: string, zoneId: string | null) => {
+    try {
+      await updatePrinciple(principleId, { field_zone_id: zoneId });
+      await loadPrinciples();
+    } catch (err) {
+      console.error("Error setting zone:", err);
     }
   };
 
@@ -426,6 +658,18 @@ export default function ModeloDeJuegoPage() {
       await loadPrinciples();
     } catch (err) {
       console.error("Error creating behavior:", err);
+    }
+  };
+
+  const handleDeletePrinciple = async (id: string) => {
+    if (!confirm("¿Eliminar este principio?")) return;
+    try {
+      await deletePrinciple(id);
+      if (viewingPrincipleId === id) setViewingPrincipleId(null);
+      if (selectedPrincipleId === id) setSelectedPrincipleId(null);
+      await loadPrinciples();
+    } catch (err) {
+      console.error("Error deleting principle:", err);
     }
   };
 
@@ -470,6 +714,29 @@ export default function ModeloDeJuegoPage() {
     } catch (err) { console.error("Error duplicating principle:", err); }
   };
 
+  // ---- Vínculo de tareas (nuevo) ----
+  const handleLinkTask = async (taskId: string, principleId: string) => {
+    setTaskLinkBusy(true);
+    try {
+      await linkTaskToPrinciple(taskId, principleId);
+      await reloadTasks();
+      setTaskPickerOpen(false);
+    } catch (err) {
+      console.error("Error linking task:", err);
+    } finally {
+      setTaskLinkBusy(false);
+    }
+  };
+
+  const handleUnlinkTask = async (taskId: string, principleId: string) => {
+    try {
+      await unlinkTaskFromPrinciple(taskId, principleId);
+      await reloadTasks();
+    } catch (err) {
+      console.error("Error unlinking task:", err);
+    }
+  };
+
   // YouTube URL save handlers
   const handleSaveYoutubeUrl = async (level: "principle" | "sub" | "behavior", id: string, url: string | null) => {
     try {
@@ -503,7 +770,7 @@ export default function ModeloDeJuegoPage() {
 
   const activeContext = contexts.find((c) => c.id === selectedContext);
   const activePhase = phases.find((p) => p.id === selectedPhase);
-  const phaseColors = activePhase ? (PHASE_COLORS[activePhase.name] ?? { accent: "#34d399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.2)" }) : { accent: "#34d399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.2)" };
+  const phaseColors = activePhase ? (PHASE_COLORS[activePhase.name] ?? DEFAULT_PHASE_COLORS) : DEFAULT_PHASE_COLORS;
 
   // Filter principles by context AND block height
   const filteredPrinciples = principles.filter((p) => {
@@ -512,6 +779,23 @@ export default function ModeloDeJuegoPage() {
     // Block height filter: if a block is selected, show only principles for that block (or unassigned)
     const blockOk = !selectedBlock || !p.block_height_id || p.block_height_id === selectedBlock;
     return ctxOk && blockOk;
+  });
+
+  const viewingPrinciple = viewingPrincipleId ? filteredPrinciples.find((p) => p.id === viewingPrincipleId) ?? null : null;
+  const selectedPrinciple = selectedPrincipleId ? filteredPrinciples.find((p) => p.id === selectedPrincipleId) ?? null : null;
+
+  // Agrupación por zona para el campograma
+  const sortedZones = [...zones].sort((a, b) => a.position - b.position);
+  const principlesByZone = new Map<string, Principle[]>();
+  const unassignedPrinciples: Principle[] = [];
+  filteredPrinciples.forEach((p) => {
+    if (p.field_zone_id) {
+      const list = principlesByZone.get(p.field_zone_id) ?? [];
+      list.push(p);
+      principlesByZone.set(p.field_zone_id, list);
+    } else {
+      unassignedPrinciples.push(p);
+    }
   });
 
   // --- Sidebar computed data ---
@@ -532,6 +816,12 @@ export default function ModeloDeJuegoPage() {
     };
   });
 
+  // Tareas vinculadas a un principio en concreto (task_principles)
+  const taskPrincipleIds = (t: Task): string[] =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((t as any).task_principles as Array<{ principle_id: string }> | undefined)?.map((tp) => tp.principle_id) ?? [];
+  const tasksForPrinciple = (principleId: string) => allTasks.filter((t) => taskPrincipleIds(t).includes(principleId));
+
   // Favorite tasks for this phase
   const phaseTaskIds = new Set(
     allTasks
@@ -546,6 +836,470 @@ export default function ModeloDeJuegoPage() {
   // If no phase-specific favorites, show general favorites (up to 5)
   const sidebarTasks = phaseFavTasks.length > 0 ? phaseFavTasks.slice(0, 5) : favoriteTasks.slice(0, 5);
 
+  // Nº de tareas vinculadas a algún principio de esta fase (resumen de fase)
+  const phasePrincipleIdSet = new Set(filteredPrinciples.map((p) => p.id));
+  const linkedTaskCount = allTasks.filter((t) => taskPrincipleIds(t).some((pid) => phasePrincipleIdSet.has(pid))).length;
+
+  const subCountFor = (p: Principle) => (p.sub_principles ?? []).filter((sp) => !sp.archived).length;
+  const behCountFor = (p: Principle) =>
+    (p.sub_principles ?? []).filter((sp) => !sp.archived).reduce((sum, sp) => sum + (sp.behaviors?.filter((b) => !b.archived)?.length ?? 0), 0);
+
+  // ============================================
+  // Vista de detalle completo de un principio
+  // ============================================
+  if (viewingPrinciple) {
+    const allBehaviors: { behavior: Behavior; sub: SubPrinciple }[] = (viewingPrinciple.sub_principles ?? [])
+      .filter((sp) => !sp.archived)
+      .flatMap((sp) => (sp.behaviors ?? []).filter((b) => !b.archived).map((behavior) => ({ behavior, sub: sp })));
+    const linkedTasks = tasksForPrinciple(viewingPrinciple.id);
+    const linkableTasks = allTasks.filter((t) => !taskPrincipleIds(t).includes(viewingPrinciple.id));
+
+    return (
+      <div className="max-w-5xl">
+        <button
+          onClick={() => setViewingPrincipleId(null)}
+          className="mb-4 text-sm text-muted hover:text-foreground-secondary flex items-center gap-1"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          Volver a {activePhase?.name}
+        </button>
+
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
+            <h1 className="text-xl font-bold text-foreground truncate">{viewingPrinciple.name}</h1>
+            {itemStatuses.has(viewingPrinciple.id) && <StatusBadge status={itemStatuses.get(viewingPrinciple.id)!} />}
+          </div>
+          <button
+            onClick={() => handleDeletePrinciple(viewingPrinciple.id)}
+            className="text-xs text-foreground-secondary hover:text-red-500 flex-shrink-0"
+          >
+            Eliminar principio
+          </button>
+        </div>
+        <div className="flex items-center gap-2 mb-5">
+          {activePhase && PHASE_ICONS[activePhase.name]}
+          <p className="text-xs text-muted">{activePhase?.name}</p>
+          <span className="text-muted">·</span>
+          <ZoneBadge principle={viewingPrinciple} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-border mb-5">
+          {DETAIL_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setDetailTab(tab.key)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                detailTab === tab.key ? "text-foreground" : "border-transparent text-muted hover:text-foreground-secondary"
+              }`}
+              style={detailTab === tab.key ? { borderColor: phaseColors.accent, color: phaseColors.accent } : {}}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab: Resumen */}
+        {detailTab === "resumen" && (
+          <div className="flex gap-6">
+            <div className="flex-1 min-w-0 space-y-4">
+              <div>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1.5">Descripción</label>
+                <textarea
+                  defaultValue={viewingPrinciple.description}
+                  onBlur={(e) => {
+                    if (e.target.value !== viewingPrinciple.description) {
+                      updatePrinciple(viewingPrinciple.id, { description: e.target.value }).then(loadPrinciples);
+                    }
+                  }}
+                  placeholder="Describe qué busca este principio dentro de su zona..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface focus:outline-none resize-none"
+                  style={{ borderColor: "var(--border)" }}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1.5">Zona del campo</label>
+                <ZonePicker
+                  zones={zones}
+                  phaseName={activePhase?.name}
+                  value={viewingPrinciple.field_zone_id}
+                  onChange={(zoneId) => handleSetPrincipleZone(viewingPrinciple.id, zoneId)}
+                  accent={phaseColors.accent}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                <div className="bg-surface rounded-lg border border-border p-3 text-center">
+                  <p className="text-lg font-bold" style={{ color: phaseColors.accent }}>{subCountFor(viewingPrinciple)}</p>
+                  <p className="text-[10px] text-muted uppercase tracking-wide">Subprincipios</p>
+                </div>
+                <div className="bg-surface rounded-lg border border-border p-3 text-center">
+                  <p className="text-lg font-bold" style={{ color: phaseColors.accent }}>{behCountFor(viewingPrinciple)}</p>
+                  <p className="text-[10px] text-muted uppercase tracking-wide">Comportamientos</p>
+                </div>
+                <div className="bg-surface rounded-lg border border-border p-3 text-center">
+                  <p className="text-lg font-bold" style={{ color: phaseColors.accent }}>{linkedTasks.length}</p>
+                  <p className="text-[10px] text-muted uppercase tracking-wide">Tareas</p>
+                </div>
+              </div>
+            </div>
+            <div className="w-64 flex-shrink-0">
+              <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1.5">Representación táctica</p>
+              <ZoneMiniMap zones={zones} zoneId={viewingPrinciple.field_zone_id} accent={phaseColors.accent} />
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Subprincipios (árbol completo, igual que antes pero para un único principio) */}
+        {detailTab === "subprincipios" && (
+          <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="divide-y divide-surface-hover">
+              {(viewingPrinciple.sub_principles ?? [])
+                .filter((sp) => !sp.archived)
+                .map((sub) => (
+                  <div key={sub.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+                        <InlineEdit
+                          value={sub.name}
+                          onSave={(v) => { updateSubPrinciple(sub.id, { name: v }).then(loadPrinciples); }}
+                          className="font-medium text-foreground-secondary text-sm"
+                        />
+                        {sub.youtube_url && (
+                          <YoutubeThumbnail url={sub.youtube_url} onClick={() => setPlayingVideoUrl(sub.youtube_url!)} size="sm" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <YoutubeIconButton
+                          hasVideo={!!sub.youtube_url}
+                          onClick={() => { setEditingYoutubeId(sub.id); setEditingYoutubeLevel("sub"); }}
+                        />
+                        <button
+                          onClick={() => { setAddingBehaviorTo(sub.id); setNewBehaviorName(""); setNewBehaviorType("individual"); }}
+                          className="text-xs text-blue-400 hover:text-blue-700 font-medium"
+                        >
+                          + Comportamiento
+                        </button>
+                        <button
+                          onClick={() => { if (confirm("¿Eliminar este subprincipio?")) { deleteSubPrinciple(sub.id).then(loadPrinciples); } }}
+                          className="text-xs text-foreground-secondary hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+
+                    {editingYoutubeId === sub.id && editingYoutubeLevel === "sub" && (
+                      <div className="ml-5 mb-2">
+                        <YoutubeUrlInput
+                          currentUrl={sub.youtube_url}
+                          onSave={(url) => handleSaveYoutubeUrl("sub", sub.id, url)}
+                          onCancel={() => { setEditingYoutubeId(null); setEditingYoutubeLevel(null); }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="pl-5 space-y-1">
+                      {(sub.behaviors ?? [])
+                        .filter((b) => !b.archived)
+                        .filter((b) => {
+                          if (!selectedBlock) return true;
+                          const bhIds = b.behavior_block_heights?.map((bh) => bh.block_height_id) ?? [];
+                          return bhIds.length === 0 || bhIds.includes(selectedBlock);
+                        })
+                        .map((behavior) => {
+                          const badge = BEHAVIOR_LABELS[behavior.type];
+                          return (
+                            <div key={behavior.id} className="py-1.5 group">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-1 h-1 rounded-full bg-foreground-secondary" />
+                                  <InlineEdit
+                                    value={behavior.name}
+                                    onSave={(v) => { updateBehavior(behavior.id, { name: v }).then(loadPrinciples); }}
+                                    className="text-sm text-foreground-secondary"
+                                  />
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.color}`}>{badge.label}</span>
+                                  {behavior.youtube_url && (
+                                    <YoutubeThumbnail url={behavior.youtube_url} onClick={() => setPlayingVideoUrl(behavior.youtube_url!)} size="sm" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <YoutubeIconButton
+                                      hasVideo={!!behavior.youtube_url}
+                                      onClick={() => { setEditingYoutubeId(behavior.id); setEditingYoutubeLevel("behavior"); }}
+                                    />
+                                  </span>
+                                  <button
+                                    onClick={() => { if (confirm("¿Eliminar este comportamiento?")) { deleteBehavior(behavior.id).then(loadPrinciples); } }}
+                                    className="text-xs text-foreground-secondary hover:text-red-500 opacity-0 group-hover:opacity-100"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              </div>
+                              {editingYoutubeId === behavior.id && editingYoutubeLevel === "behavior" && (
+                                <div className="ml-3 mt-1">
+                                  <YoutubeUrlInput
+                                    currentUrl={behavior.youtube_url}
+                                    onSave={(url) => handleSaveYoutubeUrl("behavior", behavior.id, url)}
+                                    onCancel={() => { setEditingYoutubeId(null); setEditingYoutubeLevel(null); }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                      {addingBehaviorTo === sub.id && (
+                        <div className="flex items-center gap-2 pt-1">
+                          <input
+                            autoFocus
+                            value={newBehaviorName}
+                            onChange={(e) => setNewBehaviorName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleCreateBehavior(sub.id);
+                              if (e.key === "Escape") setAddingBehaviorTo(null);
+                            }}
+                            placeholder="Nombre del comportamiento"
+                            className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:border-blue-400"
+                          />
+                          <select
+                            value={newBehaviorType}
+                            onChange={(e) => setNewBehaviorType(e.target.value as BehaviorType)}
+                            className="px-2 py-1 border border-border rounded text-xs bg-surface"
+                          >
+                            <option value="individual">Individual</option>
+                            <option value="relations">Relaciones</option>
+                            <option value="collective">Colectivo</option>
+                          </select>
+                          <button onClick={() => handleCreateBehavior(sub.id)} className="px-2 py-1 bg-blue-600 text-white rounded text-xs">Crear</button>
+                          <button onClick={() => setAddingBehaviorTo(null)} className="text-xs text-foreground-secondary">✕</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+              {addingSubTo === viewingPrinciple.id ? (
+                <div className="px-4 py-3 flex items-center gap-2">
+                  <input
+                    autoFocus
+                    value={newSubName}
+                    onChange={(e) => setNewSubName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateSubPrinciple(viewingPrinciple.id);
+                      if (e.key === "Escape") setAddingSubTo(null);
+                    }}
+                    placeholder="Nombre del subprincipio"
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                  <button onClick={() => handleCreateSubPrinciple(viewingPrinciple.id)} className="px-3 py-1 bg-emerald-600 text-white rounded text-xs">Crear</button>
+                  <button onClick={() => setAddingSubTo(null)} className="text-xs text-foreground-secondary">✕</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setAddingSubTo(viewingPrinciple.id); setNewSubName(""); }}
+                  className="w-full px-4 py-3 text-left text-sm text-emerald-600 hover:bg-surface-hover transition-colors"
+                >
+                  + Añadir subprincipio
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Comportamientos (vista plana de todos los subprincipios) */}
+        {detailTab === "comportamientos" && (
+          <div className="bg-surface rounded-xl border border-border overflow-hidden divide-y divide-surface-hover">
+            {allBehaviors.length === 0 ? (
+              <p className="text-sm text-muted text-center py-8">Sin comportamientos definidos todavía.</p>
+            ) : (
+              allBehaviors.map(({ behavior, sub }) => {
+                const badge = BEHAVIOR_LABELS[behavior.type];
+                return (
+                  <div key={behavior.id} className="px-4 py-3 flex items-center justify-between group">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${badge.color}`}>{badge.label}</span>
+                      <span className="text-sm text-foreground truncate">{behavior.name}</span>
+                      <span className="text-[10px] text-muted flex-shrink-0">· {sub.name}</span>
+                      {behavior.youtube_url && (
+                        <YoutubeThumbnail url={behavior.youtube_url} onClick={() => setPlayingVideoUrl(behavior.youtube_url!)} size="sm" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* Tab: Tareas */}
+        {detailTab === "tareas" && (
+          <div className="space-y-3">
+            {linkedTasks.length === 0 ? (
+              <p className="text-sm text-muted">Sin tareas vinculadas a este principio todavía.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {linkedTasks.map((task) => (
+                  <div key={task.id} className="bg-surface rounded-xl border border-border p-3 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{task.name}</p>
+                      {task.duration_minutes > 0 && <p className="text-[10px] text-muted mt-0.5">{task.duration_minutes} min</p>}
+                    </div>
+                    <button
+                      onClick={() => handleUnlinkTask(task.id, viewingPrinciple.id)}
+                      className="text-xs text-muted hover:text-red-400 flex-shrink-0"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {taskPickerOpen ? (
+              <div className="bg-surface rounded-xl border border-border p-3">
+                {linkableTasks.length === 0 ? (
+                  <p className="text-xs text-muted py-2">No hay más tareas disponibles para vincular.</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {linkableTasks.map((task) => (
+                      <button
+                        key={task.id}
+                        disabled={taskLinkBusy}
+                        onClick={() => handleLinkTask(task.id, viewingPrinciple.id)}
+                        className="w-full text-left px-3 py-2 rounded-lg text-sm text-foreground-secondary hover:bg-surface-hover disabled:opacity-40"
+                      >
+                        {task.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button onClick={() => setTaskPickerOpen(false)} className="text-xs text-muted hover:text-foreground-secondary mt-2">Cerrar</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setTaskPickerOpen(true)}
+                className="text-sm font-medium hover:opacity-80"
+                style={{ color: phaseColors.accent }}
+              >
+                + Vincular tarea existente
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Tab: Relaciones */}
+        {detailTab === "relaciones" && (
+          <div className="space-y-4">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 border-b border-surface-hover">
+                <h3 className="text-sm font-semibold text-foreground">Principios por fase</h3>
+              </div>
+              <div className="p-4 grid grid-cols-3 gap-3">
+                {phaseRelations.map(({ phase, principleCount, subPrincipleCount }) => (
+                  <button key={phase.id} onClick={() => setSelectedPhase(phase.id)} className="text-left p-3 rounded-lg bg-surface-hover hover:brightness-110 transition">
+                    <div className="flex items-center gap-1.5 mb-1">{PHASE_ICONS[phase.name]}<span className="text-xs font-medium text-foreground-secondary">{phase.name}</span></div>
+                    <p className="text-[10px] text-muted">{principleCount} principios · {subPrincipleCount} subprincipios</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => { setRelatingPrinciple(viewingPrinciple); setRelTargetPhase(""); setRelTargetContext(selectedContext); setRelTargetBlock(selectedBlock); }}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+              style={{ background: phaseColors.accent }}
+            >
+              Duplicar en otra fase o contexto
+            </button>
+          </div>
+        )}
+
+        {/* Modales compartidos (vídeo, relacionar, estado) */}
+        {playingVideoUrl && (() => {
+          const vid = extractYoutubeId(playingVideoUrl);
+          if (!vid) return null;
+          return (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setPlayingVideoUrl(null)}>
+              <div className="relative w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => setPlayingVideoUrl(null)} className="absolute -top-10 right-0 text-white/70 hover:text-white text-sm font-medium flex items-center gap-1">Cerrar ✕</button>
+                <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                  <iframe className="absolute inset-0 w-full h-full rounded-xl" src={`https://www.youtube.com/embed/${vid}?autoplay=1&rel=0`} allow="autoplay; encrypted-media" allowFullScreen />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {relatingPrinciple && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={() => setRelatingPrinciple(null)}>
+            <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-sm font-semibold text-foreground mb-1">Relacionar principio</h3>
+              <p className="text-xs text-muted mb-4">Se creará una copia independiente de <span className="text-emerald-400">&ldquo;{relatingPrinciple.name}&rdquo;</span> con sus subprincipios y comportamientos en la fase, bloque y contexto seleccionados.</p>
+
+              <label className="text-xs text-foreground-secondary font-medium block mb-1.5">Fase destino</label>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {phases.filter((p) => p.name !== "ABP").map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setRelTargetPhase(p.id)}
+                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${relTargetPhase === p.id ? "bg-violet-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-violet-400"}`}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+
+              <label className="text-xs text-foreground-secondary font-medium block mb-1.5">Bloque destino (opcional)</label>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  onClick={() => setRelTargetBlock(null)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${relTargetBlock === null ? "bg-violet-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-violet-400"}`}
+                >
+                  Sin especificar
+                </button>
+                {blocks.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setRelTargetBlock(b.id)}
+                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${relTargetBlock === b.id ? "bg-violet-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-violet-400"}`}
+                  >
+                    {b.name}
+                  </button>
+                ))}
+              </div>
+
+              <label className="text-xs text-foreground-secondary font-medium block mb-1.5">Contexto destino</label>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {contexts.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setRelTargetContext(c.id)}
+                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${relTargetContext === c.id ? "bg-violet-600 text-white" : "bg-surface-hover border border-border text-foreground-secondary hover:border-violet-400"}`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setRelatingPrinciple(null)} className="px-4 py-2 text-xs text-foreground-secondary hover:text-foreground-secondary">Cancelar</button>
+                <button onClick={handleDuplicatePrinciple} disabled={!relTargetPhase} className="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-medium disabled:opacity-40">Duplicar principio</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================
+  // Vista principal: campograma + tarjetas + panel contextual
+  // ============================================
   return (
     <div className="flex gap-6">
       {/* ===== LEFT: Main content ===== */}
@@ -651,9 +1405,9 @@ export default function ModeloDeJuegoPage() {
           )}
         </div>
 
-        {/* Nivel 2: Fases del juego (sin ABP) */}
-        <div className="mb-6">
-          <div className="flex border-b border-border">
+        {/* Nivel 2: Fases del juego (sin ABP) + toggle Campograma/Mapa */}
+        <div className="mb-6 flex items-center justify-between border-b border-border">
+          <div className="flex">
             {phases.filter((p) => p.name !== "ABP").map((phase) => (
               <button
                 key={phase.id}
@@ -669,10 +1423,24 @@ export default function ModeloDeJuegoPage() {
               </button>
             ))}
           </div>
+          <div className="flex gap-1 mb-2 flex-shrink-0">
+            <button
+              onClick={() => setTopView("campo")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${topView === "campo" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
+            >
+              Campograma
+            </button>
+            <button
+              onClick={() => setTopView("mapa")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${topView === "mapa" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
+            >
+              Mapa
+            </button>
+          </div>
         </div>
 
         {/* Nivel 3: Altura de bloque */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h2 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
             Altura de bloque rival
           </h2>
@@ -703,447 +1471,358 @@ export default function ModeloDeJuegoPage() {
           </div>
         </div>
 
-        {/* Árbol de principios */}
-        <div className="space-y-4">
-          {filteredPrinciples.map((principle) => (
-            <div
-              key={principle.id}
-              className="bg-surface rounded-xl border border-border overflow-hidden"
-              onContextMenu={(e) => handleContextMenu(e, principle.id, principle.name)}
-            >
-              {/* Principio */}
-              <div className="p-4 border-b border-surface-hover">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <InlineEdit
-                      value={principle.name}
-                      onSave={(v) => {
-                        updatePrinciple(principle.id, { name: v }).then(loadPrinciples);
-                      }}
-                      className="font-semibold text-foreground"
-                    />
-                    {principle.youtube_url && (
-                      <YoutubeThumbnail url={principle.youtube_url} onClick={() => setPlayingVideoUrl(principle.youtube_url!)} />
+        {topView === "mapa" ? (
+          /* ===== Mapa global del modelo ===== */
+          <div className="bg-surface rounded-xl border border-border p-6">
+            <h2 className="text-sm font-semibold text-foreground mb-1">Mapa del modelo de juego</h2>
+            <p className="text-xs text-muted mb-5">Visión global de las 4 fases y el ciclo del juego. Haz clic en una fase para ir a su campograma.</p>
+            <div className="grid grid-cols-2 gap-4 max-w-2xl">
+              {phases.filter((p) => p.name !== "ABP").map((phase) => {
+                const list = allPhasePrinciples[phase.id] ?? [];
+                const c = PHASE_COLORS[phase.name] ?? DEFAULT_PHASE_COLORS;
+                return (
+                  <button
+                    key={phase.id}
+                    onClick={() => { setSelectedPhase(phase.id); setTopView("campo"); }}
+                    className="text-left rounded-xl border p-4 hover:brightness-110 transition"
+                    style={{ borderColor: c.border, backgroundColor: c.bg }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      {PHASE_ICONS[phase.name]}
+                      <span className="text-sm font-semibold" style={{ color: c.accent }}>{phase.name.toUpperCase()}</span>
+                    </div>
+                    {list.length === 0 ? (
+                      <p className="text-[11px] text-muted italic">Sin principios todavía</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {list.slice(0, 4).map((p) => (
+                          <li key={p.id} className="text-[11px] text-foreground-secondary truncate">• {p.name}</li>
+                        ))}
+                        {list.length > 4 && <li className="text-[11px] text-muted">+{list.length - 4} más</li>}
+                      </ul>
                     )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {itemStatuses.has(principle.id) && <StatusBadge status={itemStatuses.get(principle.id)!} />}
-                    <YoutubeIconButton
-                      hasVideo={!!principle.youtube_url}
-                      onClick={() => {
-                        setEditingYoutubeId(principle.id);
-                        setEditingYoutubeLevel("principle");
-                      }}
-                    />
-                  <button
-                    onClick={() => {
-                      setRelatingPrinciple(principle);
-                      setRelTargetPhase("");
-                      setRelTargetContext(selectedContext);
-                      setRelTargetBlock(selectedBlock);
-                    }}
-                    className="text-xs text-violet-400 hover:text-violet-300 font-medium flex items-center gap-1"
-                    title="Duplicar en otra fase o contexto"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M7 7h10v10" /><path d="M7 7L17 17" /></svg>
-                    Relacionar
                   </button>
-                  <button
-                    onClick={() => {
-                      setAddingSubTo(principle.id);
-                      setNewSubName("");
-                    }}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                  >
-                    + Subprincipio
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm("¿Eliminar este principio?")) {
-                        deletePrinciple(principle.id).then(loadPrinciples);
-                      }
-                    }}
-                    className="text-xs text-foreground-secondary hover:text-red-500 ml-2"
-                  >
-                    ✕
-                  </button>
-                  </div>
-                </div>
-                {editingYoutubeId === principle.id && editingYoutubeLevel === "principle" && (
-                  <div className="px-4 pb-2">
-                    <YoutubeUrlInput
-                      currentUrl={principle.youtube_url}
-                      onSave={(url) => handleSaveYoutubeUrl("principle", principle.id, url)}
-                      onCancel={() => { setEditingYoutubeId(null); setEditingYoutubeLevel(null); }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Subprincipios */}
-              <div className="divide-y divide-surface-hover">
-                {(principle.sub_principles ?? [])
-                  .filter((sp) => !sp.archived)
-                  .map((sub) => (
-                    <div key={sub.id} className="pl-8 pr-4 py-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
-                          <InlineEdit
-                            value={sub.name}
-                            onSave={(v) => {
-                              updateSubPrinciple(sub.id, { name: v }).then(
-                                loadPrinciples
-                              );
-                            }}
-                            className="font-medium text-foreground-secondary text-sm"
-                          />
-                          {sub.youtube_url && (
-                            <YoutubeThumbnail url={sub.youtube_url} onClick={() => setPlayingVideoUrl(sub.youtube_url!)} size="sm" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <YoutubeIconButton
-                            hasVideo={!!sub.youtube_url}
-                            onClick={() => {
-                              setEditingYoutubeId(sub.id);
-                              setEditingYoutubeLevel("sub");
-                            }}
-                          />
-                          <button
-                            onClick={() => {
-                              setAddingBehaviorTo(sub.id);
-                              setNewBehaviorName("");
-                              setNewBehaviorType("individual");
-                            }}
-                            className="text-xs text-blue-400 hover:text-blue-700 font-medium"
-                          >
-                            + Comportamiento
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm("¿Eliminar este subprincipio?")) {
-                                deleteSubPrinciple(sub.id).then(loadPrinciples);
-                              }
-                            }}
-                            className="text-xs text-foreground-secondary hover:text-red-500"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-
-                      {editingYoutubeId === sub.id && editingYoutubeLevel === "sub" && (
-                        <div className="ml-5 mb-2">
-                          <YoutubeUrlInput
-                            currentUrl={sub.youtube_url}
-                            onSave={(url) => handleSaveYoutubeUrl("sub", sub.id, url)}
-                            onCancel={() => { setEditingYoutubeId(null); setEditingYoutubeLevel(null); }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Comportamientos */}
-                      <div className="pl-5 space-y-1">
-                        {(sub.behaviors ?? [])
-                          .filter((b) => !b.archived)
-                          .filter((b) => {
-                            if (!selectedBlock) return true;
-                            const bhIds = b.behavior_block_heights?.map((bh) => bh.block_height_id) ?? [];
-                            return bhIds.length === 0 || bhIds.includes(selectedBlock);
-                          })
-                          .map((behavior) => {
-                            const badge = BEHAVIOR_LABELS[behavior.type];
-                            return (
-                              <div key={behavior.id} className="py-1.5 group">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="w-1 h-1 rounded-full bg-foreground-secondary" />
-                                    <InlineEdit
-                                      value={behavior.name}
-                                      onSave={(v) => {
-                                        updateBehavior(behavior.id, { name: v }).then(
-                                          loadPrinciples
-                                        );
-                                      }}
-                                      className="text-sm text-foreground-secondary"
-                                    />
-                                    <span
-                                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.color}`}
-                                    >
-                                      {badge.label}
-                                    </span>
-                                    {behavior.youtube_url && (
-                                      <YoutubeThumbnail url={behavior.youtube_url} onClick={() => setPlayingVideoUrl(behavior.youtube_url!)} size="sm" />
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <YoutubeIconButton
-                                        hasVideo={!!behavior.youtube_url}
-                                        onClick={() => {
-                                          setEditingYoutubeId(behavior.id);
-                                          setEditingYoutubeLevel("behavior");
-                                        }}
-                                      />
-                                    </span>
-                                    <button
-                                      onClick={() => {
-                                        if (confirm("¿Eliminar este comportamiento?")) {
-                                          deleteBehavior(behavior.id).then(loadPrinciples);
-                                        }
-                                      }}
-                                      className="text-xs text-foreground-secondary hover:text-red-500 opacity-0 group-hover:opacity-100"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                </div>
-                                {editingYoutubeId === behavior.id && editingYoutubeLevel === "behavior" && (
-                                  <div className="ml-3 mt-1">
-                                    <YoutubeUrlInput
-                                      currentUrl={behavior.youtube_url}
-                                      onSave={(url) => handleSaveYoutubeUrl("behavior", behavior.id, url)}
-                                      onCancel={() => { setEditingYoutubeId(null); setEditingYoutubeLevel(null); }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-
-                        {/* Form: nuevo comportamiento */}
-                        {addingBehaviorTo === sub.id && (
-                          <div className="flex items-center gap-2 pt-1">
-                            <input
-                              autoFocus
-                              value={newBehaviorName}
-                              onChange={(e) => setNewBehaviorName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleCreateBehavior(sub.id);
-                                if (e.key === "Escape") setAddingBehaviorTo(null);
-                              }}
-                              placeholder="Nombre del comportamiento"
-                              className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:border-blue-400"
-                            />
-                            <select
-                              value={newBehaviorType}
-                              onChange={(e) =>
-                                setNewBehaviorType(e.target.value as BehaviorType)
-                              }
-                              className="px-2 py-1 border border-border rounded text-xs bg-surface"
-                            >
-                              <option value="individual">Individual</option>
-                              <option value="relations">Relaciones</option>
-                              <option value="collective">Colectivo</option>
-                            </select>
-                            <button
-                              onClick={() => handleCreateBehavior(sub.id)}
-                              className="px-2 py-1 bg-blue-600 text-white rounded text-xs"
-                            >
-                              Crear
-                            </button>
-                            <button
-                              onClick={() => setAddingBehaviorTo(null)}
-                              className="text-xs text-foreground-secondary"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                {/* Form: nuevo subprincipio */}
-                {addingSubTo === principle.id && (
-                  <div className="pl-8 pr-4 py-3 flex items-center gap-2">
-                    <input
-                      autoFocus
-                      value={newSubName}
-                      onChange={(e) => setNewSubName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleCreateSubPrinciple(principle.id);
-                        if (e.key === "Escape") setAddingSubTo(null);
-                      }}
-                      placeholder="Nombre del subprincipio"
-                      className="flex-1 px-2 py-1 border border-border rounded text-sm focus:outline-none focus:border-emerald-400"
-                    />
-                    <button
-                      onClick={() => handleCreateSubPrinciple(principle.id)}
-                      className="px-3 py-1 bg-emerald-600 text-white rounded text-xs"
-                    >
-                      Crear
-                    </button>
-                    <button
-                      onClick={() => setAddingSubTo(null)}
-                      className="text-xs text-foreground-secondary"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-              </div>
+                );
+              })}
             </div>
-          ))}
-
-          {/* Crear nuevo principio */}
-          {addingPrinciple ? (
-            <div className="bg-surface rounded-xl border border-border p-4 flex items-center gap-2">
-              <input
-                autoFocus
-                value={newPrincipleName}
-                onChange={(e) => setNewPrincipleName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreatePrinciple();
-                  if (e.key === "Escape") setAddingPrinciple(false);
-                }}
-                placeholder="Nombre del principio"
-                className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-emerald-400"
-              />
-              <button
-                onClick={handleCreatePrinciple}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium"
-              >
-                Crear
-              </button>
-              <button
-                onClick={() => setAddingPrinciple(false)}
-                className="text-foreground-secondary hover:text-foreground-secondary"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAddingPrinciple(true)}
-              className="w-full py-4 border-2 border-dashed border-border rounded-xl text-sm font-medium text-foreground-secondary hover:border-emerald-300 hover:text-emerald-600 transition-colors"
-            >
-              + Nuevo principio para {activeContext?.name} — {activePhase?.name}{selectedBlock ? ` — ${blocks.find(b => b.id === selectedBlock)?.name ?? ""}` : ""}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ===== RIGHT: Sidebar ===== */}
-      <div className="w-72 flex-shrink-0 space-y-4">
-        {/* Resumen de la fase */}
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: phaseColors.border, backgroundColor: phaseColors.bg }}>
-          <div className="px-4 py-3 border-b" style={{ borderColor: phaseColors.border }}>
-            <div className="flex items-center gap-2">
-              {activePhase && PHASE_ICONS[activePhase.name]}
-              <h3 className="text-sm font-semibold text-foreground">
-                {activePhase?.name ?? "Fase"}
-              </h3>
-            </div>
-            <p className="text-xs text-muted mt-1">Resumen de la fase seleccionada</p>
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-foreground-secondary">Principios</span>
-              <span className="text-sm font-bold" style={{ color: phaseColors.accent }}>{totalPrinciples}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-foreground-secondary">Subprincipios</span>
-              <span className="text-sm font-bold" style={{ color: phaseColors.accent }}>{totalSubPrinciples}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-foreground-secondary">Comportamientos</span>
-              <span className="text-sm font-bold" style={{ color: phaseColors.accent }}>{totalBehaviors}</span>
-            </div>
-            {/* Behavior type breakdown */}
-            {totalBehaviors > 0 && (
-              <div className="pt-2 border-t" style={{ borderColor: phaseColors.border }}>
-                <p className="text-[10px] text-muted uppercase tracking-wide mb-2">Por tipo</p>
-                {(["individual", "relations", "collective"] as BehaviorType[]).map(type => {
-                  const count = filteredPrinciples.reduce((sum, p) => {
-                    return sum + (p.sub_principles?.filter(sp => !sp.archived) ?? []).reduce((s2, sp) => {
-                      return s2 + (sp.behaviors?.filter(b => !b.archived && b.type === type)?.length ?? 0);
-                    }, 0);
-                  }, 0);
-                  if (count === 0) return null;
-                  const badge = BEHAVIOR_LABELS[type];
-                  return (
-                    <div key={type} className="flex items-center justify-between mb-1">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.color}`}>{badge.label}</span>
-                      <span className="text-xs text-foreground-secondary">{count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Relación con otras fases */}
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-3 border-b border-surface-hover">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round">
-                <path d="M7 7h10v10" /><path d="M7 7L17 17" />
-              </svg>
-              Relación con otras fases
-            </h3>
-          </div>
-          <div className="p-4 space-y-3">
-            {phaseRelations.map(({ phase, principleCount, subPrincipleCount }) => (
-              <button
-                key={phase.id}
-                onClick={() => setSelectedPhase(phase.id)}
-                className="w-full text-left group"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {PHASE_ICONS[phase.name] && <span className="flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">{PHASE_ICONS[phase.name]}</span>}
-                  <span className="text-xs font-medium text-foreground-secondary group-hover:text-foreground transition-colors">{phase.name}</span>
-                </div>
-                <div className="flex items-center gap-3 pl-6">
-                  <span className="text-[10px] text-muted">{principleCount} principios</span>
-                  <span className="text-[10px] text-muted">{subPrincipleCount} subprincipios</span>
-                </div>
-              </button>
-            ))}
-            {phaseRelations.length === 0 && (
-              <p className="text-xs text-muted">No hay otras fases disponibles</p>
-            )}
-          </div>
-        </div>
-
-        {/* Tareas destacadas */}
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-3 border-b border-surface-hover">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
-              </svg>
-              Tareas destacadas
-            </h3>
-            <p className="text-[10px] text-muted mt-0.5">
-              {phaseFavTasks.length > 0
-                ? `Tareas favoritas de ${activePhase?.name}`
-                : "Tareas marcadas como favoritas"}
+            <p className="text-[10px] text-muted mt-5 max-w-2xl">
+              Relaciones entre fases: fase ofensiva ↔ transición defensiva (al perder el balón) · fase ofensiva ↔ transición ofensiva (al recuperarlo) · fase defensiva ↔ transición ofensiva (al recuperar el balón) · fase defensiva ↔ transición defensiva (al perderlo de nuevo).
             </p>
           </div>
-          <div className="p-3">
-            {sidebarTasks.length > 0 ? (
-              <div className="space-y-2">
-                {sidebarTasks.map(task => (
-                  <div key={task.id} className="bg-surface-hover rounded-lg px-3 py-2 group">
-                    <p className="text-xs font-medium text-foreground-secondary line-clamp-2">{task.name}</p>
-                    {task.duration_minutes > 0 && (
-                      <p className="text-[10px] text-muted mt-1">{task.duration_minutes} min</p>
-                    )}
-                  </div>
+        ) : (
+          <>
+            {/* Campograma central con las 4 zonas de la fase activa */}
+            <div className="bg-surface rounded-xl border border-border p-4 mb-3">
+              <PrincipleFieldMap
+                zones={sortedZones}
+                phaseName={activePhase?.name}
+                accent={phaseColors.accent}
+                principlesByZone={principlesByZone}
+                selectedId={selectedPrincipleId}
+                onSelect={(id) => setSelectedPrincipleId((prev) => (prev === id ? null : id))}
+              />
+            </div>
+
+            {unassignedPrinciples.length > 0 && (
+              <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted">
+                <span>Sin zona asignada:</span>
+                {unassignedPrinciples.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPrincipleId((prev) => (prev === p.id ? null : p.id))}
+                    className={`px-2 py-1 rounded-full border transition-colors ${selectedPrincipleId === p.id ? "border-current" : "border-border hover:border-border-light"}`}
+                    style={selectedPrincipleId === p.id ? { color: phaseColors.accent, borderColor: phaseColors.accent } : {}}
+                  >
+                    {p.name}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-xs text-muted">Sin tareas favoritas</p>
-                <p className="text-[10px] text-muted mt-1">Marca tareas con ★ para verlas aquí</p>
-              </div>
             )}
-          </div>
-        </div>
+
+            {/* Tarjetas de principios */}
+            <h2 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
+              Principios de {activePhase?.name.toLowerCase()} ({filteredPrinciples.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredPrinciples.map((principle) => {
+                const isSel = principle.id === selectedPrincipleId;
+                return (
+                  <div
+                    key={principle.id}
+                    onClick={() => setSelectedPrincipleId((prev) => (prev === principle.id ? null : principle.id))}
+                    onContextMenu={(e) => handleContextMenu(e, principle.id, principle.name)}
+                    className="text-left bg-surface rounded-xl border p-3 cursor-pointer transition-colors flex flex-col"
+                    style={isSel ? { borderColor: phaseColors.accent } : { borderColor: "var(--border)" }}
+                  >
+                    <div style={{ maxWidth: 220 }} className="mb-2">
+                      <ZoneMiniMap zones={zones} zoneId={principle.field_zone_id} accent={phaseColors.accent} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
+                        <h3 className="text-sm font-semibold text-foreground truncate">{principle.name}</h3>
+                      </div>
+                      {itemStatuses.has(principle.id) && <StatusBadge status={itemStatuses.get(principle.id)!} />}
+                    </div>
+                    <p className="text-xs text-foreground-secondary line-clamp-2 mb-2">{principle.description || "Sin descripción"}</p>
+                    <div className="mt-auto flex items-center justify-between gap-2">
+                      <ZoneBadge principle={principle} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
+                      <span className="text-[10px] text-muted flex-shrink-0">
+                        {subCountFor(principle)} sub · {behCountFor(principle)} comp · {tasksForPrinciple(principle.id).length} tareas
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Crear nuevo principio */}
+              {addingPrinciple ? (
+                <div className="bg-surface rounded-xl border border-border p-4 flex flex-col gap-2 md:col-span-2 lg:col-span-3">
+                  <input
+                    autoFocus
+                    value={newPrincipleName}
+                    onChange={(e) => setNewPrincipleName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreatePrinciple();
+                      if (e.key === "Escape") setAddingPrinciple(false);
+                    }}
+                    placeholder="Nombre del principio"
+                    className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                  <div>
+                    <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Zona del campo</label>
+                    <ZonePicker zones={zones} phaseName={activePhase?.name} value={newPrincipleZone} onChange={setNewPrincipleZone} accent={phaseColors.accent} />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleCreatePrinciple} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium">Crear</button>
+                    <button onClick={() => setAddingPrinciple(false)} className="text-foreground-secondary hover:text-foreground-secondary text-sm">Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingPrinciple(true)}
+                  className="py-4 border-2 border-dashed border-border rounded-xl text-sm font-medium text-foreground-secondary hover:border-emerald-300 hover:text-emerald-600 transition-colors"
+                >
+                  + Nuevo principio
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ===== RIGHT: Sidebar contextual ===== */}
+      <div className="w-72 flex-shrink-0 space-y-4">
+        {selectedPrinciple ? (
+          <>
+            {/* Panel del principio seleccionado */}
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: phaseColors.border, backgroundColor: phaseColors.bg }}>
+              <div className="px-4 py-3 border-b flex items-center justify-between gap-2" style={{ borderColor: phaseColors.border }}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
+                  <h3 className="text-sm font-semibold text-foreground truncate">{selectedPrinciple.name}</h3>
+                </div>
+                <button onClick={() => setSelectedPrincipleId(null)} className="text-muted hover:text-foreground-secondary flex-shrink-0 text-xs">✕</button>
+              </div>
+              <div className="p-4 space-y-3">
+                <ZoneBadge principle={selectedPrinciple} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
+                <p className="text-xs text-foreground-secondary">{selectedPrinciple.description || "Sin descripción todavía."}</p>
+
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">Subprincipios ({subCountFor(selectedPrinciple)})</p>
+                  {subCountFor(selectedPrinciple) === 0 ? (
+                    <p className="text-xs text-muted italic">Sin subprincipios</p>
+                  ) : (
+                    <ul className="space-y-0.5">
+                      {(selectedPrinciple.sub_principles ?? []).filter((s) => !s.archived).slice(0, 3).map((s) => (
+                        <li key={s.id} className="text-xs text-foreground-secondary flex items-center gap-1.5"><span className="text-muted">·</span>{s.name}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">Comportamientos ({behCountFor(selectedPrinciple)})</p>
+                  {behCountFor(selectedPrinciple) === 0 ? (
+                    <p className="text-xs text-muted italic">Sin comportamientos</p>
+                  ) : (
+                    <ul className="space-y-0.5">
+                      {(selectedPrinciple.sub_principles ?? [])
+                        .filter((s) => !s.archived)
+                        .flatMap((s) => s.behaviors ?? [])
+                        .filter((b) => !b.archived)
+                        .slice(0, 3)
+                        .map((b) => (
+                          <li key={b.id} className="text-xs text-foreground-secondary flex items-center gap-1.5"><span className="text-muted">·</span>{b.name}</li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => { setViewingPrincipleId(selectedPrinciple.id); setDetailTab("resumen"); }}
+                  className="w-full py-2 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90 flex items-center justify-center gap-1.5"
+                  style={{ background: phaseColors.accent }}
+                >
+                  Ver principio completo
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Tareas relacionadas con este principio */}
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 border-b border-surface-hover">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
+                  </svg>
+                  Tareas relacionadas
+                </h3>
+              </div>
+              <div className="p-3">
+                {tasksForPrinciple(selectedPrinciple.id).length > 0 ? (
+                  <div className="space-y-2">
+                    {tasksForPrinciple(selectedPrinciple.id).slice(0, 5).map((task) => (
+                      <div key={task.id} className="bg-surface-hover rounded-lg px-3 py-2">
+                        <p className="text-xs font-medium text-foreground-secondary line-clamp-2">{task.name}</p>
+                        {task.duration_minutes > 0 && <p className="text-[10px] text-muted mt-1">{task.duration_minutes} min</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-xs text-muted">Sin tareas vinculadas</p>
+                    <p className="text-[10px] text-muted mt-1">Vincúlalas desde &ldquo;Ver principio completo&rdquo;</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Resumen de la fase */}
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: phaseColors.border, backgroundColor: phaseColors.bg }}>
+              <div className="px-4 py-3 border-b" style={{ borderColor: phaseColors.border }}>
+                <div className="flex items-center gap-2">
+                  {activePhase && PHASE_ICONS[activePhase.name]}
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {activePhase?.name ?? "Fase"}
+                  </h3>
+                </div>
+                <p className="text-xs text-muted mt-1">Resumen de la fase seleccionada</p>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-foreground-secondary">Principios</span>
+                  <span className="text-sm font-bold" style={{ color: phaseColors.accent }}>{totalPrinciples}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-foreground-secondary">Subprincipios</span>
+                  <span className="text-sm font-bold" style={{ color: phaseColors.accent }}>{totalSubPrinciples}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-foreground-secondary">Comportamientos</span>
+                  <span className="text-sm font-bold" style={{ color: phaseColors.accent }}>{totalBehaviors}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-foreground-secondary">Tareas relacionadas</span>
+                  <span className="text-sm font-bold" style={{ color: phaseColors.accent }}>{linkedTaskCount}</span>
+                </div>
+                {/* Behavior type breakdown */}
+                {totalBehaviors > 0 && (
+                  <div className="pt-2 border-t" style={{ borderColor: phaseColors.border }}>
+                    <p className="text-[10px] text-muted uppercase tracking-wide mb-2">Por tipo</p>
+                    {(["individual", "relations", "collective"] as BehaviorType[]).map(type => {
+                      const count = filteredPrinciples.reduce((sum, p) => {
+                        return sum + (p.sub_principles?.filter(sp => !sp.archived) ?? []).reduce((s2, sp) => {
+                          return s2 + (sp.behaviors?.filter(b => !b.archived && b.type === type)?.length ?? 0);
+                        }, 0);
+                      }, 0);
+                      if (count === 0) return null;
+                      const badge = BEHAVIOR_LABELS[type];
+                      return (
+                        <div key={type} className="flex items-center justify-between mb-1">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.color}`}>{badge.label}</span>
+                          <span className="text-xs text-foreground-secondary">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Relación con otras fases */}
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 border-b border-surface-hover">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round">
+                    <path d="M7 7h10v10" /><path d="M7 7L17 17" />
+                  </svg>
+                  Relación con otras fases
+                </h3>
+              </div>
+              <div className="p-4 space-y-3">
+                {phaseRelations.map(({ phase, principleCount, subPrincipleCount }) => (
+                  <button
+                    key={phase.id}
+                    onClick={() => setSelectedPhase(phase.id)}
+                    className="w-full text-left group"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {PHASE_ICONS[phase.name] && <span className="flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">{PHASE_ICONS[phase.name]}</span>}
+                      <span className="text-xs font-medium text-foreground-secondary group-hover:text-foreground transition-colors">{phase.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 pl-6">
+                      <span className="text-[10px] text-muted">{principleCount} principios</span>
+                      <span className="text-[10px] text-muted">{subPrincipleCount} subprincipios</span>
+                    </div>
+                  </button>
+                ))}
+                {phaseRelations.length === 0 && (
+                  <p className="text-xs text-muted">No hay otras fases disponibles</p>
+                )}
+              </div>
+            </div>
+
+            {/* Tareas destacadas */}
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 border-b border-surface-hover">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
+                  </svg>
+                  Tareas destacadas
+                </h3>
+                <p className="text-[10px] text-muted mt-0.5">
+                  {phaseFavTasks.length > 0
+                    ? `Tareas favoritas de ${activePhase?.name}`
+                    : "Tareas marcadas como favoritas"}
+                </p>
+              </div>
+              <div className="p-3">
+                {sidebarTasks.length > 0 ? (
+                  <div className="space-y-2">
+                    {sidebarTasks.map(task => (
+                      <div key={task.id} className="bg-surface-hover rounded-lg px-3 py-2 group">
+                        <p className="text-xs font-medium text-foreground-secondary line-clamp-2">{task.name}</p>
+                        {task.duration_minutes > 0 && (
+                          <p className="text-[10px] text-muted mt-1">{task.duration_minutes} min</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-xs text-muted">Sin tareas favoritas</p>
+                    <p className="text-[10px] text-muted mt-1">Marca tareas con ★ para verlas aquí</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Modal: YouTube player */}

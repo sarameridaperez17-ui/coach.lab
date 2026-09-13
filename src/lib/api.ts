@@ -99,6 +99,7 @@ export async function getPrinciples(gamePhaseId: string): Promise<Principle[]> {
     .from("principles")
     .select(`
       *,
+      field_zone:field_zones(*),
       principle_contexts(team_context_id),
       sub_principles(
         *,
@@ -120,7 +121,8 @@ export async function createPrinciple(
   name: string,
   gamePhaseId: string,
   contextIds: string[],
-  blockHeightId?: string | null
+  blockHeightId?: string | null,
+  fieldZoneId?: string | null
 ): Promise<Principle> {
   // Obtener posición máxima
   const { data: existing } = await supabase
@@ -133,6 +135,7 @@ export async function createPrinciple(
 
   const insertData: Record<string, unknown> = { name, game_phase_id: gamePhaseId, position: nextPos };
   if (blockHeightId) insertData.block_height_id = blockHeightId;
+  if (fieldZoneId) insertData.field_zone_id = fieldZoneId;
 
   const { data, error } = await supabase
     .from("principles")
@@ -155,7 +158,7 @@ export async function createPrinciple(
 
 export async function updatePrinciple(
   id: string,
-  updates: { name?: string; description?: string; youtube_url?: string | null }
+  updates: { name?: string; description?: string; youtube_url?: string | null; field_zone_id?: string | null }
 ): Promise<void> {
   const { error } = await supabase.from("principles").update(updates).eq("id", id);
   if (error) throw error;
@@ -605,6 +608,23 @@ export async function deleteTask(id: string): Promise<void> {
     .from("tasks")
     .update({ archived: true })
     .eq("id", id);
+  if (error) throw error;
+}
+
+// Vínculo Tarea ↔ Principio (tabla ya existente en el esquema, sin usar hasta ahora)
+export async function linkTaskToPrinciple(taskId: string, principleId: string): Promise<void> {
+  const { error } = await supabase
+    .from("task_principles")
+    .insert({ task_id: taskId, principle_id: principleId });
+  if (error) throw error;
+}
+
+export async function unlinkTaskFromPrinciple(taskId: string, principleId: string): Promise<void> {
+  const { error } = await supabase
+    .from("task_principles")
+    .delete()
+    .eq("task_id", taskId)
+    .eq("principle_id", principleId);
   if (error) throw error;
 }
 
