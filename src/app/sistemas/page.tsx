@@ -36,20 +36,6 @@ const MARKER_SIZE_KEY = "sistemas-marker-size";
 const FILL_COLOR_KEY = "sistemas-fill-color";
 const TEXT_COLOR_KEY = "sistemas-text-color";
 
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
-      <label className="text-[10px] text-muted uppercase tracking-wide font-medium truncate">{label}</label>
-      <input
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-8 h-8 flex-shrink-0 rounded border border-border bg-transparent cursor-pointer"
-      />
-    </div>
-  );
-}
-
 // Coordenadas en metros — sistema maestro del componente <Pitch>
 // (x=0 portería propia izda -> x=105 rival dcha, y=0..68).
 const DEFAULT_POSITIONS = [
@@ -535,6 +521,52 @@ export default function SistemasPage() {
                 ))}
               </Pitch>
             </div>
+
+            {/* Edición de posiciones — barra lineal debajo del campograma */}
+            <div className="mt-3 bg-surface rounded-xl border border-border px-4 py-3 flex flex-wrap items-center gap-4">
+              <button
+                onClick={handleAddPosition}
+                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors flex-shrink-0"
+              >
+                + Añadir posición
+              </button>
+              <span className="text-xs text-muted">
+                {players.length} posiciones · clic derecho sobre una para cambiar su nombre o eliminarla
+              </span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium">Tamaño</label>
+                <input
+                  type="range"
+                  min={1.8}
+                  max={4}
+                  step={0.1}
+                  value={markerSize}
+                  onChange={(e) => handleMarkerSizeChange(parseFloat(e.target.value))}
+                  className="w-24 accent-indigo-600"
+                />
+                <span className="text-xs text-foreground-secondary w-7">{markerSize.toFixed(1)}</span>
+              </div>
+              <div className="flex items-center gap-4 flex-shrink-0 md:ml-auto">
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] text-muted uppercase tracking-wide font-medium">Círculo</label>
+                  <input
+                    type="color"
+                    value={fillColor}
+                    onChange={(e) => handleFillColorChange(e.target.value)}
+                    className="w-7 h-7 rounded border border-border bg-transparent cursor-pointer"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] text-muted uppercase tracking-wide font-medium">Dorsal</label>
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => handleTextColorChange(e.target.value)}
+                    className="w-7 h-7 rounded border border-border bg-transparent cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* RIGHT: Sidebar */}
@@ -592,44 +624,6 @@ export default function SistemasPage() {
                     </>
                   )}
                 </div>
-              </div>
-            </div>
-
-            {/* Posiciones y apariencia del campograma */}
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
-              <div className="px-4 py-3 border-b border-surface-hover flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Posiciones</h3>
-                <button
-                  onClick={handleAddPosition}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
-                >
-                  + Añadir
-                </button>
-              </div>
-              <div className="p-4 space-y-4">
-                <p className="text-xs text-muted">
-                  {players.length} posiciones en el campo. Clic derecho sobre una para cambiar su nombre o eliminarla.
-                </p>
-                <div className="pt-1 border-t border-surface-hover">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] text-muted uppercase tracking-wide font-medium">Tamaño</label>
-                    <span className="text-xs text-foreground-secondary">{markerSize.toFixed(1)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1.8}
-                    max={4}
-                    step={0.1}
-                    value={markerSize}
-                    onChange={(e) => handleMarkerSizeChange(parseFloat(e.target.value))}
-                    className="w-full accent-indigo-600"
-                  />
-                </div>
-                <div className="flex items-center gap-3 pt-1 border-t border-surface-hover">
-                  <ColorField label="Círculo" value={fillColor} onChange={handleFillColorChange} />
-                  <ColorField label="Dorsal" value={textColor} onChange={handleTextColorChange} />
-                </div>
-                <p className="text-[10px] text-muted">Se aplica a todos los sistemas de la biblioteca.</p>
               </div>
             </div>
 
