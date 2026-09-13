@@ -104,13 +104,19 @@ export const FIELD_ZONES: FieldZone[] = [
   {
     id: 'zone-2',
     name: 'Z2',
-    description: 'Zona de creación / Zona de destrucción',
+    description: 'Zona de creación / Zona de contención',
     position: 2,
   },
   {
     id: 'zone-3',
     name: 'Z3',
-    description: 'Zona de finalización / Zona de orientación',
+    description: 'Zona de progresión / Zona de destrucción',
     position: 3,
+  },
+  {
+    id: 'zone-4',
+    name: 'Z4',
+    description: 'Zona de finalización / Zona de orientación',
+    position: 4,
   },
 ];

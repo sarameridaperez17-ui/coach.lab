@@ -383,5 +383,6 @@ INSERT INTO positions (name, abbreviation, position) VALUES
 -- Zonas del campo
 INSERT INTO field_zones (name, description, position) VALUES
   ('Z1', 'Zona de inicio / Zona de protección', 1),
-  ('Z2', 'Zona de creación / Zona de destrucción', 2),
-  ('Z3', 'Zona de finalización / Zona de orientación', 3);
+  ('Z2', 'Zona de creación / Zona de contención', 2),
+  ('Z3', 'Zona de progresión / Zona de destrucción', 3),
+  ('Z4', 'Zona de finalización / Zona de orientación', 4);

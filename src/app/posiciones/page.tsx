@@ -110,11 +110,12 @@ const POSITION_COORDS: Record<string, { x: number; y: number }> = {
   DP: { x: 84, y: 40.8 },
 };
 
-// Tercios del campo (mismo sistema de coordenadas maestro).
+// Cuartos del campo (mismo sistema de coordenadas maestro).
 const ZONES = [
-  { id: "Z1", x0: 0, x1: FIELD.W / 3, opacity: 0.28 },
-  { id: "Z2", x0: FIELD.W / 3, x1: (FIELD.W / 3) * 2, opacity: 0.2 },
-  { id: "Z3", x0: (FIELD.W / 3) * 2, x1: FIELD.W, opacity: 0.14 },
+  { id: "Z1", x0: 0, x1: FIELD.W / 4, opacity: 0.32 },
+  { id: "Z2", x0: FIELD.W / 4, x1: (FIELD.W / 4) * 2, opacity: 0.24 },
+  { id: "Z3", x0: (FIELD.W / 4) * 2, x1: (FIELD.W / 4) * 3, opacity: 0.18 },
+  { id: "Z4", x0: (FIELD.W / 4) * 3, x1: FIELD.W, opacity: 0.12 },
 ];
 
 function FieldZoneMap({ posAbbr }: { posAbbr: string }) {
@@ -294,12 +295,14 @@ export default function PosicionesPage() {
     const z = zoneName.trim().toUpperCase();
     if (isOffensivePhase) {
       if (z === "Z1") return "Inicio";
-      if (z === "Z2") return "Creación / Progresión";
-      if (z === "Z3") return "Finalización";
+      if (z === "Z2") return "Creación";
+      if (z === "Z3") return "Progresión";
+      if (z === "Z4") return "Finalización";
     } else if (isDefensivePhase) {
       if (z === "Z1") return "Protección";
-      if (z === "Z2") return "Destrucción";
-      if (z === "Z3") return "Orientación";
+      if (z === "Z2") return "Contención";
+      if (z === "Z3") return "Destrucción";
+      if (z === "Z4") return "Orientación";
     }
     return "";
   };
