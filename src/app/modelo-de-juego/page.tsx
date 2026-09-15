@@ -1513,14 +1513,16 @@ export default function ModeloDeJuegoPage() {
           <>
             {/* Campograma central con las 4 zonas de la fase activa */}
             <div className="bg-surface rounded-xl border border-border p-4 mb-3">
-              <PrincipleFieldMap
-                zones={sortedZones}
-                phaseName={activePhase?.name}
-                accent={phaseColors.accent}
-                principlesByZone={principlesByZone}
-                selectedId={selectedPrincipleId}
-                onSelect={(id) => setSelectedPrincipleId((prev) => (prev === id ? null : id))}
-              />
+              <div className="max-w-lg mx-auto">
+                <PrincipleFieldMap
+                  zones={sortedZones}
+                  phaseName={activePhase?.name}
+                  accent={phaseColors.accent}
+                  principlesByZone={principlesByZone}
+                  selectedId={selectedPrincipleId}
+                  onSelect={(id) => setSelectedPrincipleId((prev) => (prev === id ? null : id))}
+                />
+              </div>
             </div>
 
             {/* Información del principio seleccionado — entre el campograma y las tarjetas */}
