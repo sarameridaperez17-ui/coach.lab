@@ -395,17 +395,17 @@ function PrincipleFieldMap({
               <rect x={cx - bandW / 2 + 0.5} y={cy - 4} width={bandW - 1} height={11} fill="transparent" />
               {isSel && <circle cx={cx} cy={cy} r="5.2" fill={accent} fillOpacity={0.25} style={{ pointerEvents: "none" }} />}
               <circle cx={cx} cy={cy} r="2.8" fill={isSel ? accent : "var(--surface)"} stroke={accent} strokeWidth="0.5" style={{ pointerEvents: "none" }} />
-              {/* Fondo de la etiqueta — mismo tratamiento que el círculo, para que el texto se lea con nitidez sobre el césped */}
+              {/* Fondo de la etiqueta — siempre claro, para que el texto negro se lea con nitidez sobre el césped */}
               <rect
                 x={cx - (label.length * 0.68 + 1.3)}
                 y={cy + 3.1}
                 width={label.length * 1.36 + 2.6}
                 height="3.6"
                 rx="1.2"
-                fill={isSel ? accent : "var(--surface)"}
-                fillOpacity="0.94"
+                fill="white"
+                fillOpacity="0.92"
                 stroke={accent}
-                strokeWidth={isSel ? 0 : 0.25}
+                strokeWidth={isSel ? 0.55 : 0.25}
                 style={{ pointerEvents: "none" }}
               />
               <text
@@ -414,7 +414,7 @@ function PrincipleFieldMap({
                 textAnchor="middle"
                 fontSize="2.1"
                 fontWeight={isSel ? "bold" : "normal"}
-                fill={isSel ? "white" : accent}
+                fill="black"
                 style={{ pointerEvents: "none" }}
               >
                 {label}
@@ -1508,39 +1508,52 @@ export default function ModeloDeJuegoPage() {
           /* ===== Mapa global del modelo ===== */
           <div className="bg-surface rounded-xl border border-border p-6">
             <h2 className="text-sm font-semibold text-foreground mb-1">Mapa del modelo de juego</h2>
-            <p className="text-xs text-muted mb-5">Visión global de las 4 fases y el ciclo del juego. Haz clic en una fase para ir a su campograma.</p>
+            <p className="text-xs text-muted mb-5">
+              {activeContext?.name}
+              {selectedBlock ? ` · ${blocks.find((b) => b.id === selectedBlock)?.name ?? ""}` : ""}
+            </p>
             <div className="grid grid-cols-2 gap-4 max-w-2xl">
               {phases.filter((p) => p.name !== "ABP").map((phase) => {
-                const list = allPhasePrinciples[phase.id] ?? [];
+                const list = (allPhasePrinciples[phase.id] ?? []).filter((p) => {
+                  const ctxIds = p.principle_contexts?.map((pc) => pc.team_context_id) ?? [];
+                  const ctxOk = ctxIds.length === 0 || ctxIds.includes(selectedContext);
+                  const blockOk = !selectedBlock || !p.block_height_id || p.block_height_id === selectedBlock;
+                  return ctxOk && blockOk;
+                });
                 const c = PHASE_COLORS[phase.name] ?? DEFAULT_PHASE_COLORS;
                 return (
                   <button
                     key={phase.id}
                     onClick={() => { setSelectedPhase(phase.id); setTopView("campo"); }}
-                    className="text-left rounded-xl border p-4 hover:brightness-110 transition"
+                    className="text-left rounded-xl border p-4 hover:brightness-110 transition flex flex-col h-64"
                     style={{ borderColor: c.border, backgroundColor: c.bg }}
                   >
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                       {PHASE_ICONS[phase.name]}
                       <span className="text-sm font-semibold" style={{ color: c.accent }}>{phase.name.toUpperCase()}</span>
                     </div>
-                    {list.length === 0 ? (
-                      <p className="text-[11px] text-muted italic">Sin principios todavía</p>
-                    ) : (
-                      <ul className="space-y-0.5">
-                        {list.slice(0, 4).map((p) => (
-                          <li key={p.id} className="text-[11px] text-foreground-secondary truncate">• {p.name}</li>
-                        ))}
-                        {list.length > 4 && <li className="text-[11px] text-muted">+{list.length - 4} más</li>}
-                      </ul>
-                    )}
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                      {list.length === 0 ? (
+                        <p className="text-[11px] text-muted italic">Sin principios todavía</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {list.map((p) => (
+                            <li key={p.id} className="text-[11px] text-foreground-secondary">
+                              <p className="truncate">• {p.name}</p>
+                              {!selectedBlock && p.block_height_id && (
+                                <p className="pl-2.5 text-[9px] text-muted truncate">
+                                  {blocks.find((b) => b.id === p.block_height_id)?.name}
+                                </p>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </button>
                 );
               })}
             </div>
-            <p className="text-[10px] text-muted mt-5 max-w-2xl">
-              Relaciones entre fases: fase ofensiva ↔ transición defensiva (al perder el balón) · fase ofensiva ↔ transición ofensiva (al recuperarlo) · fase defensiva ↔ transición ofensiva (al recuperar el balón) · fase defensiva ↔ transición defensiva (al perderlo de nuevo).
-            </p>
           </div>
         ) : (
           <>
