@@ -449,7 +449,7 @@ export default function ModeloDeJuegoPage() {
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
 
   // NUEVO: vista campograma/mapa, principio seleccionado (panel) y en detalle (vista completa)
-  const [topView, setTopView] = useState<"campo" | "mapa">("campo");
+  const [topView, setTopView] = useState<"campo" | "mapa" | "lista">("campo");
   const [selectedPrincipleId, setSelectedPrincipleId] = useState<string | null>(null);
   const [viewingPrincipleId, setViewingPrincipleId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("resumen");
@@ -1469,6 +1469,12 @@ export default function ModeloDeJuegoPage() {
             >
               Mapa
             </button>
+            <button
+              onClick={() => setTopView("lista")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${topView === "lista" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
+            >
+              Lista
+            </button>
           </div>
         </div>
 
@@ -1553,6 +1559,53 @@ export default function ModeloDeJuegoPage() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        ) : topView === "lista" ? (
+          /* ===== Lista de principios de la fase activa ===== */
+          <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="p-3 text-muted font-medium text-xs uppercase tracking-wide">Principio</th>
+                    <th className="p-3 text-muted font-medium text-xs uppercase tracking-wide">Zona</th>
+                    <th className="p-3 text-muted font-medium text-xs uppercase tracking-wide">Subprincipios</th>
+                    <th className="p-3 text-muted font-medium text-xs uppercase tracking-wide">Comportamientos</th>
+                    <th className="p-3 text-muted font-medium text-xs uppercase tracking-wide">Tareas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPrinciples.map((p) => (
+                    <tr
+                      key={p.id}
+                      onClick={() => { setViewingPrincipleId(p.id); setDetailTab("resumen"); }}
+                      className="border-b border-surface-hover last:border-0 cursor-pointer hover:bg-surface-hover transition-colors align-top"
+                    >
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
+                          <span className="font-medium text-foreground">{p.name}</span>
+                        </div>
+                        {p.description && <p className="text-xs text-muted mt-0.5 line-clamp-1 pl-4">{p.description}</p>}
+                      </td>
+                      <td className="p-3">
+                        <ZoneBadge principle={p} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
+                      </td>
+                      <td className="p-3 text-foreground-secondary">{subCountFor(p)}</td>
+                      <td className="p-3 text-foreground-secondary">{behCountFor(p)}</td>
+                      <td className="p-3 text-foreground-secondary">{tasksForPrinciple(p.id).length}</td>
+                    </tr>
+                  ))}
+                  {filteredPrinciples.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-6 text-center text-muted text-sm">
+                        Sin principios en esta fase todavía.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         ) : (
