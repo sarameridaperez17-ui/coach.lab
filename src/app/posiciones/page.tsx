@@ -146,13 +146,102 @@ function FieldZoneMap({ posAbbr }: { posAbbr: string }) {
   );
 }
 
-// ── YouTube helpers ────────────────────────────────────────────
+// ── YouTube helpers — mismo formato que Modelo de juego ────────
 function extractYoutubeId(url: string): string | null {
   if (!url) return null;
   const m = url.match(
     /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([A-Za-z0-9_-]{11})/
   );
   return m ? m[1] : null;
+}
+
+function YoutubeThumbnail({ url, onClick, size = "sm" }: { url: string; onClick: () => void; size?: "sm" | "md" }) {
+  const videoId = extractYoutubeId(url);
+  if (!videoId) return null;
+  const dim = size === "sm" ? "h-8 w-14" : "h-10 w-16";
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`${dim} rounded overflow-hidden relative group/yt flex-shrink-0 border border-border hover:border-red-500/50 transition-colors`}
+      title="Ver vídeo"
+    >
+      <img
+        src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+        alt="Video"
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/yt:bg-black/50 transition-colors">
+        <svg width={size === "sm" ? "14" : "18"} height={size === "sm" ? "14" : "18"} viewBox="0 0 24 24" fill="white">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </div>
+    </button>
+  );
+}
+
+function YoutubeIconButton({ hasVideo, onClick }: { hasVideo: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`flex-shrink-0 p-1 rounded transition-colors ${
+        hasVideo
+          ? "text-red-400 hover:text-red-300 hover:bg-red-900/20"
+          : "text-muted hover:text-red-400 hover:bg-red-900/20"
+      }`}
+      title={hasVideo ? "Editar vídeo" : "Añadir vídeo"}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.13C5.12 19.55 12 19.55 12 19.55s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.42z" />
+        <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+      </svg>
+    </button>
+  );
+}
+
+function YoutubeUrlInput({
+  currentUrl,
+  onSave,
+  onCancel,
+}: {
+  currentUrl: string | null;
+  onSave: (url: string | null) => void;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(currentUrl ?? "");
+  return (
+    <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            const val = draft.trim();
+            onSave(val ? val : null);
+          }
+          if (e.key === "Escape") onCancel();
+        }}
+        placeholder="https://youtube.com/watch?v=..."
+        className="flex-1 px-2 py-1 border border-border rounded text-xs focus:outline-none focus:border-red-400 bg-surface-hover text-foreground-secondary min-w-0"
+      />
+      <button
+        onClick={() => { const val = draft.trim(); onSave(val ? val : null); }}
+        className="px-2 py-1 bg-red-600 text-white rounded text-[10px] font-medium flex-shrink-0"
+      >
+        OK
+      </button>
+      {currentUrl && (
+        <button
+          onClick={() => onSave(null)}
+          className="text-[10px] text-muted hover:text-red-400 flex-shrink-0"
+          title="Quitar vídeo"
+        >
+          Quitar
+        </button>
+      )}
+      <button onClick={onCancel} className="text-xs text-muted hover:text-foreground-secondary flex-shrink-0">✕</button>
+    </div>
+  );
 }
 
 export default function PosicionesPage() {
@@ -179,10 +268,11 @@ export default function PosicionesPage() {
   } | null>(null);
   const [cellTitle, setCellTitle] = useState("");
   const [cellDetails, setCellDetails] = useState("");
+  const [cellYoutubeUrl, setCellYoutubeUrl] = useState<string | null>(null);
+  const [modalYtEditing, setModalYtEditing] = useState(false);
 
   // YouTube state
   const [editingYoutubeCell, setEditingYoutubeCell] = useState<string | null>(null); // "zoneId__phaseId"
-  const [youtubeUrlInput, setYoutubeUrlInput] = useState("");
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -243,11 +333,14 @@ export default function PosicionesPage() {
         editCell.phaseId,
         selectedContext,
         cellTitle.trim(),
-        cellDetails.trim()
+        cellDetails.trim(),
+        cellYoutubeUrl
       );
       setEditCell(null);
       setCellTitle("");
       setCellDetails("");
+      setCellYoutubeUrl(null);
+      setModalYtEditing(false);
       await loadBehaviors();
     } catch (err) {
       console.error("Error saving cell:", err);
@@ -414,97 +507,52 @@ export default function PosicionesPage() {
                         <td className="p-3">
                           {cell ? (
                             <div>
-                              {/* Behavior lines with YouTube icon inline */}
-                              {(() => {
-                                const ytMatch = (cell.details || "").match(/__YOUTUBE__=(.*)/);
-                                const ytUrl = ytMatch ? ytMatch[1] : null;
-                                const hasYt = !!ytUrl && !!extractYoutubeId(ytUrl);
-                                // Filter out __YOUTUBE__ lines from display
-                                const cleanDetails = detailLines.filter((l) => !l.startsWith("__YOUTUBE__="));
-                                return (
-                                  <>
-                                    <ul className="space-y-1">
-                                      <li className="text-xs text-foreground-secondary flex items-center gap-1.5">
-                                        <span className="text-muted mt-0.5">·</span>
-                                        <span className="flex-1">{cell.title}</span>
-                                        {/* YouTube icon — same as modelo-de-juego */}
-                                        {editingYoutubeCell === cellKey ? (
-                                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                            <input
-                                              autoFocus
-                                              value={youtubeUrlInput}
-                                              onChange={(e) => setYoutubeUrlInput(e.target.value)}
-                                              onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                  const val = youtubeUrlInput.trim();
-                                                  const newDetails = (cell.details || "").replace(/\n?__YOUTUBE__=.*/, "")
-                                                    + (val ? `\n__YOUTUBE__=${val}` : "");
-                                                  upsertPositionBehavior(
-                                                    selectedPosition, zone.id, selectedPhase, selectedContext,
-                                                    cell.title, newDetails.trim()
-                                                  ).then(() => loadBehaviors());
-                                                  setEditingYoutubeCell(null);
-                                                  setYoutubeUrlInput("");
-                                                }
-                                                if (e.key === "Escape") { setEditingYoutubeCell(null); setYoutubeUrlInput(""); }
-                                              }}
-                                              placeholder="https://youtube.com/watch?v=..."
-                                              className="w-40 px-2 py-1 border border-border rounded text-xs focus:outline-none focus:border-red-400 bg-surface-hover text-foreground-secondary"
-                                            />
-                                          </div>
-                                        ) : (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (hasYt) {
-                                                setPlayingVideoUrl(ytUrl!);
-                                              } else {
-                                                setEditingYoutubeCell(cellKey);
-                                                setYoutubeUrlInput(ytUrl || "");
-                                              }
-                                            }}
-                                            onContextMenu={(e) => {
-                                              if (hasYt) {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setEditingYoutubeCell(cellKey);
-                                                setYoutubeUrlInput(ytUrl || "");
-                                              }
-                                            }}
-                                            className={`flex-shrink-0 p-1 rounded transition-colors ${
-                                              hasYt
-                                                ? "text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                                                : "text-muted hover:text-red-400 hover:bg-red-900/20"
-                                            }`}
-                                            title={hasYt ? "Ver vídeo (clic derecho para editar)" : "Añadir vídeo"}
-                                          >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.13C5.12 19.55 12 19.55 12 19.55s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.42z" />
-                                              <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
-                                            </svg>
-                                          </button>
-                                        )}
-                                      </li>
-                                      {cleanDetails.slice(0, 2).map((line, i) => (
-                                        <li key={i} className="text-xs text-foreground-secondary flex items-start gap-1.5">
-                                          <span className="text-muted mt-0.5">·</span>
-                                          <span className="flex-1">{line}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                    <button
-                                      onClick={() => {
-                                        setEditCell({ zoneId: zone.id, phaseId: selectedPhase });
-                                        setCellTitle(cell.title);
-                                        setCellDetails(cell.details || "");
+                              <ul className="space-y-1">
+                                <li className="text-xs text-foreground-secondary flex items-center gap-1.5">
+                                  <span className="text-muted mt-0.5">·</span>
+                                  <span className="flex-1">{cell.title}</span>
+                                  {/* Vídeo — mismo formato que Modelo de juego: primer plano + icono de editar */}
+                                  {cell.youtube_url && (
+                                    <YoutubeThumbnail url={cell.youtube_url} onClick={() => setPlayingVideoUrl(cell.youtube_url!)} size="md" />
+                                  )}
+                                  <YoutubeIconButton
+                                    hasVideo={!!cell.youtube_url}
+                                    onClick={() => setEditingYoutubeCell(cellKey)}
+                                  />
+                                </li>
+                                {editingYoutubeCell === cellKey && (
+                                  <li onClick={(e) => e.stopPropagation()}>
+                                    <YoutubeUrlInput
+                                      currentUrl={cell.youtube_url}
+                                      onSave={(url) => {
+                                        upsertPositionBehavior(
+                                          selectedPosition, zone.id, selectedPhase, selectedContext,
+                                          cell.title, cell.details, url
+                                        ).then(() => loadBehaviors());
+                                        setEditingYoutubeCell(null);
                                       }}
-                                      className="text-emerald-500 text-[11px] mt-2 hover:text-emerald-400"
-                                    >
-                                      + Ver más
-                                    </button>
-                                  </>
-                                );
-                              })()}
+                                      onCancel={() => setEditingYoutubeCell(null)}
+                                    />
+                                  </li>
+                                )}
+                                {detailLines.slice(0, 2).map((line, i) => (
+                                  <li key={i} className="text-xs text-foreground-secondary flex items-start gap-1.5">
+                                    <span className="text-muted mt-0.5">·</span>
+                                    <span className="flex-1">{line}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              <button
+                                onClick={() => {
+                                  setEditCell({ zoneId: zone.id, phaseId: selectedPhase });
+                                  setCellTitle(cell.title);
+                                  setCellDetails(cell.details || "");
+                                  setCellYoutubeUrl(cell.youtube_url);
+                                }}
+                                className="text-emerald-500 text-[11px] mt-2 hover:text-emerald-400"
+                              >
+                                + Ver más
+                              </button>
                             </div>
                           ) : (
                             <button
@@ -512,6 +560,7 @@ export default function PosicionesPage() {
                                 setEditCell({ zoneId: zone.id, phaseId: selectedPhase });
                                 setCellTitle("");
                                 setCellDetails("");
+                                setCellYoutubeUrl(null);
                               }}
                               className="text-xs text-muted hover:text-emerald-400 transition-colors"
                             >
@@ -640,11 +689,28 @@ export default function PosicionesPage() {
               onChange={(e) => setCellDetails(e.target.value)}
               placeholder="Detalles (uno por línea)..."
               rows={4}
-              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
             />
+            <div className="mb-4">
+              <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1.5">Vídeo de YouTube</label>
+              <div className="flex items-center gap-2">
+                {cellYoutubeUrl && (
+                  <YoutubeThumbnail url={cellYoutubeUrl} onClick={() => setPlayingVideoUrl(cellYoutubeUrl)} size="md" />
+                )}
+                <YoutubeIconButton hasVideo={!!cellYoutubeUrl} onClick={() => setModalYtEditing(true)} />
+                {!cellYoutubeUrl && <span className="text-xs text-muted">Sin vídeo enlazado</span>}
+              </div>
+              {modalYtEditing && (
+                <YoutubeUrlInput
+                  currentUrl={cellYoutubeUrl}
+                  onSave={(url) => { setCellYoutubeUrl(url); setModalYtEditing(false); }}
+                  onCancel={() => setModalYtEditing(false)}
+                />
+              )}
+            </div>
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => setEditCell(null)}
+                onClick={() => { setEditCell(null); setModalYtEditing(false); }}
                 className="px-4 py-2 bg-surface-hover text-foreground-secondary rounded-lg text-sm hover:bg-border"
               >
                 Cancelar

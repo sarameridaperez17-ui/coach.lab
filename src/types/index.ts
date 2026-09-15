@@ -119,6 +119,7 @@ export interface PositionBehavior {
   team_context_id: string;
   title: string;
   details: string;
+  youtube_url: string | null;
   created_at: string;
   updated_at: string;
   // Relaciones cargadas

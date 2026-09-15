@@ -509,12 +509,13 @@ export async function upsertPositionBehavior(
   gamePhaseId: string,
   contextId: string,
   title: string,
-  details: string
+  details: string,
+  youtubeUrl?: string | null
 ): Promise<PositionBehavior> {
   // Buscar existente
   const { data: existing } = await supabase
     .from("position_behaviors")
-    .select("id")
+    .select("id, youtube_url")
     .eq("position_id", positionId)
     .eq("field_zone_id", fieldZoneId)
     .eq("game_phase_id", gamePhaseId)
@@ -524,7 +525,7 @@ export async function upsertPositionBehavior(
   if (existing && existing.length > 0) {
     const { data, error } = await supabase
       .from("position_behaviors")
-      .update({ title, details })
+      .update({ title, details, youtube_url: youtubeUrl === undefined ? existing[0].youtube_url : youtubeUrl })
       .eq("id", existing[0].id)
       .select()
       .single();
@@ -540,6 +541,7 @@ export async function upsertPositionBehavior(
         team_context_id: contextId,
         title,
         details,
+        youtube_url: youtubeUrl ?? null,
       })
       .select()
       .single();
