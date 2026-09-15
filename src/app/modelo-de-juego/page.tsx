@@ -395,13 +395,26 @@ function PrincipleFieldMap({
               <rect x={cx - bandW / 2 + 0.5} y={cy - 4} width={bandW - 1} height={11} fill="transparent" />
               {isSel && <circle cx={cx} cy={cy} r="5.2" fill={accent} fillOpacity={0.25} style={{ pointerEvents: "none" }} />}
               <circle cx={cx} cy={cy} r="2.8" fill={isSel ? accent : "var(--surface)"} stroke={accent} strokeWidth="0.5" style={{ pointerEvents: "none" }} />
+              {/* Fondo de la etiqueta — mismo tratamiento que el círculo, para que el texto se lea con nitidez sobre el césped */}
+              <rect
+                x={cx - (label.length * 0.68 + 1.3)}
+                y={cy + 3.1}
+                width={label.length * 1.36 + 2.6}
+                height="3.6"
+                rx="1.2"
+                fill={isSel ? accent : "var(--surface)"}
+                fillOpacity="0.94"
+                stroke={accent}
+                strokeWidth={isSel ? 0 : 0.25}
+                style={{ pointerEvents: "none" }}
+              />
               <text
                 x={cx}
-                y={cy + 4.8}
+                y={cy + 5.6}
                 textAnchor="middle"
                 fontSize="2.1"
                 fontWeight={isSel ? "bold" : "normal"}
-                fill={isSel ? accent : "var(--foreground-secondary)"}
+                fill={isSel ? "white" : accent}
                 style={{ pointerEvents: "none" }}
               >
                 {label}
@@ -918,6 +931,26 @@ export default function ModeloDeJuegoPage() {
                   className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface focus:outline-none resize-none"
                   style={{ borderColor: "var(--border)" }}
                 />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1.5">Vídeo de YouTube</label>
+                <div className="flex items-center gap-2">
+                  {viewingPrinciple.youtube_url && (
+                    <YoutubeThumbnail url={viewingPrinciple.youtube_url} onClick={() => setPlayingVideoUrl(viewingPrinciple.youtube_url!)} size="md" />
+                  )}
+                  <YoutubeIconButton
+                    hasVideo={!!viewingPrinciple.youtube_url}
+                    onClick={() => { setEditingYoutubeId(viewingPrinciple.id); setEditingYoutubeLevel("principle"); }}
+                  />
+                  {!viewingPrinciple.youtube_url && <span className="text-xs text-muted">Sin vídeo enlazado</span>}
+                </div>
+                {editingYoutubeId === viewingPrinciple.id && editingYoutubeLevel === "principle" && (
+                  <YoutubeUrlInput
+                    currentUrl={viewingPrinciple.youtube_url}
+                    onSave={(url) => handleSaveYoutubeUrl("principle", viewingPrinciple.id, url)}
+                    onCancel={() => { setEditingYoutubeId(null); setEditingYoutubeLevel(null); }}
+                  />
+                )}
               </div>
               <div>
                 <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1.5">Zona del campo</label>
@@ -1528,13 +1561,29 @@ export default function ModeloDeJuegoPage() {
             {/* Información del principio seleccionado — entre el campograma y las tarjetas */}
             {selectedPrinciple && (
               <div className="rounded-xl border overflow-hidden mb-6" style={{ borderColor: phaseColors.border, backgroundColor: phaseColors.bg }}>
-                <div className="px-4 py-3 border-b flex items-center justify-between gap-2" style={{ borderColor: phaseColors.border }}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
-                    <h3 className="text-sm font-semibold text-foreground truncate">{selectedPrinciple.name}</h3>
-                    <ZoneBadge principle={selectedPrinciple} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
+                <div className="px-4 py-3 border-b" style={{ borderColor: phaseColors.border }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
+                      <h3 className="text-sm font-semibold text-foreground truncate">{selectedPrinciple.name}</h3>
+                      <ZoneBadge principle={selectedPrinciple} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
+                      {selectedPrinciple.youtube_url && (
+                        <YoutubeThumbnail url={selectedPrinciple.youtube_url} onClick={() => setPlayingVideoUrl(selectedPrinciple.youtube_url!)} size="sm" />
+                      )}
+                      <YoutubeIconButton
+                        hasVideo={!!selectedPrinciple.youtube_url}
+                        onClick={() => { setEditingYoutubeId(selectedPrinciple.id); setEditingYoutubeLevel("principle"); }}
+                      />
+                    </div>
+                    <button onClick={() => setSelectedPrincipleId(null)} className="text-muted hover:text-foreground-secondary flex-shrink-0 text-xs">✕</button>
                   </div>
-                  <button onClick={() => setSelectedPrincipleId(null)} className="text-muted hover:text-foreground-secondary flex-shrink-0 text-xs">✕</button>
+                  {editingYoutubeId === selectedPrinciple.id && editingYoutubeLevel === "principle" && (
+                    <YoutubeUrlInput
+                      currentUrl={selectedPrinciple.youtube_url}
+                      onSave={(url) => handleSaveYoutubeUrl("principle", selectedPrinciple.id, url)}
+                      onCancel={() => { setEditingYoutubeId(null); setEditingYoutubeLevel(null); }}
+                    />
+                  )}
                 </div>
                 <div className="p-4 flex gap-6">
                   <div className="flex-1 min-w-0 space-y-3">
@@ -1547,7 +1596,22 @@ export default function ModeloDeJuegoPage() {
                         ) : (
                           <ul className="space-y-0.5">
                             {(selectedPrinciple.sub_principles ?? []).filter((s) => !s.archived).slice(0, 3).map((s) => (
-                              <li key={s.id} className="text-xs text-foreground-secondary flex items-start gap-1.5"><span className="text-muted">·</span>{s.name}</li>
+                              <li key={s.id} className="text-xs text-foreground-secondary flex items-center gap-1.5">
+                                <span className="text-muted">·</span>
+                                <span className="flex-1">{s.name}</span>
+                                {s.youtube_url && (
+                                  <button
+                                    onClick={() => setPlayingVideoUrl(s.youtube_url!)}
+                                    className="flex-shrink-0 text-red-400 hover:text-red-300"
+                                    title="Ver vídeo"
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.13C5.12 19.55 12 19.55 12 19.55s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.42z" />
+                                      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </li>
                             ))}
                           </ul>
                         )}
