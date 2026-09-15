@@ -1523,6 +1523,79 @@ export default function ModeloDeJuegoPage() {
               />
             </div>
 
+            {/* Información del principio seleccionado — entre el campograma y las tarjetas */}
+            {selectedPrinciple && (
+              <div className="rounded-xl border overflow-hidden mb-6" style={{ borderColor: phaseColors.border, backgroundColor: phaseColors.bg }}>
+                <div className="px-4 py-3 border-b flex items-center justify-between gap-2" style={{ borderColor: phaseColors.border }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
+                    <h3 className="text-sm font-semibold text-foreground truncate">{selectedPrinciple.name}</h3>
+                    <ZoneBadge principle={selectedPrinciple} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
+                  </div>
+                  <button onClick={() => setSelectedPrincipleId(null)} className="text-muted hover:text-foreground-secondary flex-shrink-0 text-xs">✕</button>
+                </div>
+                <div className="p-4 flex gap-6">
+                  <div className="flex-1 min-w-0 space-y-3">
+                    <p className="text-xs text-foreground-secondary">{selectedPrinciple.description || "Sin descripción todavía."}</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">Subprincipios ({subCountFor(selectedPrinciple)})</p>
+                        {subCountFor(selectedPrinciple) === 0 ? (
+                          <p className="text-xs text-muted italic">Sin subprincipios</p>
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {(selectedPrinciple.sub_principles ?? []).filter((s) => !s.archived).slice(0, 3).map((s) => (
+                              <li key={s.id} className="text-xs text-foreground-secondary flex items-start gap-1.5"><span className="text-muted">·</span>{s.name}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">Comportamientos ({behCountFor(selectedPrinciple)})</p>
+                        {behCountFor(selectedPrinciple) === 0 ? (
+                          <p className="text-xs text-muted italic">Sin comportamientos</p>
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {(selectedPrinciple.sub_principles ?? [])
+                              .filter((s) => !s.archived)
+                              .flatMap((s) => s.behaviors ?? [])
+                              .filter((b) => !b.archived)
+                              .slice(0, 3)
+                              .map((b) => (
+                                <li key={b.id} className="text-xs text-foreground-secondary flex items-start gap-1.5"><span className="text-muted">·</span>{b.name}</li>
+                              ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">Tareas ({tasksForPrinciple(selectedPrinciple.id).length})</p>
+                        {tasksForPrinciple(selectedPrinciple.id).length === 0 ? (
+                          <p className="text-xs text-muted italic">Sin tareas vinculadas</p>
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {tasksForPrinciple(selectedPrinciple.id).slice(0, 3).map((t) => (
+                              <li key={t.id} className="text-xs text-foreground-secondary flex items-start gap-1.5"><span className="text-muted">·</span>{t.name}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-36 flex-shrink-0 flex flex-col items-stretch gap-2">
+                    <ZoneMiniMap zones={zones} zoneId={selectedPrinciple.field_zone_id} accent={phaseColors.accent} />
+                    <button
+                      onClick={() => { setViewingPrincipleId(selectedPrinciple.id); setDetailTab("resumen"); }}
+                      className="py-2 rounded-lg text-white text-xs font-medium transition-opacity hover:opacity-90 flex items-center justify-center gap-1.5"
+                      style={{ background: phaseColors.accent }}
+                    >
+                      Ver completo
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {unassignedPrinciples.length > 0 && (
               <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span>Sin zona asignada:</span>
@@ -1611,96 +1684,9 @@ export default function ModeloDeJuegoPage() {
         )}
       </div>
 
-      {/* ===== RIGHT: Sidebar contextual ===== */}
+      {/* ===== RIGHT: Sidebar (siempre fija — no cambia al seleccionar un principio) ===== */}
       <div className="w-72 flex-shrink-0 space-y-4">
-        {selectedPrinciple ? (
-          <>
-            {/* Panel del principio seleccionado */}
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: phaseColors.border, backgroundColor: phaseColors.bg }}>
-              <div className="px-4 py-3 border-b flex items-center justify-between gap-2" style={{ borderColor: phaseColors.border }}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: phaseColors.accent }} />
-                  <h3 className="text-sm font-semibold text-foreground truncate">{selectedPrinciple.name}</h3>
-                </div>
-                <button onClick={() => setSelectedPrincipleId(null)} className="text-muted hover:text-foreground-secondary flex-shrink-0 text-xs">✕</button>
-              </div>
-              <div className="p-4 space-y-3">
-                <ZoneBadge principle={selectedPrinciple} zones={zones} phaseName={activePhase?.name} accent={phaseColors.accent} />
-                <p className="text-xs text-foreground-secondary">{selectedPrinciple.description || "Sin descripción todavía."}</p>
-
-                <div>
-                  <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">Subprincipios ({subCountFor(selectedPrinciple)})</p>
-                  {subCountFor(selectedPrinciple) === 0 ? (
-                    <p className="text-xs text-muted italic">Sin subprincipios</p>
-                  ) : (
-                    <ul className="space-y-0.5">
-                      {(selectedPrinciple.sub_principles ?? []).filter((s) => !s.archived).slice(0, 3).map((s) => (
-                        <li key={s.id} className="text-xs text-foreground-secondary flex items-center gap-1.5"><span className="text-muted">·</span>{s.name}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">Comportamientos ({behCountFor(selectedPrinciple)})</p>
-                  {behCountFor(selectedPrinciple) === 0 ? (
-                    <p className="text-xs text-muted italic">Sin comportamientos</p>
-                  ) : (
-                    <ul className="space-y-0.5">
-                      {(selectedPrinciple.sub_principles ?? [])
-                        .filter((s) => !s.archived)
-                        .flatMap((s) => s.behaviors ?? [])
-                        .filter((b) => !b.archived)
-                        .slice(0, 3)
-                        .map((b) => (
-                          <li key={b.id} className="text-xs text-foreground-secondary flex items-center gap-1.5"><span className="text-muted">·</span>{b.name}</li>
-                        ))}
-                    </ul>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => { setViewingPrincipleId(selectedPrinciple.id); setDetailTab("resumen"); }}
-                  className="w-full py-2 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90 flex items-center justify-center gap-1.5"
-                  style={{ background: phaseColors.accent }}
-                >
-                  Ver principio completo
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Tareas relacionadas con este principio */}
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
-              <div className="px-4 py-3 border-b border-surface-hover">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
-                  </svg>
-                  Tareas relacionadas
-                </h3>
-              </div>
-              <div className="p-3">
-                {tasksForPrinciple(selectedPrinciple.id).length > 0 ? (
-                  <div className="space-y-2">
-                    {tasksForPrinciple(selectedPrinciple.id).slice(0, 5).map((task) => (
-                      <div key={task.id} className="bg-surface-hover rounded-lg px-3 py-2">
-                        <p className="text-xs font-medium text-foreground-secondary line-clamp-2">{task.name}</p>
-                        {task.duration_minutes > 0 && <p className="text-[10px] text-muted mt-1">{task.duration_minutes} min</p>}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-xs text-muted">Sin tareas vinculadas</p>
-                    <p className="text-[10px] text-muted mt-1">Vincúlalas desde &ldquo;Ver principio completo&rdquo;</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
+        <>
             {/* Resumen de la fase */}
             <div className="rounded-xl border overflow-hidden" style={{ borderColor: phaseColors.border, backgroundColor: phaseColors.bg }}>
               <div className="px-4 py-3 border-b" style={{ borderColor: phaseColors.border }}>
@@ -1821,8 +1807,7 @@ export default function ModeloDeJuegoPage() {
                 )}
               </div>
             </div>
-          </>
-        )}
+        </>
       </div>
 
       {/* Modal: YouTube player */}
