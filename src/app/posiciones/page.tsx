@@ -268,6 +268,7 @@ function PositionConceptFieldMap({
   onToggleEditVideo,
   onSaveVideoInline,
   onCancelEditVideo,
+  onPlayVideo,
   onEditBehavior,
   onAddBehavior,
 }: {
@@ -280,6 +281,7 @@ function PositionConceptFieldMap({
   onToggleEditVideo: (behaviorId: string) => void;
   onSaveVideoInline: (b: PositionBehavior, url: string | null) => void;
   onCancelEditVideo: () => void;
+  onPlayVideo: (url: string) => void;
   onEditBehavior: (b: PositionBehavior) => void;
   onAddBehavior: (zoneId: string) => void;
 }) {
@@ -342,9 +344,27 @@ function PositionConceptFieldMap({
                         >
                           {b.title}
                         </button>
-                        {/* Vídeo — solo el logo de YouTube, en el extremo derecho del rectángulo del título */}
+                        {/* Vídeo — solo el logo de YouTube, en el extremo derecho del rectángulo del título.
+                            Si ya hay vídeo enlazado, un clic lo abre directamente; si no, permite añadirlo. */}
                         <span className="absolute right-0.5 top-1/2 -translate-y-1/2">
-                          <YoutubeIconButton hasVideo={!!b.youtube_url} onClick={() => onToggleEditVideo(b.id)} />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (b.youtube_url) onPlayVideo(b.youtube_url);
+                              else onToggleEditVideo(b.id);
+                            }}
+                            className={`flex-shrink-0 p-1 rounded transition-colors ${
+                              b.youtube_url
+                                ? "text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                : "text-muted hover:text-red-400 hover:bg-red-900/20"
+                            }`}
+                            title={b.youtube_url ? "Ver vídeo" : "Añadir vídeo"}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.13C5.12 19.55 12 19.55 12 19.55s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.42z" />
+                              <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+                            </svg>
+                          </button>
                         </span>
                       </div>
                       {editingYoutubeCell === b.id && (
@@ -394,7 +414,7 @@ export default function PosicionesPage() {
   const [loading, setLoading] = useState(true);
 
   // Vista: lista por zonas (tabla) o campograma de conceptos
-  const [posView, setPosView] = useState<"lista" | "campo">("lista");
+  const [posView, setPosView] = useState<"lista" | "campo">("campo");
 
   // Status system
   const [statusMap, setStatusMap] = useState<Map<string, ItemStatus>>(new Map());
@@ -666,16 +686,16 @@ export default function PosicionesPage() {
             </div>
             <div className="flex gap-1 mb-2 flex-shrink-0">
               <button
-                onClick={() => setPosView("lista")}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${posView === "lista" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
-              >
-                Lista
-              </button>
-              <button
                 onClick={() => setPosView("campo")}
                 className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${posView === "campo" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
               >
                 Campograma
+              </button>
+              <button
+                onClick={() => setPosView("lista")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${posView === "lista" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
+              >
+                Lista
               </button>
             </div>
           </div>
@@ -694,6 +714,7 @@ export default function PosicionesPage() {
                   onToggleEditVideo={(behaviorId) => setEditingYoutubeCell(behaviorId)}
                   onSaveVideoInline={handleSaveVideoInline}
                   onCancelEditVideo={() => setEditingYoutubeCell(null)}
+                  onPlayVideo={(url) => setPlayingVideoUrl(url)}
                   onEditBehavior={openExistingBehaviorEditor}
                   onAddBehavior={openNewBehaviorEditor}
                 />
