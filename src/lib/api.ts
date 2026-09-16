@@ -498,56 +498,69 @@ export async function getPositionBehaviors(
     .from("position_behaviors")
     .select("*")
     .eq("position_id", positionId)
-    .eq("team_context_id", contextId);
+    .eq("team_context_id", contextId)
+    .eq("archived", false)
+    .order("position");
   if (error) throw error;
   return data ?? [];
 }
 
-export async function upsertPositionBehavior(
+// Crea un comportamiento NUEVO en una zona — ya no reemplaza uno existente,
+// así una misma zona/fase puede tener varios comportamientos clave.
+export async function createPositionBehavior(
   positionId: string,
   fieldZoneId: string,
   gamePhaseId: string,
   contextId: string,
   title: string,
   details: string,
+  youtubeUrl: string | null,
+  position: number
+): Promise<PositionBehavior> {
+  const { data, error } = await supabase
+    .from("position_behaviors")
+    .insert({
+      position_id: positionId,
+      field_zone_id: fieldZoneId,
+      game_phase_id: gamePhaseId,
+      team_context_id: contextId,
+      title,
+      details,
+      youtube_url: youtubeUrl,
+      position,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Actualiza un comportamiento existente por id.
+export async function updatePositionBehavior(
+  id: string,
+  title: string,
+  details: string,
   youtubeUrl?: string | null
 ): Promise<PositionBehavior> {
-  // Buscar existente
-  const { data: existing } = await supabase
+  const update: { title: string; details: string; youtube_url?: string | null } = { title, details };
+  if (youtubeUrl !== undefined) update.youtube_url = youtubeUrl;
+  const { data, error } = await supabase
     .from("position_behaviors")
-    .select("id, youtube_url")
-    .eq("position_id", positionId)
-    .eq("field_zone_id", fieldZoneId)
-    .eq("game_phase_id", gamePhaseId)
-    .eq("team_context_id", contextId)
-    .limit(1);
+    .update(update)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
 
-  if (existing && existing.length > 0) {
-    const { data, error } = await supabase
-      .from("position_behaviors")
-      .update({ title, details, youtube_url: youtubeUrl === undefined ? existing[0].youtube_url : youtubeUrl })
-      .eq("id", existing[0].id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } else {
-    const { data, error } = await supabase
-      .from("position_behaviors")
-      .insert({
-        position_id: positionId,
-        field_zone_id: fieldZoneId,
-        game_phase_id: gamePhaseId,
-        team_context_id: contextId,
-        title,
-        details,
-        youtube_url: youtubeUrl ?? null,
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  }
+// Archivado suave — mismo patrón que el resto de la app.
+export async function deletePositionBehavior(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("position_behaviors")
+    .update({ archived: true })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 // ============================================

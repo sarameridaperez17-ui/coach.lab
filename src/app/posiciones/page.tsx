@@ -7,7 +7,9 @@ import {
   getPositions,
   getFieldZones,
   getPositionBehaviors,
-  upsertPositionBehavior,
+  createPositionBehavior,
+  updatePositionBehavior,
+  deletePositionBehavior,
   setItemStatus,
   removeItemStatus,
   getItemStatuses,
@@ -266,8 +268,8 @@ function PositionConceptFieldMap({
   onToggleEditVideo,
   onSaveVideoInline,
   onCancelEditVideo,
-  onPlayVideo,
-  onOpenCell,
+  onEditBehavior,
+  onAddBehavior,
 }: {
   zones: FieldZone[];
   behaviors: PositionBehavior[];
@@ -275,11 +277,11 @@ function PositionConceptFieldMap({
   getZoneDisplayName: (zoneName: string) => string;
   accent: string;
   editingYoutubeCell: string | null;
-  onToggleEditVideo: (cellKey: string) => void;
-  onSaveVideoInline: (zoneId: string, cell: PositionBehavior, url: string | null) => void;
+  onToggleEditVideo: (behaviorId: string) => void;
+  onSaveVideoInline: (b: PositionBehavior, url: string | null) => void;
   onCancelEditVideo: () => void;
-  onPlayVideo: (url: string) => void;
-  onOpenCell: (zoneId: string) => void;
+  onEditBehavior: (b: PositionBehavior) => void;
+  onAddBehavior: (zoneId: string) => void;
 }) {
   const sorted = [...zones].sort((a, b) => a.position - b.position);
   const n = sorted.length || 1;
@@ -316,9 +318,7 @@ function PositionConceptFieldMap({
         }}
       >
         {sorted.map((z, i) => {
-          const cell = behaviors.find((b) => b.field_zone_id === z.id && b.game_phase_id === selectedPhase);
-          const detailLines = cell?.details ? cell.details.split("\n").filter(Boolean) : [];
-          const cellKey = `${z.id}__${selectedPhase}`;
+          const cellBehaviors = behaviors.filter((b) => b.field_zone_id === z.id && b.game_phase_id === selectedPhase);
           return (
             <div
               key={z.id}
@@ -330,45 +330,47 @@ function PositionConceptFieldMap({
               >
                 {getZoneDisplayName(z.name) || `Zona ${z.name}`}
               </p>
-              <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
-                {cell ? (
-                  <div>
-                    <button
-                      onClick={() => onOpenCell(z.id)}
-                      className="text-left text-[10px] font-semibold text-black bg-white/90 rounded px-1 py-0.5 leading-tight hover:bg-white transition-colors block w-full"
-                    >
-                      {cell.title}
-                    </button>
-                    <div className="flex items-center gap-1 mt-1">
-                      {cell.youtube_url && (
-                        <YoutubeThumbnail url={cell.youtube_url} onClick={() => onPlayVideo(cell.youtube_url!)} size="sm" />
-                      )}
-                      <YoutubeIconButton hasVideo={!!cell.youtube_url} onClick={() => onToggleEditVideo(cellKey)} />
-                    </div>
-                    {editingYoutubeCell === cellKey && (
-                      <div onClick={(e) => e.stopPropagation()} className="mt-1">
-                        <YoutubeUrlInput
-                          currentUrl={cell.youtube_url}
-                          onSave={(url) => onSaveVideoInline(z.id, cell, url)}
-                          onCancel={onCancelEditVideo}
-                        />
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
+                {cellBehaviors.map((b) => {
+                  const detailLines = b.details ? b.details.split("\n").filter(Boolean) : [];
+                  return (
+                    <div key={b.id}>
+                      <div className="relative">
+                        <button
+                          onClick={() => onEditBehavior(b)}
+                          className="text-left text-[10px] font-semibold text-black bg-white/90 rounded pl-1 pr-5 py-0.5 leading-tight hover:bg-white transition-colors block w-full truncate"
+                        >
+                          {b.title}
+                        </button>
+                        {/* Vídeo — solo el logo de YouTube, en el extremo derecho del rectángulo del título */}
+                        <span className="absolute right-0.5 top-1/2 -translate-y-1/2">
+                          <YoutubeIconButton hasVideo={!!b.youtube_url} onClick={() => onToggleEditVideo(b.id)} />
+                        </span>
                       </div>
-                    )}
-                    {detailLines.slice(0, 4).map((line, li) => (
-                      <p key={li} className="text-[9px] text-white bg-black/35 rounded px-1 py-0.5 leading-snug mt-1">
-                        · {line}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => onOpenCell(z.id)}
-                    className="text-[9px] text-white/85 hover:text-white"
-                    style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
-                  >
-                    + Definir comportamiento
-                  </button>
-                )}
+                      {editingYoutubeCell === b.id && (
+                        <div onClick={(e) => e.stopPropagation()} className="mt-1">
+                          <YoutubeUrlInput
+                            currentUrl={b.youtube_url}
+                            onSave={(url) => onSaveVideoInline(b, url)}
+                            onCancel={onCancelEditVideo}
+                          />
+                        </div>
+                      )}
+                      {detailLines.slice(0, 4).map((line, li) => (
+                        <p key={li} className="text-[9px] text-white bg-black/35 rounded px-1 py-0.5 leading-snug mt-1">
+                          · {line}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                })}
+                <button
+                  onClick={() => onAddBehavior(z.id)}
+                  className="text-[9px] text-white/85 hover:text-white flex-shrink-0"
+                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
+                >
+                  + Añadir comportamiento
+                </button>
               </div>
             </div>
           );
@@ -398,10 +400,13 @@ export default function PosicionesPage() {
   const [statusMap, setStatusMap] = useState<Map<string, ItemStatus>>(new Map());
   const [statusMenu, setStatusMenu] = useState<{ x: number; y: number; posId: string; posName: string } | null>(null);
 
-  // Modal para editar celda
+  // Modal para crear/editar un comportamiento — behaviorId null = uno nuevo
+  // en esa zona/fase, behaviorId con valor = editando uno ya existente. Una
+  // misma zona/fase puede tener varios comportamientos.
   const [editCell, setEditCell] = useState<{
     zoneId: string;
     phaseId: string;
+    behaviorId: string | null;
   } | null>(null);
   const [cellTitle, setCellTitle] = useState("");
   const [cellDetails, setCellDetails] = useState("");
@@ -409,7 +414,7 @@ export default function PosicionesPage() {
   const [modalYtEditing, setModalYtEditing] = useState(false);
 
   // YouTube state
-  const [editingYoutubeCell, setEditingYoutubeCell] = useState<string | null>(null); // "zoneId__phaseId"
+  const [editingYoutubeCell, setEditingYoutubeCell] = useState<string | null>(null); // id del comportamiento
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -455,45 +460,56 @@ export default function PosicionesPage() {
     loadBehaviors();
   }, [loadBehaviors]);
 
-  const getBehaviorForCell = (zoneId: string, phaseId: string) => {
-    return behaviors.find(
+  // Todos los comportamientos de una zona/fase, en el orden guardado —
+  // una misma zona/fase puede tener varios.
+  const getBehaviorsForCell = (zoneId: string, phaseId: string) => {
+    return behaviors.filter(
       (b) => b.field_zone_id === zoneId && b.game_phase_id === phaseId
     );
   };
 
-  // Abre el modal "Definir comportamiento" para una zona, precargado si ya
-  // existe un comportamiento — usado tanto desde la tabla como desde el
-  // campograma de conceptos.
-  const openCellEditor = (zoneId: string) => {
-    const cell = getBehaviorForCell(zoneId, selectedPhase);
-    setEditCell({ zoneId, phaseId: selectedPhase });
-    setCellTitle(cell?.title ?? "");
-    setCellDetails(cell?.details ?? "");
-    setCellYoutubeUrl(cell?.youtube_url ?? null);
+  // Abre el modal para AÑADIR un comportamiento nuevo a una zona — usado
+  // tanto desde la tabla como desde el campograma de conceptos.
+  const openNewBehaviorEditor = (zoneId: string) => {
+    setEditCell({ zoneId, phaseId: selectedPhase, behaviorId: null });
+    setCellTitle("");
+    setCellDetails("");
+    setCellYoutubeUrl(null);
+  };
+
+  // Abre el modal para EDITAR un comportamiento ya existente.
+  const openExistingBehaviorEditor = (b: PositionBehavior) => {
+    setEditCell({ zoneId: b.field_zone_id, phaseId: b.game_phase_id, behaviorId: b.id });
+    setCellTitle(b.title);
+    setCellDetails(b.details || "");
+    setCellYoutubeUrl(b.youtube_url);
   };
 
   // Guarda solo el vídeo de un comportamiento ya existente, sin pasar por el
   // modal completo — usado por el icono de YouTube en la tabla y el campograma.
-  const handleSaveVideoInline = (zoneId: string, cell: PositionBehavior, url: string | null) => {
-    upsertPositionBehavior(
-      selectedPosition, zoneId, selectedPhase, selectedContext,
-      cell.title, cell.details, url
-    ).then(() => loadBehaviors());
+  const handleSaveVideoInline = (b: PositionBehavior, url: string | null) => {
+    updatePositionBehavior(b.id, b.title, b.details, url).then(() => loadBehaviors());
     setEditingYoutubeCell(null);
   };
 
   const handleSaveCell = async () => {
     if (!editCell || !cellTitle.trim()) return;
     try {
-      await upsertPositionBehavior(
-        selectedPosition,
-        editCell.zoneId,
-        editCell.phaseId,
-        selectedContext,
-        cellTitle.trim(),
-        cellDetails.trim(),
-        cellYoutubeUrl
-      );
+      if (editCell.behaviorId) {
+        await updatePositionBehavior(editCell.behaviorId, cellTitle.trim(), cellDetails.trim(), cellYoutubeUrl);
+      } else {
+        const nextPosition = getBehaviorsForCell(editCell.zoneId, editCell.phaseId).length;
+        await createPositionBehavior(
+          selectedPosition,
+          editCell.zoneId,
+          editCell.phaseId,
+          selectedContext,
+          cellTitle.trim(),
+          cellDetails.trim(),
+          cellYoutubeUrl,
+          nextPosition
+        );
+      }
       setEditCell(null);
       setCellTitle("");
       setCellDetails("");
@@ -502,6 +518,22 @@ export default function PosicionesPage() {
       await loadBehaviors();
     } catch (err) {
       console.error("Error saving cell:", err);
+    }
+  };
+
+  const handleDeleteBehavior = async () => {
+    if (!editCell?.behaviorId) return;
+    if (!confirm("¿Eliminar este comportamiento?")) return;
+    try {
+      await deletePositionBehavior(editCell.behaviorId);
+      setEditCell(null);
+      setCellTitle("");
+      setCellDetails("");
+      setCellYoutubeUrl(null);
+      setModalYtEditing(false);
+      await loadBehaviors();
+    } catch (err) {
+      console.error("Error deleting behavior:", err);
     }
   };
 
@@ -659,11 +691,11 @@ export default function PosicionesPage() {
                   getZoneDisplayName={getZoneDisplayName}
                   accent="#10b981"
                   editingYoutubeCell={editingYoutubeCell}
-                  onToggleEditVideo={(cellKey) => setEditingYoutubeCell(cellKey)}
+                  onToggleEditVideo={(behaviorId) => setEditingYoutubeCell(behaviorId)}
                   onSaveVideoInline={handleSaveVideoInline}
                   onCancelEditVideo={() => setEditingYoutubeCell(null)}
-                  onPlayVideo={(url) => setPlayingVideoUrl(url)}
-                  onOpenCell={openCellEditor}
+                  onEditBehavior={openExistingBehaviorEditor}
+                  onAddBehavior={openNewBehaviorEditor}
                 />
               </div>
             </div>
@@ -683,10 +715,7 @@ export default function PosicionesPage() {
                 </thead>
                 <tbody>
                   {zones.map((zone) => {
-                    const cell = getBehaviorForCell(zone.id, selectedPhase);
-                    const details = cell?.details ?? "";
-                    const detailLines = details ? details.split("\n").filter(Boolean) : [];
-                    const cellKey = `${zone.id}__${selectedPhase}`;
+                    const cellBehaviors = getBehaviorsForCell(zone.id, selectedPhase);
                     return (
                       <tr key={zone.id} className="border-b border-surface-hover last:border-0 align-top">
                         <td className="p-3">
@@ -698,52 +727,56 @@ export default function PosicionesPage() {
                           </p>
                         </td>
                         <td className="p-3">
-                          {cell ? (
-                            <div>
-                              <ul className="space-y-1">
-                                <li className="text-xs text-foreground-secondary flex items-center gap-1.5">
-                                  <span className="text-muted mt-0.5">·</span>
-                                  <span className="flex-1">{cell.title}</span>
-                                  {/* Vídeo — mismo formato que Modelo de juego: primer plano + icono de editar */}
-                                  {cell.youtube_url && (
-                                    <YoutubeThumbnail url={cell.youtube_url} onClick={() => setPlayingVideoUrl(cell.youtube_url!)} size="md" />
-                                  )}
-                                  <YoutubeIconButton
-                                    hasVideo={!!cell.youtube_url}
-                                    onClick={() => setEditingYoutubeCell(cellKey)}
-                                  />
-                                </li>
-                                {editingYoutubeCell === cellKey && (
-                                  <li onClick={(e) => e.stopPropagation()}>
-                                    <YoutubeUrlInput
-                                      currentUrl={cell.youtube_url}
-                                      onSave={(url) => handleSaveVideoInline(zone.id, cell, url)}
-                                      onCancel={() => setEditingYoutubeCell(null)}
-                                    />
-                                  </li>
-                                )}
-                                {detailLines.slice(0, 2).map((line, i) => (
-                                  <li key={i} className="text-xs text-foreground-secondary flex items-start gap-1.5">
-                                    <span className="text-muted mt-0.5">·</span>
-                                    <span className="flex-1">{line}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                              <button
-                                onClick={() => openCellEditor(zone.id)}
-                                className="text-emerald-500 text-[11px] mt-2 hover:text-emerald-400"
-                              >
-                                + Ver más
-                              </button>
-                            </div>
-                          ) : (
+                          <div className="space-y-3">
+                            {cellBehaviors.map((b) => {
+                              const detailLines = b.details ? b.details.split("\n").filter(Boolean) : [];
+                              return (
+                                <div key={b.id}>
+                                  <ul className="space-y-1">
+                                    <li className="text-xs text-foreground-secondary flex items-center gap-1.5">
+                                      <span className="text-muted mt-0.5">·</span>
+                                      <span className="flex-1">{b.title}</span>
+                                      {/* Vídeo — mismo formato que Modelo de juego: primer plano + icono de editar */}
+                                      {b.youtube_url && (
+                                        <YoutubeThumbnail url={b.youtube_url} onClick={() => setPlayingVideoUrl(b.youtube_url!)} size="md" />
+                                      )}
+                                      <YoutubeIconButton
+                                        hasVideo={!!b.youtube_url}
+                                        onClick={() => setEditingYoutubeCell(b.id)}
+                                      />
+                                    </li>
+                                    {editingYoutubeCell === b.id && (
+                                      <li onClick={(e) => e.stopPropagation()}>
+                                        <YoutubeUrlInput
+                                          currentUrl={b.youtube_url}
+                                          onSave={(url) => handleSaveVideoInline(b, url)}
+                                          onCancel={() => setEditingYoutubeCell(null)}
+                                        />
+                                      </li>
+                                    )}
+                                    {detailLines.slice(0, 2).map((line, i) => (
+                                      <li key={i} className="text-xs text-foreground-secondary flex items-start gap-1.5">
+                                        <span className="text-muted mt-0.5">·</span>
+                                        <span className="flex-1">{line}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                  <button
+                                    onClick={() => openExistingBehaviorEditor(b)}
+                                    className="text-emerald-500 text-[11px] mt-1 hover:text-emerald-400"
+                                  >
+                                    + Ver más
+                                  </button>
+                                </div>
+                              );
+                            })}
                             <button
-                              onClick={() => openCellEditor(zone.id)}
-                              className="text-xs text-muted hover:text-emerald-400 transition-colors"
+                              onClick={() => openNewBehaviorEditor(zone.id)}
+                              className="text-xs text-muted hover:text-emerald-400 transition-colors block"
                             >
-                              + Definir comportamiento
+                              + Añadir comportamiento
                             </button>
-                          )}
+                          </div>
                         </td>
                         <td className="p-3">
                           <p className="text-xs text-muted italic">Sin vincular</p>
@@ -851,7 +884,7 @@ export default function PosicionesPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface rounded-xl p-6 w-full max-w-md shadow-xl">
             <h3 className="font-semibold text-foreground mb-1">
-              Definir comportamiento
+              {editCell.behaviorId ? "Editar comportamiento" : "Añadir comportamiento"}
             </h3>
             <p className="text-xs text-muted mb-4">
               {activePosition?.name} — {zones.find((z) => z.id === editCell.zoneId)?.name} — {activePhase?.name}
@@ -887,7 +920,15 @@ export default function PosicionesPage() {
                 />
               )}
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end items-center">
+              {editCell.behaviorId && (
+                <button
+                  onClick={handleDeleteBehavior}
+                  className="px-3 py-2 text-red-400 text-sm hover:text-red-300 mr-auto"
+                >
+                  Eliminar
+                </button>
+              )}
               <button
                 onClick={() => { setEditCell(null); setModalYtEditing(false); }}
                 className="px-4 py-2 bg-surface-hover text-foreground-secondary rounded-lg text-sm hover:bg-border"

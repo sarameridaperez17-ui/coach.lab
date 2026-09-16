@@ -120,6 +120,8 @@ export interface PositionBehavior {
   title: string;
   details: string;
   youtube_url: string | null;
+  position: number;
+  archived: boolean;
   created_at: string;
   updated_at: string;
   // Relaciones cargadas
