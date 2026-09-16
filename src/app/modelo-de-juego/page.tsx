@@ -1258,7 +1258,7 @@ export default function ModeloDeJuegoPage() {
           if (!vid) return null;
           return (
             <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setPlayingVideoUrl(null)}>
-              <div className="relative w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+              <div className="relative w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
                 <button onClick={() => setPlayingVideoUrl(null)} className="absolute -top-10 right-0 text-white/70 hover:text-white text-sm font-medium flex items-center gap-1">Cerrar ✕</button>
                 <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                   <iframe className="absolute inset-0 w-full h-full rounded-xl" src={`https://www.youtube.com/embed/${vid}?autoplay=1&rel=0`} allow="autoplay; encrypted-media" allowFullScreen />
@@ -1951,7 +1951,7 @@ export default function ModeloDeJuegoPage() {
             className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
             onClick={() => setPlayingVideoUrl(null)}
           >
-            <div className="relative w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+            <div className="relative w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setPlayingVideoUrl(null)}
                 className="absolute -top-10 right-0 text-white/70 hover:text-white text-sm font-medium flex items-center gap-1"

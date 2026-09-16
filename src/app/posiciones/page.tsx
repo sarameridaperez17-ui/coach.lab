@@ -974,7 +974,7 @@ export default function PosicionesPage() {
           onClick={() => setPlayingVideoUrl(null)}
         >
           <div
-            className="relative w-full max-w-3xl mx-4"
+            className="relative w-full max-w-5xl mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <button
