@@ -244,6 +244,140 @@ function YoutubeUrlInput({
   );
 }
 
+// ── Campograma de conceptos por posición ───────────────────────
+// Constantes de relleno del <Pitch> (ver PAD_X/PAD_Y en components/pitch/Pitch.tsx)
+// — necesarias para alinear la capa HTML de conceptos exactamente sobre las
+// bandas del campo, ya que el <svg> incluye margen extra para las porterías.
+const PITCH_PAD_X = 5.6; // GOAL_VIS_DEPTH (3.6) + 2
+const PITCH_PAD_Y = 2;
+const PITCH_VB_W = FIELD.W + PITCH_PAD_X * 2;
+const PITCH_VB_H = FIELD.H + PITCH_PAD_Y * 2;
+
+// Mismo formato de campograma que en Modelo de juego (bandas por zona sobre
+// el campo), pero con los conceptos/comportamientos de cada zona listados en
+// filas de texto dentro de su banda, en vez de en una fila de tabla.
+function PositionConceptFieldMap({
+  zones,
+  behaviors,
+  selectedPhase,
+  getZoneDisplayName,
+  accent,
+  editingYoutubeCell,
+  onToggleEditVideo,
+  onSaveVideoInline,
+  onCancelEditVideo,
+  onPlayVideo,
+  onOpenCell,
+}: {
+  zones: FieldZone[];
+  behaviors: PositionBehavior[];
+  selectedPhase: string;
+  getZoneDisplayName: (zoneName: string) => string;
+  accent: string;
+  editingYoutubeCell: string | null;
+  onToggleEditVideo: (cellKey: string) => void;
+  onSaveVideoInline: (zoneId: string, cell: PositionBehavior, url: string | null) => void;
+  onCancelEditVideo: () => void;
+  onPlayVideo: (url: string) => void;
+  onOpenCell: (zoneId: string) => void;
+}) {
+  const sorted = [...zones].sort((a, b) => a.position - b.position);
+  const n = sorted.length || 1;
+  const bandW = FIELD.W / n;
+
+  return (
+    <div className="relative w-full">
+      <Pitch className="rounded-lg">
+        {sorted.map((z, i) => (
+          <rect
+            key={z.id}
+            x={bandW * i}
+            y={0}
+            width={bandW}
+            height={FIELD.H}
+            fill={accent}
+            fillOpacity={0.05 + i * 0.015}
+            stroke={accent}
+            strokeOpacity={0.4}
+            strokeWidth="0.25"
+            strokeDasharray="1.4"
+          />
+        ))}
+      </Pitch>
+
+      {/* Capa HTML alineada sobre las bandas del campo, con los conceptos en filas */}
+      <div
+        className="absolute flex"
+        style={{
+          left: `${(PITCH_PAD_X / PITCH_VB_W) * 100}%`,
+          right: `${(PITCH_PAD_X / PITCH_VB_W) * 100}%`,
+          top: `${(PITCH_PAD_Y / PITCH_VB_H) * 100}%`,
+          bottom: `${(PITCH_PAD_Y / PITCH_VB_H) * 100}%`,
+        }}
+      >
+        {sorted.map((z, i) => {
+          const cell = behaviors.find((b) => b.field_zone_id === z.id && b.game_phase_id === selectedPhase);
+          const detailLines = cell?.details ? cell.details.split("\n").filter(Boolean) : [];
+          const cellKey = `${z.id}__${selectedPhase}`;
+          return (
+            <div
+              key={z.id}
+              className={`flex-1 min-w-0 h-full flex flex-col px-2 py-2 ${i > 0 ? "border-l border-dashed border-white/25" : ""}`}
+            >
+              <p
+                className="text-center text-[9px] font-bold uppercase tracking-wide mb-1.5 flex-shrink-0"
+                style={{ color: accent, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
+              >
+                {getZoneDisplayName(z.name) || `Zona ${z.name}`}
+              </p>
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
+                {cell ? (
+                  <div>
+                    <button
+                      onClick={() => onOpenCell(z.id)}
+                      className="text-left text-[10px] font-semibold text-black bg-white/90 rounded px-1 py-0.5 leading-tight hover:bg-white transition-colors block w-full"
+                    >
+                      {cell.title}
+                    </button>
+                    <div className="flex items-center gap-1 mt-1">
+                      {cell.youtube_url && (
+                        <YoutubeThumbnail url={cell.youtube_url} onClick={() => onPlayVideo(cell.youtube_url!)} size="sm" />
+                      )}
+                      <YoutubeIconButton hasVideo={!!cell.youtube_url} onClick={() => onToggleEditVideo(cellKey)} />
+                    </div>
+                    {editingYoutubeCell === cellKey && (
+                      <div onClick={(e) => e.stopPropagation()} className="mt-1">
+                        <YoutubeUrlInput
+                          currentUrl={cell.youtube_url}
+                          onSave={(url) => onSaveVideoInline(z.id, cell, url)}
+                          onCancel={onCancelEditVideo}
+                        />
+                      </div>
+                    )}
+                    {detailLines.slice(0, 4).map((line, li) => (
+                      <p key={li} className="text-[9px] text-white bg-black/35 rounded px-1 py-0.5 leading-snug mt-1">
+                        · {line}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onOpenCell(z.id)}
+                    className="text-[9px] text-white/85 hover:text-white"
+                    style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
+                  >
+                    + Definir comportamiento
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function PosicionesPage() {
   const [contexts, setContexts] = useState<TeamContext[]>([]);
   const [phases, setPhases] = useState<GamePhase[]>([]);
@@ -256,6 +390,9 @@ export default function PosicionesPage() {
   const [selectedPosition, setSelectedPosition] = useState("");
   const [selectedPhase, setSelectedPhase] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Vista: lista por zonas (tabla) o campograma de conceptos
+  const [posView, setPosView] = useState<"lista" | "campo">("lista");
 
   // Status system
   const [statusMap, setStatusMap] = useState<Map<string, ItemStatus>>(new Map());
@@ -322,6 +459,27 @@ export default function PosicionesPage() {
     return behaviors.find(
       (b) => b.field_zone_id === zoneId && b.game_phase_id === phaseId
     );
+  };
+
+  // Abre el modal "Definir comportamiento" para una zona, precargado si ya
+  // existe un comportamiento — usado tanto desde la tabla como desde el
+  // campograma de conceptos.
+  const openCellEditor = (zoneId: string) => {
+    const cell = getBehaviorForCell(zoneId, selectedPhase);
+    setEditCell({ zoneId, phaseId: selectedPhase });
+    setCellTitle(cell?.title ?? "");
+    setCellDetails(cell?.details ?? "");
+    setCellYoutubeUrl(cell?.youtube_url ?? null);
+  };
+
+  // Guarda solo el vídeo de un comportamiento ya existente, sin pasar por el
+  // modal completo — usado por el icono de YouTube en la tabla y el campograma.
+  const handleSaveVideoInline = (zoneId: string, cell: PositionBehavior, url: string | null) => {
+    upsertPositionBehavior(
+      selectedPosition, zoneId, selectedPhase, selectedContext,
+      cell.title, cell.details, url
+    ).then(() => loadBehaviors());
+    setEditingYoutubeCell(null);
   };
 
   const handleSaveCell = async () => {
@@ -454,9 +612,9 @@ export default function PosicionesPage() {
             {activePosition?.name} ({activePosition?.abbreviation})
           </h2>
 
-          {/* Phase tabs */}
-          <div className="mb-6">
-            <div className="flex gap-1 border-b border-border">
+          {/* Phase tabs + toggle Lista/Campograma */}
+          <div className="mb-6 flex items-end justify-between border-b border-border">
+            <div className="flex gap-1">
               {displayPhases.map((phase) => (
                 <button
                   key={phase.id}
@@ -474,8 +632,43 @@ export default function PosicionesPage() {
                 </button>
               ))}
             </div>
+            <div className="flex gap-1 mb-2 flex-shrink-0">
+              <button
+                onClick={() => setPosView("lista")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${posView === "lista" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
+              >
+                Lista
+              </button>
+              <button
+                onClick={() => setPosView("campo")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${posView === "campo" ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground-secondary"}`}
+              >
+                Campograma
+              </button>
+            </div>
           </div>
 
+          {posView === "campo" ? (
+            /* ===== Campograma de conceptos por zona ===== */
+            <div className="bg-surface rounded-xl border border-border p-4">
+              <div className="max-w-3xl mx-auto">
+                <PositionConceptFieldMap
+                  zones={zones}
+                  behaviors={behaviors}
+                  selectedPhase={selectedPhase}
+                  getZoneDisplayName={getZoneDisplayName}
+                  accent="#10b981"
+                  editingYoutubeCell={editingYoutubeCell}
+                  onToggleEditVideo={(cellKey) => setEditingYoutubeCell(cellKey)}
+                  onSaveVideoInline={handleSaveVideoInline}
+                  onCancelEditVideo={() => setEditingYoutubeCell(null)}
+                  onPlayVideo={(url) => setPlayingVideoUrl(url)}
+                  onOpenCell={openCellEditor}
+                />
+              </div>
+            </div>
+          ) : (
+          <>
           {/* Behavior matrix for selected phase */}
           <div className="bg-surface rounded-xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
@@ -524,13 +717,7 @@ export default function PosicionesPage() {
                                   <li onClick={(e) => e.stopPropagation()}>
                                     <YoutubeUrlInput
                                       currentUrl={cell.youtube_url}
-                                      onSave={(url) => {
-                                        upsertPositionBehavior(
-                                          selectedPosition, zone.id, selectedPhase, selectedContext,
-                                          cell.title, cell.details, url
-                                        ).then(() => loadBehaviors());
-                                        setEditingYoutubeCell(null);
-                                      }}
+                                      onSave={(url) => handleSaveVideoInline(zone.id, cell, url)}
                                       onCancel={() => setEditingYoutubeCell(null)}
                                     />
                                   </li>
@@ -543,12 +730,7 @@ export default function PosicionesPage() {
                                 ))}
                               </ul>
                               <button
-                                onClick={() => {
-                                  setEditCell({ zoneId: zone.id, phaseId: selectedPhase });
-                                  setCellTitle(cell.title);
-                                  setCellDetails(cell.details || "");
-                                  setCellYoutubeUrl(cell.youtube_url);
-                                }}
+                                onClick={() => openCellEditor(zone.id)}
                                 className="text-emerald-500 text-[11px] mt-2 hover:text-emerald-400"
                               >
                                 + Ver más
@@ -556,12 +738,7 @@ export default function PosicionesPage() {
                             </div>
                           ) : (
                             <button
-                              onClick={() => {
-                                setEditCell({ zoneId: zone.id, phaseId: selectedPhase });
-                                setCellTitle("");
-                                setCellDetails("");
-                                setCellYoutubeUrl(null);
-                              }}
+                              onClick={() => openCellEditor(zone.id)}
                               className="text-xs text-muted hover:text-emerald-400 transition-colors"
                             >
                               + Definir comportamiento
@@ -586,6 +763,8 @@ export default function PosicionesPage() {
           <button className="w-full mt-4 py-3 border border-dashed border-border rounded-xl text-sm text-muted hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
             + Añadir fase personalizada
           </button>
+          </>
+          )}
         </div>
 
         {/* Right sidebar */}
