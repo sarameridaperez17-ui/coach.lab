@@ -14,14 +14,20 @@ import type { TaskTagValue, TaskTagCategory } from "@/types";
 import { TacticalBoardEditor } from "@/components/tactical-board";
 import type { BoardState } from "@/components/tactical-board";
 
+// "Fase del juego" es la categoría matriz/dominante: va primero, seguida
+// de sus dos categorías dependientes (momento y principios, cada una
+// filtrada por la fase elegida), y luego las categorías independientes.
 const TAG_CATEGORIES: { key: TaskTagCategory; label: string }[] = [
-  { key: "tipo_tarea", label: "Tipo de tarea" },
-  { key: "situacion_juego", label: "Situación de juego" },
-  { key: "zona", label: "Zona" },
   { key: "fase_juego", label: "Fase del juego" },
   { key: "momento_juego", label: "Momento del juego" },
   { key: "principios_tacticos", label: "Principios tácticos" },
+  { key: "tipo_tarea", label: "Tipo de tarea" },
+  { key: "situacion_juego", label: "Situación de juego" },
+  { key: "zona", label: "Zona" },
 ];
+
+// Categorías cuyos valores pertenecen a una fase concreta (parent_id).
+const FASE_CHILD_CATEGORIES: TaskTagCategory[] = ["momento_juego", "principios_tacticos"];
 
 // ── YouTube — mismo formato que en el resto de la web ───────────
 function extractYoutubeId(url: string): string | null {
@@ -122,13 +128,18 @@ export default function NuevaTareaPage() {
   const [youtubeEditing, setYoutubeEditing] = useState(false);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
-  // Etiquetas — una selección (o ninguna) por categoría, "el tipo de
-  // contenido de la tarea son las etiquetas clasificatorias"
+  // Etiquetas — una selección (o ninguna) por categoría. "Fase del juego"
+  // es la categoría matriz: al elegirla, "Momento del juego" y "Principios
+  // tácticos" solo ofrecen los valores configurados para esa fase.
   const [tagValues, setTagValues] = useState<TaskTagValue[]>([]);
   const [selectedTags, setSelectedTags] = useState<Partial<Record<TaskTagCategory, string>>>({});
   const [configOpen, setConfigOpen] = useState(false);
-  const [configCategory, setConfigCategory] = useState<TaskTagCategory>("tipo_tarea");
+  const [configCategory, setConfigCategory] = useState<TaskTagCategory>("fase_juego");
+  // Fase que se está configurando, solo aplica a las categorías dependientes.
+  const [configFaseId, setConfigFaseId] = useState("");
   const [newTagDraft, setNewTagDraft] = useState("");
+
+  const faseValues = tagValues.filter((v) => v.category === "fase_juego");
 
   const loadTagValues = async () => {
     try {
@@ -149,12 +160,31 @@ export default function NuevaTareaPage() {
     reader.readAsDataURL(file);
   };
 
+  // Cambia la categoría activa en el modal de Configuración — si es una
+  // dependiente de fase, preselecciona una fase para gestionar sus valores.
+  const handleSelectConfigCategory = (category: TaskTagCategory) => {
+    setConfigCategory(category);
+    if (FASE_CHILD_CATEGORIES.includes(category)) {
+      setConfigFaseId((prev) => (faseValues.some((f) => f.id === prev) ? prev : faseValues[0]?.id ?? ""));
+    }
+  };
+
+  // En el formulario: al cambiar de fase, las selecciones de momento y
+  // principios dejan de ser válidas (pertenecían a otra fase) y se limpian.
+  const handleSelectFase = (faseId: string) => {
+    setSelectedTags((prev) => ({ ...prev, fase_juego: faseId, momento_juego: "", principios_tacticos: "" }));
+  };
+
   const handleAddTagValue = async () => {
     const label = newTagDraft.trim();
     if (!label) return;
+    const isFaseChild = FASE_CHILD_CATEGORIES.includes(configCategory);
+    if (isFaseChild && !configFaseId) return;
     try {
-      const position = tagValues.filter((v) => v.category === configCategory).length;
-      await createTaskTagValue(configCategory, label, position);
+      const siblings = tagValues.filter((v) =>
+        v.category === configCategory && (isFaseChild ? v.parent_id === configFaseId : true)
+      );
+      await createTaskTagValue(configCategory, label, siblings.length, isFaseChild ? configFaseId : null);
       setNewTagDraft("");
       await loadTagValues();
     } catch (err) {
@@ -162,16 +192,25 @@ export default function NuevaTareaPage() {
     }
   };
 
-  const handleDeleteTagValue = async (id: string) => {
+  // Borra un valor — si es una fase, también archiva sus momentos y
+  // principios asociados (el archivado es lógico, no hay ON DELETE CASCADE
+  // que se dispare solo con marcar archived).
+  const handleDeleteTagValue = async (v: TaskTagValue) => {
     try {
-      await deleteTaskTagValue(id);
+      const idsToRemove = [v.id];
+      if (v.category === "fase_juego") {
+        idsToRemove.push(...tagValues.filter((c) => c.parent_id === v.id).map((c) => c.id));
+      }
+      await Promise.all(idsToRemove.map((id) => deleteTaskTagValue(id)));
       setSelectedTags((prev) => {
         const next = { ...prev };
         for (const key of Object.keys(next) as TaskTagCategory[]) {
-          if (next[key] === id) delete next[key];
+          const val = next[key];
+          if (val && idsToRemove.includes(val)) delete next[key];
         }
         return next;
       });
+      if (idsToRemove.includes(configFaseId)) setConfigFaseId(faseValues.find((f) => f.id !== v.id)?.id ?? "");
       await loadTagValues();
     } catch (err) {
       console.error("Error deleting tag value:", err);
@@ -215,6 +254,13 @@ export default function NuevaTareaPage() {
       setSaving(false);
     }
   };
+
+  // Panel de Configuración: valores de la categoría activa, con su fase si aplica.
+  const configIsFaseChild = FASE_CHILD_CATEGORIES.includes(configCategory);
+  const configBlocked = configIsFaseChild && !configFaseId;
+  const configList = tagValues.filter(
+    (v) => v.category === configCategory && (configIsFaseChild ? v.parent_id === configFaseId : true)
+  );
 
   return (
     <div>
@@ -375,22 +421,34 @@ export default function NuevaTareaPage() {
         </div>
 
         {/* Etiquetas — el tipo de contenido de la tarea ahora son estas 6 clasificaciones,
-            una fila de desplegables, uno por categoría */}
+            una fila de desplegables. "Fase del juego" es la categoría matriz: al elegirla,
+            "Momento del juego" y "Principios tácticos" solo ofrecen sus valores para esa fase. */}
         <div className="mb-5 pt-5 border-t border-border">
           <h3 className="text-sm font-semibold text-foreground mb-3">Etiquetas</h3>
           <div className="flex flex-wrap gap-3">
             {TAG_CATEGORIES.map((cat) => {
-              const values = tagValues.filter((v) => v.category === cat.key);
+              const isFaseChild = FASE_CHILD_CATEGORIES.includes(cat.key);
+              const selectedFaseId = selectedTags.fase_juego ?? "";
+              const values = isFaseChild
+                ? tagValues.filter((v) => v.category === cat.key && v.parent_id === selectedFaseId)
+                : tagValues.filter((v) => v.category === cat.key);
+              const waitingForFase = isFaseChild && !selectedFaseId;
+              const disabled = waitingForFase || values.length === 0;
+              const placeholder = waitingForFase
+                ? "Selecciona antes una fase"
+                : values.length === 0
+                ? "Sin opciones"
+                : "Sin seleccionar";
               return (
                 <div key={cat.key} className="flex-1 min-w-[160px]">
                   <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">{cat.label}</label>
                   <select
                     value={selectedTags[cat.key] ?? ""}
-                    onChange={(e) => setSelectedTags((prev) => ({ ...prev, [cat.key]: e.target.value }))}
-                    disabled={values.length === 0}
+                    onChange={(e) => (cat.key === "fase_juego" ? handleSelectFase(e.target.value) : setSelectedTags((prev) => ({ ...prev, [cat.key]: e.target.value })))}
+                    disabled={disabled}
                     className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <option value="">{values.length === 0 ? "Sin opciones" : "Sin seleccionar"}</option>
+                    <option value="">{placeholder}</option>
                     {values.map((v) => (
                       <option key={v.id} value={v.id}>{v.label}</option>
                     ))}
@@ -417,12 +475,15 @@ export default function NuevaTareaPage() {
               {TAG_CATEGORIES.map((cat) => (
                 <button
                   key={cat.key}
-                  onClick={() => setConfigCategory(cat.key)}
+                  onClick={() => handleSelectConfigCategory(cat.key)}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                     configCategory === cat.key ? "bg-purple-600/20 text-purple-400 font-medium" : "text-foreground-secondary hover:bg-surface-hover"
                   }`}
                 >
                   {cat.label}
+                  {FASE_CHILD_CATEGORIES.includes(cat.key) && (
+                    <span className="block text-[10px] text-muted font-normal">↳ según la fase</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -431,30 +492,54 @@ export default function NuevaTareaPage() {
                 <h3 className="font-semibold text-foreground">{TAG_CATEGORIES.find((c) => c.key === configCategory)?.label}</h3>
                 <button onClick={() => setConfigOpen(false)} className="text-muted hover:text-foreground-secondary text-sm">✕</button>
               </div>
+
+              {configIsFaseChild && (
+                <div className="mb-4">
+                  <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">Fase del juego</label>
+                  {faseValues.length === 0 ? (
+                    <p className="text-sm text-amber-400">
+                      Primero crea al menos una fase en &ldquo;Fase del juego&rdquo; — sus momentos y principios se configuran por fase.
+                    </p>
+                  ) : (
+                    <select
+                      value={configFaseId}
+                      onChange={(e) => setConfigFaseId(e.target.value)}
+                      className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    >
+                      {faseValues.map((f) => (
+                        <option key={f.id} value={f.id}>{f.label}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
               <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 mb-4">
-                {tagValues.filter((v) => v.category === configCategory).length === 0 ? (
+                {configBlocked ? null : configList.length === 0 ? (
                   <p className="text-sm text-muted italic">Sin valores todavía. Añade el primero abajo.</p>
                 ) : (
-                  tagValues.filter((v) => v.category === configCategory).map((v) => (
+                  configList.map((v) => (
                     <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-surface-hover rounded-lg">
                       <span className="text-sm text-foreground-secondary">{v.label}</span>
-                      <button onClick={() => handleDeleteTagValue(v.id)} className="text-xs text-muted hover:text-red-400">Eliminar</button>
+                      <button onClick={() => handleDeleteTagValue(v)} className="text-xs text-muted hover:text-red-400">Eliminar</button>
                     </div>
                   ))
                 )}
               </div>
-              <div className="flex gap-2">
-                <input
-                  value={newTagDraft}
-                  onChange={(e) => setNewTagDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAddTagValue(); }}
-                  placeholder="Nuevo valor..."
-                  className="flex-1 px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-300"
-                />
-                <button onClick={handleAddTagValue} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700">
-                  Añadir
-                </button>
-              </div>
+              {!configBlocked && (
+                <div className="flex gap-2">
+                  <input
+                    value={newTagDraft}
+                    onChange={(e) => setNewTagDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddTagValue(); }}
+                    placeholder="Nuevo valor..."
+                    className="flex-1 px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-300"
+                  />
+                  <button onClick={handleAddTagValue} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700">
+                    Añadir
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

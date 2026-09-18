@@ -643,10 +643,15 @@ export async function getTaskTagValues(): Promise<TaskTagValue[]> {
   return data ?? [];
 }
 
-export async function createTaskTagValue(category: TaskTagCategory, label: string, position: number): Promise<TaskTagValue> {
+export async function createTaskTagValue(
+  category: TaskTagCategory,
+  label: string,
+  position: number,
+  parentId?: string | null
+): Promise<TaskTagValue> {
   const { data, error } = await supabase
     .from("task_tag_values")
-    .insert({ category, label, position })
+    .insert({ category, label, position, parent_id: parentId ?? null })
     .select()
     .single();
   if (error) throw error;

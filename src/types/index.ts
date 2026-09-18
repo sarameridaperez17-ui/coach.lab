@@ -255,6 +255,10 @@ export interface TaskTagValue {
   category: TaskTagCategory;
   label: string;
   position: number;
+  // Solo relevante para "momento_juego" y "principios_tacticos": apunta al
+  // id del valor de "fase_juego" al que pertenece. "Fase del juego" es la
+  // categoría matriz — sus valores no tienen parent_id.
+  parent_id: string | null;
   archived: boolean;
   created_at: string;
   updated_at: string;
