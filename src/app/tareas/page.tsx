@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getTasks, createTask, updateTask, deleteTask, getGamePhases, setItemStatus, removeItemStatus, getItemStatuses, getTacticalDiagrams, saveTacticalDiagram } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { getTasks, updateTask, deleteTask, getGamePhases, setItemStatus, removeItemStatus, getItemStatuses, getTacticalDiagrams, saveTacticalDiagram } from "@/lib/api";
 import type { ItemStatus } from "@/lib/api";
 import type { Task, ContentType, GamePhase } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
@@ -24,12 +25,12 @@ const CONTENT_ICONS: Record<ContentType, string> = {
 };
 
 export default function TareasPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [phases, setPhases] = useState<GamePhase[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [contentFilter, setContentFilter] = useState<ContentType | "all">("all");
-  const [adding, setAdding] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
@@ -88,12 +89,13 @@ export default function TareasPage() {
   };
 
   useEffect(() => {
+    // La creación de tareas ahora vive en /tareas/nueva (página independiente,
+    // a pantalla completa) — este enlace antiguo redirige ahí.
     const params = new URLSearchParams(window.location.search);
     if (params.get("crear") === "1") {
-      setAdding(true);
-      window.history.replaceState({}, "", window.location.pathname);
+      router.replace("/tareas/nueva");
     }
-  }, []);
+  }, [router]);
 
   const resetForm = () => {
     setFormName("");
@@ -106,30 +108,6 @@ export default function TareasPage() {
     setFormContentType(["tactical"]);
     setFormBoardState(undefined);
     setShowBoardEditor(false);
-  };
-
-  const handleCreate = async () => {
-    if (!formName.trim()) return;
-    try {
-      const created = await createTask({
-        name: formName.trim(),
-        description: formDesc.trim(),
-        rules: formRules.trim(),
-        dimensions: formDimensions.trim(),
-        num_players: formPlayers.trim(),
-        duration_minutes: formDuration,
-        variants: formVariants.trim(),
-        content_type: formContentType,
-      });
-      if (formBoardState && created?.id) {
-        await saveTacticalDiagram("task", created.id, formBoardState as unknown as Record<string, unknown>, formName.trim()).catch(console.error);
-      }
-      resetForm();
-      setAdding(false);
-      await load();
-    } catch (err) {
-      console.error("Error creating task:", err);
-    }
   };
 
   const handleUpdate = async (id: string) => {
@@ -298,7 +276,7 @@ export default function TareasPage() {
           {submitLabel}
         </button>
         <button
-          onClick={() => { setAdding(false); setEditingId(null); resetForm(); }}
+          onClick={() => { setEditingId(null); resetForm(); }}
           className="px-3 py-1.5 bg-surface-hover text-foreground-secondary rounded text-sm hover:bg-border"
         >
           Cancelar
@@ -322,7 +300,7 @@ export default function TareasPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground">Tareas de entrenamiento</h1>
           <button
-            onClick={() => { resetForm(); setAdding(true); }}
+            onClick={() => router.push("/tareas/nueva")}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
           >
             + Nueva tarea
@@ -363,9 +341,6 @@ export default function TareasPage() {
             className="w-full px-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300 bg-surface-hover"
           />
         </div>
-
-        {/* Formulario crear */}
-        {adding && <TaskForm onSubmit={handleCreate} submitLabel="Crear" />}
 
         {/* Task cards grid */}
         {filtered.length === 0 ? (

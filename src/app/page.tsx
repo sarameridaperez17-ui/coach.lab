@@ -59,7 +59,7 @@ function timeAgo(dateStr: string): string {
 
 const QUICK_ACTIONS = [
   { label: "Nuevo principio", href: "/modelo-de-juego?crear=1", color: "text-emerald-400" },
-  { label: "Nueva tarea", href: "/tareas?crear=1", color: "text-orange-400" },
+  { label: "Nueva tarea", href: "/tareas/nueva", color: "text-orange-400" },
   { label: "Nuevo concepto", href: "/conceptos-tacticos?crear=1", color: "text-amber-400" },
   { label: "Nueva nota", href: "/notas?crear=1", color: "text-cyan-400" },
   { label: "Nuevo sistema", href: "/sistemas?crear=1", color: "text-indigo-400" },
