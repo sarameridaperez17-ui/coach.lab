@@ -10,16 +10,9 @@ import {
   deleteTaskTagValue,
   setTaskTags,
 } from "@/lib/api";
-import type { ContentType, TaskTagValue, TaskTagCategory } from "@/types";
+import type { TaskTagValue, TaskTagCategory } from "@/types";
 import { TacticalBoardEditor } from "@/components/tactical-board";
 import type { BoardState } from "@/components/tactical-board";
-
-const CONTENT_LABELS: Record<ContentType, { label: string; color: string; accent: string }> = {
-  tactical: { label: "Táctico", color: "bg-emerald-900/50 text-emerald-400", accent: "#34d399" },
-  technical: { label: "Técnico", color: "bg-blue-900/50 text-blue-400", accent: "#60a5fa" },
-  physical: { label: "Físico", color: "bg-orange-900/50 text-orange-400", accent: "#fb923c" },
-  psychological: { label: "Psicológico", color: "bg-violet-900/50 text-violet-400", accent: "#a78bfa" },
-};
 
 const TAG_CATEGORIES: { key: TaskTagCategory; label: string }[] = [
   { key: "tipo_tarea", label: "Tipo de tarea" },
@@ -117,7 +110,6 @@ export default function NuevaTareaPage() {
   const [dimensions, setDimensions] = useState("");
   const [players, setPlayers] = useState("");
   const [duration, setDuration] = useState(15);
-  const [contentType, setContentType] = useState<ContentType[]>(["tactical"]);
   const [boardState, setBoardState] = useState<BoardState | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
@@ -130,9 +122,10 @@ export default function NuevaTareaPage() {
   const [youtubeEditing, setYoutubeEditing] = useState(false);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
-  // Etiquetas
+  // Etiquetas — una selección (o ninguna) por categoría, "el tipo de
+  // contenido de la tarea son las etiquetas clasificatorias"
   const [tagValues, setTagValues] = useState<TaskTagValue[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Partial<Record<TaskTagCategory, string>>>({});
   const [configOpen, setConfigOpen] = useState(false);
   const [configCategory, setConfigCategory] = useState<TaskTagCategory>("tipo_tarea");
   const [newTagDraft, setNewTagDraft] = useState("");
@@ -147,14 +140,6 @@ export default function NuevaTareaPage() {
   };
 
   useEffect(() => { loadTagValues(); }, []);
-
-  const toggleContentType = (ct: ContentType) => {
-    setContentType((prev) => (prev.includes(ct) ? prev.filter((c) => c !== ct) : [...prev, ct]));
-  };
-
-  const toggleTag = (id: string) => {
-    setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
-  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -180,7 +165,13 @@ export default function NuevaTareaPage() {
   const handleDeleteTagValue = async (id: string) => {
     try {
       await deleteTaskTagValue(id);
-      setSelectedTagIds((prev) => prev.filter((t) => t !== id));
+      setSelectedTags((prev) => {
+        const next = { ...prev };
+        for (const key of Object.keys(next) as TaskTagCategory[]) {
+          if (next[key] === id) delete next[key];
+        }
+        return next;
+      });
       await loadTagValues();
     } catch (err) {
       console.error("Error deleting tag value:", err);
@@ -199,7 +190,7 @@ export default function NuevaTareaPage() {
         num_players: players.trim(),
         duration_minutes: duration,
         variants: "",
-        content_type: contentType,
+        content_type: [],
         objective: objective.trim(),
         guidelines: guidelines.trim(),
         observations: observations.trim(),
@@ -214,8 +205,9 @@ export default function NuevaTareaPage() {
           name.trim()
         ).catch(console.error);
       }
-      if (selectedTagIds.length > 0 && created?.id) {
-        await setTaskTags(created.id, selectedTagIds).catch(console.error);
+      const tagIds = Object.values(selectedTags).filter((id): id is string => !!id);
+      if (tagIds.length > 0 && created?.id) {
+        await setTaskTags(created.id, tagIds).catch(console.error);
       }
       router.push("/tareas");
     } catch (err) {
@@ -234,6 +226,12 @@ export default function NuevaTareaPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={() => setConfigOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-surface-hover border border-border rounded-lg text-sm font-medium text-foreground-secondary hover:border-purple-400 hover:text-purple-400 transition-colors"
+          >
+            <span>⚙</span> Configuración
+          </button>
           <button
             onClick={() => router.push("/tareas")}
             className="px-4 py-2 bg-surface-hover text-foreground-secondary rounded-lg text-sm font-medium hover:bg-border transition-colors"
@@ -339,27 +337,6 @@ export default function NuevaTareaPage() {
           />
         </div>
 
-        {/* Content type toggles */}
-        <div className="mb-4">
-          <label className="text-xs text-muted font-medium mb-1.5 block">Tipo de contenido</label>
-          <div className="flex gap-2">
-            {(Object.keys(CONTENT_LABELS) as ContentType[]).map((ct) => {
-              const selected = contentType.includes(ct);
-              return (
-                <button
-                  key={ct}
-                  onClick={() => toggleContentType(ct)}
-                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                    selected ? CONTENT_LABELS[ct].color : "bg-surface-hover text-foreground-secondary"
-                  }`}
-                >
-                  {CONTENT_LABELS[ct].label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Imagen */}
         <div className="mb-4">
           <label className="text-xs text-muted font-medium mb-1.5 block">Imagen</label>
@@ -397,42 +374,27 @@ export default function NuevaTareaPage() {
           )}
         </div>
 
-        {/* Etiquetas */}
+        {/* Etiquetas — el tipo de contenido de la tarea ahora son estas 6 clasificaciones,
+            una fila de desplegables, uno por categoría */}
         <div className="mb-5 pt-5 border-t border-border">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-foreground">Etiquetas</h3>
-            <button
-              onClick={() => setConfigOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs text-foreground-secondary hover:border-purple-400 hover:text-purple-400 transition-colors"
-            >
-              <span>⚙</span> Configuración
-            </button>
-          </div>
-          <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Etiquetas</h3>
+          <div className="flex flex-wrap gap-3">
             {TAG_CATEGORIES.map((cat) => {
               const values = tagValues.filter((v) => v.category === cat.key);
               return (
-                <div key={cat.key}>
+                <div key={cat.key} className="flex-1 min-w-[160px]">
                   <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">{cat.label}</label>
-                  {values.length === 0 ? (
-                    <p className="text-xs text-muted italic">Sin opciones — añádelas desde Configuración.</p>
-                  ) : (
-                    <div className="flex gap-1.5 flex-wrap">
-                      {values.map((v) => (
-                        <button
-                          key={v.id}
-                          onClick={() => toggleTag(v.id)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                            selectedTagIds.includes(v.id)
-                              ? "bg-purple-600 text-white"
-                              : "bg-surface-hover border border-border text-foreground-secondary hover:border-purple-400"
-                          }`}
-                        >
-                          {v.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <select
+                    value={selectedTags[cat.key] ?? ""}
+                    onChange={(e) => setSelectedTags((prev) => ({ ...prev, [cat.key]: e.target.value }))}
+                    disabled={values.length === 0}
+                    className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">{values.length === 0 ? "Sin opciones" : "Sin seleccionar"}</option>
+                    {values.map((v) => (
+                      <option key={v.id} value={v.id}>{v.label}</option>
+                    ))}
+                  </select>
                 </div>
               );
             })}
