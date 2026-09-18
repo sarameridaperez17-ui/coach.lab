@@ -27,6 +27,8 @@ import type {
   PlayerReport,
   DominantFoot,
   CallUpStatus,
+  TaskTagValue,
+  TaskTagCategory,
 } from "@/types";
 
 // ============================================
@@ -585,7 +587,7 @@ export async function getTasks(): Promise<Task[]> {
   return data ?? [];
 }
 
-export async function createTask(task: {
+export interface TaskInput {
   name: string;
   description: string;
   rules: string;
@@ -594,7 +596,14 @@ export async function createTask(task: {
   duration_minutes: number;
   variants: string;
   content_type: ContentType[];
-}): Promise<Task> {
+  objective?: string;
+  guidelines?: string;
+  observations?: string;
+  image_url?: string | null;
+  youtube_url?: string | null;
+}
+
+export async function createTask(task: TaskInput): Promise<Task> {
   const { data, error } = await supabase
     .from("tasks")
     .insert(task)
@@ -604,20 +613,7 @@ export async function createTask(task: {
   return data;
 }
 
-export async function updateTask(
-  id: string,
-  updates: Partial<{
-    name: string;
-    description: string;
-    rules: string;
-    dimensions: string;
-    num_players: string;
-    duration_minutes: number;
-    variants: string;
-    content_type: ContentType[];
-    youtube_url: string | null;
-  }>
-): Promise<void> {
+export async function updateTask(id: string, updates: Partial<TaskInput>): Promise<void> {
   const { error } = await supabase.from("tasks").update(updates).eq("id", id);
   if (error) throw error;
 }
@@ -628,6 +624,64 @@ export async function deleteTask(id: string): Promise<void> {
     .update({ archived: true })
     .eq("id", id);
   if (error) throw error;
+}
+
+// ============================================
+// ETIQUETAS DE TAREAS
+// ============================================
+// Categorías fijas (tipo de tarea, situación de juego, zona, fase del
+// juego, momento del juego, principios tácticos); los valores de cada una
+// los da de alta Sandra manualmente desde el botón "Configuración".
+
+export async function getTaskTagValues(): Promise<TaskTagValue[]> {
+  const { data, error } = await supabase
+    .from("task_tag_values")
+    .select("*")
+    .eq("archived", false)
+    .order("position");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createTaskTagValue(category: TaskTagCategory, label: string, position: number): Promise<TaskTagValue> {
+  const { data, error } = await supabase
+    .from("task_tag_values")
+    .insert({ category, label, position })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function renameTaskTagValue(id: string, label: string): Promise<void> {
+  const { error } = await supabase.from("task_tag_values").update({ label }).eq("id", id);
+  if (error) throw error;
+}
+
+// Archivado suave — mismo patrón que el resto de la app.
+export async function deleteTaskTagValue(id: string): Promise<void> {
+  const { error } = await supabase.from("task_tag_values").update({ archived: true }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function getTaskTags(taskId: string): Promise<TaskTagValue[]> {
+  const { data, error } = await supabase
+    .from("task_tag_links")
+    .select("tag_value:task_tag_values(*)")
+    .eq("task_id", taskId);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.tag_value as unknown as TaskTagValue).filter(Boolean);
+}
+
+// Reemplaza todas las etiquetas de una tarea por el conjunto dado.
+export async function setTaskTags(taskId: string, tagValueIds: string[]): Promise<void> {
+  const { error: delError } = await supabase.from("task_tag_links").delete().eq("task_id", taskId);
+  if (delError) throw delError;
+  if (tagValueIds.length === 0) return;
+  const { error: insError } = await supabase
+    .from("task_tag_links")
+    .insert(tagValueIds.map((tag_value_id) => ({ task_id: taskId, tag_value_id })));
+  if (insError) throw insError;
 }
 
 // Vínculo Tarea ↔ Principio (tabla ya existente en el esquema, sin usar hasta ahora)

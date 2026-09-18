@@ -217,11 +217,15 @@ export interface Task {
   id: string;
   name: string;
   description: string;
-  rules: string;
+  rules: string; // "Normas de provocación"
   dimensions: string;
   num_players: string;
   duration_minutes: number;
   variants: string;
+  objective: string;
+  guidelines: string; // "Consignas"
+  observations: string;
+  image_url: string | null;
   content_type: ContentType[];
   youtube_url: string | null;
   archived: boolean;
@@ -233,6 +237,27 @@ export interface Task {
   game_phases?: GamePhase[];
   positions?: Position[];
   field_zones?: FieldZone[];
+  tags?: TaskTagValue[];
+}
+
+// Etiquetas de tareas — categorías fijas, valores configurables a mano
+// desde el botón "Configuración" en Nueva tarea.
+export type TaskTagCategory =
+  | "tipo_tarea"
+  | "situacion_juego"
+  | "zona"
+  | "fase_juego"
+  | "momento_juego"
+  | "principios_tacticos";
+
+export interface TaskTagValue {
+  id: string;
+  category: TaskTagCategory;
+  label: string;
+  position: number;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // --- Notas ---
