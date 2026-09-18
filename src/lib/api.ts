@@ -23,6 +23,10 @@ import type {
   ABPType,
   TacticalDiagram,
   PlanningEvent,
+  Player,
+  PlayerReport,
+  DominantFoot,
+  CallUpStatus,
 } from "@/types";
 
 // ============================================
@@ -1340,6 +1344,108 @@ export async function updatePlanningEvent(
   updates: Partial<Omit<PlanningEvent, "id" | "created_at" | "updated_at">>
 ): Promise<void> {
   const { error } = await supabase.from("planning_events").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+// ============================================
+// EQUIPO — Plantillas y Seguimiento de jugadoras
+// ============================================
+// "players" es el registro compartido de una jugadora, usado tanto por
+// Plantillas (datos de club) como por Seguimiento de jugadoras (informes de
+// rendimiento). Dar de alta una jugadora desde cualquiera de las dos páginas
+// la hace aparecer en ambas.
+
+export interface PlayerInput {
+  full_name: string;
+  birth_date: string | null;
+  position_id: string | null;
+  dominant_foot: DominantFoot;
+  photo_url: string | null;
+  club: string;
+  squad_number: number | null;
+  height_cm: number | null;
+  nationality: string;
+  notes: string;
+}
+
+export async function getPlayers(): Promise<Player[]> {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*, position:positions(*)")
+    .eq("archived", false)
+    .order("full_name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createPlayer(player: PlayerInput): Promise<Player> {
+  const { data, error } = await supabase.from("players").insert(player).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePlayer(id: string, updates: Partial<PlayerInput>): Promise<Player> {
+  const { data, error } = await supabase.from("players").update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// Archivado suave — mismo patrón que el resto de la app.
+export async function deletePlayer(id: string): Promise<void> {
+  const { error } = await supabase.from("players").update({ archived: true }).eq("id", id);
+  if (error) throw error;
+}
+
+export interface PlayerReportInput {
+  player_id: string;
+  report_date: string;
+  category: string;
+  club: string;
+  minutes_played: number | null;
+  positions_played: string;
+  rating: number | null;
+  performance_notes: string;
+  call_up_status: CallUpStatus;
+  tournament: string;
+}
+
+export async function getPlayerReports(playerId: string): Promise<PlayerReport[]> {
+  const { data, error } = await supabase
+    .from("player_reports")
+    .select("*")
+    .eq("player_id", playerId)
+    .eq("archived", false)
+    .order("report_date", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Últimos informes de TODAS las jugadoras de una vez (uno por jugadora, el
+// más reciente) — usado para mostrar el estado de convocatoria en la lista.
+export async function getLatestPlayerReports(): Promise<PlayerReport[]> {
+  const { data, error } = await supabase
+    .from("player_reports")
+    .select("*")
+    .eq("archived", false)
+    .order("report_date", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createPlayerReport(report: PlayerReportInput): Promise<PlayerReport> {
+  const { data, error } = await supabase.from("player_reports").insert(report).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePlayerReport(id: string, updates: Partial<PlayerReportInput>): Promise<PlayerReport> {
+  const { data, error } = await supabase.from("player_reports").update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deletePlayerReport(id: string): Promise<void> {
+  const { error } = await supabase.from("player_reports").update({ archived: true }).eq("id", id);
   if (error) throw error;
 }
 

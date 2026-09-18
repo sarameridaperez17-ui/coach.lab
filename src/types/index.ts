@@ -129,6 +129,48 @@ export interface PositionBehavior {
   game_phase?: GamePhase;
 }
 
+// --- Equipo: Plantillas y Seguimiento de jugadoras ---
+
+export type DominantFoot = "diestra" | "zurda" | "ambidiestra" | "";
+
+export interface Player {
+  id: string;
+  full_name: string;
+  birth_date: string | null; // YYYY-MM-DD
+  position_id: string | null;
+  dominant_foot: DominantFoot;
+  photo_url: string | null;
+  club: string;
+  squad_number: number | null;
+  height_cm: number | null;
+  nationality: string;
+  notes: string;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+  // Relaciones cargadas
+  position?: Position;
+}
+
+export type CallUpStatus = "seguimiento" | "pendiente" | "convocada" | "no_convocada";
+
+export interface PlayerReport {
+  id: string;
+  player_id: string;
+  report_date: string; // YYYY-MM-DD
+  category: string;
+  club: string;
+  minutes_played: number | null;
+  positions_played: string;
+  rating: number | null;
+  performance_notes: string;
+  call_up_status: CallUpStatus;
+  tournament: string;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Glosario ---
 
 export interface GlossaryTerm {

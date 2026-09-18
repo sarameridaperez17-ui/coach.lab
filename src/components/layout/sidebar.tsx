@@ -15,6 +15,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    title: "EQUIPO",
+    items: [
+      { href: "/plantillas", label: "Plantillas", icon: "▧" },
+      { href: "/seguimiento", label: "Seguimiento de jugadoras", icon: "⌖" },
+    ],
+  },
+  {
     title: "CONOCIMIENTO",
     items: [
       { href: "/glosario", label: "Diccionario táctico", icon: "▤" },
