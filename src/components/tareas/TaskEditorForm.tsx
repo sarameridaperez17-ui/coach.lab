@@ -14,6 +14,7 @@ import {
 import type { TaskTagValue, TaskTagCategory } from "@/types";
 import { TacticalBoardEditor } from "@/components/tactical-board";
 import type { BoardState } from "@/components/tactical-board";
+import { getTagColor } from "@/lib/tagColors";
 
 // "Fase del juego" es la categoría matriz/dominante: va primero, seguida
 // de sus dos categorías dependientes (momento y principios, cada una
@@ -533,12 +534,15 @@ export function TaskEditorForm({ taskId, initial }: { taskId?: string; initial?:
                 {configBlocked ? null : configList.length === 0 ? (
                   <p className="text-sm text-muted italic">Sin valores todavía. Añade el primero abajo.</p>
                 ) : (
-                  configList.map((v) => (
-                    <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-surface-hover rounded-lg">
-                      <span className="text-sm text-foreground-secondary">{v.label}</span>
-                      <button onClick={() => handleDeleteTagValue(v)} className="text-xs text-muted hover:text-red-400">Eliminar</button>
-                    </div>
-                  ))
+                  configList.map((v) => {
+                    const color = getTagColor(v.id);
+                    return (
+                      <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-surface-hover rounded-lg">
+                        <span className={`px-2 py-0.5 rounded-full ${color.bg} ${color.text} text-xs font-medium`}>{v.label}</span>
+                        <button onClick={() => handleDeleteTagValue(v)} className="text-xs text-muted hover:text-red-400">Eliminar</button>
+                      </div>
+                    );
+                  })
                 )}
               </div>
               {!configBlocked && (

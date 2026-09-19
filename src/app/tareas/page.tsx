@@ -6,6 +6,7 @@ import { getTasks, deleteTask, setItemStatus, removeItemStatus, getItemStatuses,
 import type { ItemStatus } from "@/lib/api";
 import type { Task, TaskTagValue, TaskTagCategory } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
+import { getTagColor } from "@/lib/tagColors";
 
 // Mismo orden que en el editor de tareas: fase primero, luego sus
 // dependientes, luego las categorías independientes.
@@ -222,11 +223,14 @@ export default function TareasPage() {
                       {(task.tags ?? []).length === 0 ? (
                         <span className="text-[10px] text-muted italic">Sin etiquetas</span>
                       ) : (
-                        task.tags!.map((tag) => (
-                          <span key={tag.id} className="px-2 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-medium">
-                            {tag.label}
-                          </span>
-                        ))
+                        task.tags!.map((tag) => {
+                          const color = getTagColor(tag.id);
+                          return (
+                            <span key={tag.id} className={`px-2 py-0.5 rounded-full ${color.bg} ${color.text} text-[10px] font-medium`}>
+                              {tag.label}
+                            </span>
+                          );
+                        })
                       )}
                     </div>
 
