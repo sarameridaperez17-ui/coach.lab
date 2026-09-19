@@ -2,7 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getTasks, deleteTask, setItemStatus, removeItemStatus, getItemStatuses, getTaskTagValues } from "@/lib/api";
+import {
+  getTasks,
+  createTask,
+  deleteTask,
+  setItemStatus,
+  removeItemStatus,
+  getItemStatuses,
+  getTaskTagValues,
+  setTaskTags,
+  getTacticalDiagrams,
+  saveTacticalDiagram,
+} from "@/lib/api";
 import type { ItemStatus } from "@/lib/api";
 import type { Task, TaskTagValue, TaskTagCategory } from "@/types";
 import { StatusMenu, StatusBadge } from "@/components/ui/StatusMenu";
@@ -88,6 +99,38 @@ export default function TareasPage() {
       await load();
     } catch (err) {
       console.error("Error deleting task:", err);
+    }
+  };
+
+  // Duplica una tarea (con etiquetas, imagen, vídeo y tablero táctico
+  // incluidos) y abre directamente el panel de editar de la copia, por si
+  // se quiere cambiar algo sin partir de cero.
+  const handleDuplicate = async (task: Task) => {
+    try {
+      const created = await createTask({
+        name: `${task.name} (copia)`,
+        description: task.description,
+        rules: task.rules,
+        dimensions: task.dimensions,
+        num_players: task.num_players,
+        duration_minutes: task.duration_minutes,
+        variants: task.variants,
+        content_type: [],
+        objective: task.objective,
+        guidelines: task.guidelines,
+        observations: task.observations,
+        image_url: task.image_url,
+        youtube_url: task.youtube_url,
+      });
+      const tagIds = (task.tags ?? []).map((t) => t.id);
+      if (tagIds.length > 0) await setTaskTags(created.id, tagIds).catch(console.error);
+      const diagrams = await getTacticalDiagrams("task", task.id).catch(() => []);
+      if (diagrams[0]) {
+        await saveTacticalDiagram("task", created.id, diagrams[0].board_state, created.name).catch(console.error);
+      }
+      router.push(`/tareas/${created.id}/editar`);
+    } catch (err) {
+      console.error("Error duplicating task:", err);
     }
   };
 
@@ -249,6 +292,12 @@ export default function TareasPage() {
                         className="px-2 py-1 text-xs text-muted hover:text-purple-400 hover:bg-purple-900/20 rounded"
                       >
                         Editar
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDuplicate(task); }}
+                        className="px-2 py-1 text-xs text-muted hover:text-purple-400 hover:bg-purple-900/20 rounded"
+                      >
+                        Duplicar
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(task.id); }}

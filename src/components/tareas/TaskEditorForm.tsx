@@ -399,47 +399,11 @@ export function TaskEditorForm({ taskId, initial }: { taskId?: string; initial?:
           />
         </div>
 
-        {/* Imagen */}
-        <div className="mb-4">
-          <label className="text-xs text-muted font-medium mb-1.5 block">Imagen</label>
-          <div className="flex items-center gap-3">
-            {imageUrl && (
-              <img src={imageUrl} alt="" className="h-16 w-24 object-cover rounded-lg border border-border" />
-            )}
-            <button
-              onClick={() => imageInputRef.current?.click()}
-              className="px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs text-foreground-secondary hover:border-purple-400 hover:text-purple-400 transition-colors"
-            >
-              {imageUrl ? "Cambiar imagen" : "Subir imagen"}
-            </button>
-            <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-            {imageUrl && (
-              <button onClick={() => setImageUrl(null)} className="text-xs text-red-400 hover:text-red-300">Quitar</button>
-            )}
-          </div>
-        </div>
-
-        {/* Vídeo de YouTube — mismo formato que el resto de la web */}
-        <div className="mb-5">
-          <label className="text-xs text-muted font-medium mb-1.5 block">Vídeo de YouTube</label>
-          <div className="flex items-center gap-2">
-            {youtubeUrl && <YoutubeThumbnail url={youtubeUrl} onClick={() => setPlayingVideoUrl(youtubeUrl)} size="md" />}
-            <YoutubeIconButton hasVideo={!!youtubeUrl} onClick={() => setYoutubeEditing(true)} />
-            {!youtubeUrl && !youtubeEditing && <span className="text-xs text-muted">Sin vídeo enlazado</span>}
-          </div>
-          {youtubeEditing && (
-            <YoutubeUrlInput
-              currentUrl={youtubeUrl}
-              onSave={(url) => { setYoutubeUrl(url); setYoutubeEditing(false); }}
-              onCancel={() => setYoutubeEditing(false)}
-            />
-          )}
-        </div>
-
         {/* Etiquetas — el tipo de contenido de la tarea ahora son estas 6 clasificaciones,
             una fila de desplegables. "Fase del juego" es la categoría matriz: al elegirla,
-            "Momento del juego" y "Principios tácticos" solo ofrecen sus valores para esa fase. */}
-        <div className="mb-5 pt-5 border-t border-border">
+            "Momento del juego" y "Principios tácticos" solo ofrecen sus valores para esa fase.
+            El desplegable se tiñe con el color de la etiqueta elegida (30% de opacidad). */}
+        <div className="mb-5">
           <h3 className="text-sm font-semibold text-foreground mb-3">Etiquetas</h3>
           <div className="flex flex-wrap gap-3">
             {TAG_CATEGORIES.map((cat) => {
@@ -455,6 +419,8 @@ export function TaskEditorForm({ taskId, initial }: { taskId?: string; initial?:
                 : values.length === 0
                 ? "Sin opciones"
                 : "Sin seleccionar";
+              const selectedId = selectedTags[cat.key];
+              const bgClass = selectedId ? getTagColor(selectedId).bgSoft : "bg-surface-hover";
               return (
                 <div key={cat.key} className="flex-1 min-w-[160px]">
                   <label className="text-[10px] text-muted uppercase tracking-wide font-medium block mb-1">{cat.label}</label>
@@ -462,7 +428,7 @@ export function TaskEditorForm({ taskId, initial }: { taskId?: string; initial?:
                     value={selectedTags[cat.key] ?? ""}
                     onChange={(e) => (cat.key === "fase_juego" ? handleSelectFase(e.target.value) : setSelectedTags((prev) => ({ ...prev, [cat.key]: e.target.value })))}
                     disabled={disabled}
-                    className="w-full px-3 py-2 bg-surface-hover border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${bgClass}`}
                   >
                     <option value="">{placeholder}</option>
                     {values.map((v) => (
@@ -472,6 +438,44 @@ export function TaskEditorForm({ taskId, initial }: { taskId?: string; initial?:
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Imagen y vídeo de YouTube, en la misma fila */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 pt-5 border-t border-border">
+          <div>
+            <label className="text-xs text-muted font-medium mb-1.5 block">Imagen</label>
+            <div className="flex items-center gap-3">
+              {imageUrl && (
+                <img src={imageUrl} alt="" className="h-16 w-24 object-cover rounded-lg border border-border" />
+              )}
+              <button
+                onClick={() => imageInputRef.current?.click()}
+                className="px-3 py-1.5 bg-surface-hover border border-border rounded-lg text-xs text-foreground-secondary hover:border-purple-400 hover:text-purple-400 transition-colors"
+              >
+                {imageUrl ? "Cambiar imagen" : "Subir imagen"}
+              </button>
+              <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              {imageUrl && (
+                <button onClick={() => setImageUrl(null)} className="text-xs text-red-400 hover:text-red-300">Quitar</button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted font-medium mb-1.5 block">Vídeo de YouTube</label>
+            <div className="flex items-center gap-2">
+              {youtubeUrl && <YoutubeThumbnail url={youtubeUrl} onClick={() => setPlayingVideoUrl(youtubeUrl)} size="md" />}
+              <YoutubeIconButton hasVideo={!!youtubeUrl} onClick={() => setYoutubeEditing(true)} />
+              {!youtubeUrl && !youtubeEditing && <span className="text-xs text-muted">Sin vídeo enlazado</span>}
+            </div>
+            {youtubeEditing && (
+              <YoutubeUrlInput
+                currentUrl={youtubeUrl}
+                onSave={(url) => { setYoutubeUrl(url); setYoutubeEditing(false); }}
+                onCancel={() => setYoutubeEditing(false)}
+              />
+            )}
           </div>
         </div>
 
