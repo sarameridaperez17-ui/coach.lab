@@ -150,7 +150,9 @@ export default function NuevaTareaPage() {
     }
   };
 
-  useEffect(() => { loadTagValues(); }, []);
+  useEffect(() => {
+    getTaskTagValues().then(setTagValues).catch((err) => console.error("Error loading tag values:", err));
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
