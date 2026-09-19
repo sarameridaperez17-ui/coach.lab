@@ -355,6 +355,13 @@ export default function TareasPage() {
                     )}
                     {hasMultiple && (
                       <>
+                        {/* Señal visible de variantes: total en el original, variante actual al navegar */}
+                        <span
+                          className="absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded bg-purple-600 text-white text-[10px] font-bold shadow"
+                          title={displayIndex === 0 ? `${slides.length - 1} variante(s)` : `Viendo la variante ${displayIndex} de ${slides.length - 1}`}
+                        >
+                          {displayIndex === 0 ? `V${slides.length - 1}` : `V${displayIndex}/${slides.length - 1}`}
+                        </span>
                         <button
                           onClick={(e) => goTo(e, -1)}
                           className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
