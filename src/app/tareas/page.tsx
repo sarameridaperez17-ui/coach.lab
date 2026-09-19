@@ -223,7 +223,7 @@ export default function TareasPage() {
                         <span className="text-[10px] text-muted italic">Sin etiquetas</span>
                       ) : (
                         task.tags!.map((tag) => (
-                          <span key={tag.id} className="px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-300 text-[10px] font-medium">
+                          <span key={tag.id} className="px-2 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-medium">
                             {tag.label}
                           </span>
                         ))
@@ -239,7 +239,7 @@ export default function TareasPage() {
                       {task.dimensions && <span>{task.dimensions}</span>}
                     </div>
 
-                    <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 max-h-0 group-hover:max-h-8 group-hover:mt-2 overflow-hidden transition-all duration-150">
                       <button
                         onClick={(e) => { e.stopPropagation(); router.push(`/tareas/${task.id}/editar`); }}
                         className="px-2 py-1 text-xs text-muted hover:text-purple-400 hover:bg-purple-900/20 rounded"
