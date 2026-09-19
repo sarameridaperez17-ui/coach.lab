@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   getTasks,
   createTask,
+  updateTask,
   deleteTask,
   setItemStatus,
   removeItemStatus,
@@ -42,6 +43,9 @@ export default function TareasPage() {
   // Diapositiva actualmente mostrada por tarea "madre" (índice dentro de su
   // grupo madre+variantes) — navegación con flechas dentro del mismo recuadro.
   const [slideIndex, setSlideIndex] = useState<Record<string, number>>({});
+  // Al eliminar una tarea madre con variantes, se pregunta cuál de ellas
+  // pasa a ser la nueva madre (en vez de borrarlas todas).
+  const [promoteModal, setPromoteModal] = useState<{ mother: Task; variants: Task[] } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -98,18 +102,38 @@ export default function TareasPage() {
   // Si se borra una tarea "madre" con variantes, se borran también sus
   // variantes (el archivado es lógico, no hay cascada automática al no ser
   // un DELETE real).
+  // Si la tarea es una madre con variantes, no se borran de golpe: se
+  // pregunta cuál de las variantes pasa a ser la nueva madre. Si es una
+  // variante suelta (o una madre sin variantes), se borra normal.
   const handleDelete = async (task: Task) => {
     const children = tasks.filter((t) => t.parent_task_id === task.id);
-    const msg = children.length > 0
-      ? `Esta tarea tiene ${children.length} variante${children.length > 1 ? "s" : ""}. Si la eliminas, se eliminarán también sus variantes. ¿Continuar?`
-      : "¿Eliminar esta tarea?";
-    if (!confirm(msg)) return;
+    if (children.length > 0) {
+      setPromoteModal({ mother: task, variants: children });
+      return;
+    }
+    if (!confirm("¿Eliminar esta tarea?")) return;
     try {
       await deleteTask(task.id);
-      await Promise.all(children.map((c) => deleteTask(c.id)));
       await load();
     } catch (err) {
       console.error("Error deleting task:", err);
+    }
+  };
+
+  // La variante elegida deja de tener padre (pasa a ser la madre); el resto
+  // de variantes pasan a depender de ella; se borra la antigua madre.
+  const handlePromoteAndDelete = async (newMother: Task) => {
+    if (!promoteModal) return;
+    const { mother, variants } = promoteModal;
+    try {
+      await updateTask(newMother.id, { parent_task_id: null });
+      const others = variants.filter((v) => v.id !== newMother.id);
+      await Promise.all(others.map((v) => updateTask(v.id, { parent_task_id: newMother.id })));
+      await deleteTask(mother.id);
+      setPromoteModal(null);
+      await load();
+    } catch (err) {
+      console.error("Error promoting variant:", err);
     }
   };
 
@@ -463,6 +487,38 @@ export default function TareasPage() {
           onRemove={handleRemoveStatus}
           onClose={() => setStatusMenu(null)}
         />
+      )}
+
+      {/* Elegir qué variante pasa a ser la nueva madre al borrar la madre actual */}
+      {promoteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setPromoteModal(null)}>
+          <div className="bg-surface rounded-xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-foreground mb-1">Eliminar tarea madre</h3>
+            <p className="text-xs text-muted mb-4">
+              &ldquo;{promoteModal.mother.name}&rdquo; tiene {promoteModal.variants.length} variante{promoteModal.variants.length > 1 ? "s" : ""}.
+              Elige cuál pasa a ser la nueva tarea madre — el resto seguirá como sus variantes.
+            </p>
+            <div className="space-y-1.5 mb-4">
+              {promoteModal.variants.map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => handlePromoteAndDelete(v)}
+                  className="w-full text-left px-3 py-2 bg-surface-hover hover:bg-purple-900/20 hover:text-purple-400 rounded-lg text-sm text-foreground-secondary transition-colors"
+                >
+                  {v.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setPromoteModal(null)}
+                className="px-4 py-2 bg-surface-hover text-foreground-secondary rounded-lg text-sm hover:bg-border"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
