@@ -17,7 +17,6 @@ import type {
   Task,
   ContentType,
   GameSystem,
-  GameSystemPosition,
   GameSystemVariant,
   ABPStrategy,
   ABPType,
@@ -573,18 +572,36 @@ export async function deletePositionBehavior(id: string): Promise<void> {
 // TAREAS DE ENTRENAMIENTO
 // ============================================
 
+type TaskRow = Task & { task_tag_links?: { tag_value: TaskTagValue }[] };
+
 export async function getTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from("tasks")
     .select(`
       *,
       task_principles(principle_id),
-      task_game_phases(game_phase_id)
+      task_game_phases(game_phase_id),
+      task_tag_links(tag_value:task_tag_values(*))
     `)
     .eq("archived", false)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  const rows = (data ?? []) as unknown as TaskRow[];
+  return rows.map((t) => ({ ...t, tags: (t.task_tag_links ?? []).map((l) => l.tag_value).filter(Boolean) }));
+}
+
+export async function getTaskById(id: string): Promise<Task> {
+  const { data, error } = await supabase
+    .from("tasks")
+    .select(`
+      *,
+      task_tag_links(tag_value:task_tag_values(*))
+    `)
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  const row = data as unknown as TaskRow;
+  return { ...row, tags: (row.task_tag_links ?? []).map((l) => l.tag_value).filter(Boolean) };
 }
 
 export interface TaskInput {
