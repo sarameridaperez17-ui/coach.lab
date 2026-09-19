@@ -232,6 +232,23 @@ export default function TareasPage() {
   const favoriteIds = Array.from(itemStatuses.entries()).filter(([, s]) => s === "favorite").map(([id]) => id);
   const recentTasks = [...tasks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
 
+  // Cuántas tareas de la biblioteca (madres y variantes, todas cuentan por
+  // separado) usan cada etiqueta — agrupado por las 6 categorías.
+  const tagUsageCounts = new Map<string, number>();
+  for (const t of tasks) {
+    for (const tag of t.tags ?? []) {
+      tagUsageCounts.set(tag.id, (tagUsageCounts.get(tag.id) ?? 0) + 1);
+    }
+  }
+  const tagUsageByCategory = TAG_CATEGORIES.map((cat) => ({
+    ...cat,
+    used: tagValues
+      .filter((v) => v.category === cat.key)
+      .map((v) => ({ value: v, count: tagUsageCounts.get(v.id) ?? 0 }))
+      .filter((u) => u.count > 0)
+      .sort((a, b) => b.count - a.count),
+  }));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -355,12 +372,12 @@ export default function TareasPage() {
                     )}
                     {hasMultiple && (
                       <>
-                        {/* Señal visible de variantes: total en el original, variante actual al navegar */}
+                        {/* Señal visible: "TM" en la tarea madre, "V1"/"V2"... en cada variante */}
                         <span
                           className="absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded bg-purple-600 text-white text-[10px] font-bold shadow"
-                          title={displayIndex === 0 ? `${slides.length - 1} variante(s)` : `Viendo la variante ${displayIndex} de ${slides.length - 1}`}
+                          title={displayIndex === 0 ? "Tarea madre" : `Variante ${displayIndex}`}
                         >
-                          {displayIndex === 0 ? `V${slides.length - 1}` : `V${displayIndex}/${slides.length - 1}`}
+                          {displayIndex === 0 ? "TM" : `V${displayIndex}`}
                         </span>
                         <button
                           onClick={(e) => goTo(e, -1)}
@@ -462,6 +479,36 @@ export default function TareasPage() {
               <p className="text-2xl font-bold text-foreground">{favoriteIds.length}</p>
               <p className="text-[10px] text-muted uppercase">Favoritas</p>
             </div>
+          </div>
+        </div>
+
+        {/* Etiquetas usadas — todas las categorías, solo los valores con al
+            menos una tarea (madre o variante) etiquetada */}
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Etiquetas usadas</h3>
+          <div className="space-y-3">
+            {tagUsageByCategory.map((cat) => (
+              <div key={cat.key}>
+                <p className="text-[10px] text-muted uppercase tracking-wide font-medium mb-1">{cat.label}</p>
+                {cat.used.length === 0 ? (
+                  <p className="text-[11px] text-muted italic">Sin usar</p>
+                ) : (
+                  <div className="space-y-1">
+                    {cat.used.map(({ value, count }) => {
+                      const color = getTagColor(value.id);
+                      return (
+                        <div key={value.id} className="flex items-center justify-between gap-2">
+                          <span className={`px-1.5 py-0.5 rounded-full ${color.bg} ${color.text} text-[10px] font-medium truncate`}>
+                            {value.label}
+                          </span>
+                          <span className="text-[10px] text-muted flex-shrink-0">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
