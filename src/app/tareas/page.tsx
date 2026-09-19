@@ -482,10 +482,10 @@ export default function TareasPage() {
           </div>
         </div>
 
-        {/* Etiquetas usadas — todas las categorías, solo los valores con al
+        {/* Resumen de categorías — todas las categorías, solo los valores con al
             menos una tarea (madre o variante) etiquetada */}
         <div className="bg-surface rounded-xl border border-border p-4">
-          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Etiquetas usadas</h3>
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Resumen de categorías</h3>
           <div className="space-y-3">
             {tagUsageByCategory.map((cat) => (
               <div key={cat.key}>
