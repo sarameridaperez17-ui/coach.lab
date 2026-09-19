@@ -228,6 +228,9 @@ export interface Task {
   image_url: string | null;
   content_type: ContentType[];
   youtube_url: string | null;
+  // Variante de otra tarea — misma ficha, se muestran juntas en la
+  // biblioteca pero se buscan/filtran de forma independiente.
+  parent_task_id: string | null;
   archived: boolean;
   created_at: string;
   updated_at: string;

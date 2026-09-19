@@ -39,6 +39,9 @@ export default function TareasPage() {
   const [tagFilters, setTagFilters] = useState<Partial<Record<TaskTagCategory, string>>>({});
   const [itemStatuses, setItemStatuses] = useState<Map<string, ItemStatus>>(new Map());
   const [statusMenu, setStatusMenu] = useState<{ x: number; y: number; id: string; title: string } | null>(null);
+  // Diapositiva actualmente mostrada por tarea "madre" (índice dentro de su
+  // grupo madre+variantes) — navegación con flechas dentro del mismo recuadro.
+  const [slideIndex, setSlideIndex] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     try {
@@ -92,52 +95,85 @@ export default function TareasPage() {
     setStatusMenu(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar esta tarea?")) return;
+  // Si se borra una tarea "madre" con variantes, se borran también sus
+  // variantes (el archivado es lógico, no hay cascada automática al no ser
+  // un DELETE real).
+  const handleDelete = async (task: Task) => {
+    const children = tasks.filter((t) => t.parent_task_id === task.id);
+    const msg = children.length > 0
+      ? `Esta tarea tiene ${children.length} variante${children.length > 1 ? "s" : ""}. Si la eliminas, se eliminarán también sus variantes. ¿Continuar?`
+      : "¿Eliminar esta tarea?";
+    if (!confirm(msg)) return;
     try {
-      await deleteTask(id);
+      await deleteTask(task.id);
+      await Promise.all(children.map((c) => deleteTask(c.id)));
       await load();
     } catch (err) {
       console.error("Error deleting task:", err);
     }
   };
 
-  // Duplica una tarea (con etiquetas, imagen, vídeo y tablero táctico
-  // incluidos) y abre directamente el panel de editar de la copia, por si
-  // se quiere cambiar algo sin partir de cero.
+  // Copia todos los campos, etiquetas y tablero táctico de una tarea a una
+  // nueva, con el nombre indicado — usado tanto por Duplicar como por
+  // Añadir variante.
+  const cloneTaskInto = async (task: Task, name: string, parentTaskId: string | null) => {
+    const created = await createTask({
+      name,
+      description: task.description,
+      rules: task.rules,
+      dimensions: task.dimensions,
+      num_players: task.num_players,
+      duration_minutes: task.duration_minutes,
+      variants: task.variants,
+      content_type: [],
+      objective: task.objective,
+      guidelines: task.guidelines,
+      observations: task.observations,
+      image_url: task.image_url,
+      youtube_url: task.youtube_url,
+      parent_task_id: parentTaskId,
+    });
+    const tagIds = (task.tags ?? []).map((t) => t.id);
+    if (tagIds.length > 0) await setTaskTags(created.id, tagIds).catch(console.error);
+    const diagrams = await getTacticalDiagrams("task", task.id).catch(() => []);
+    if (diagrams[0]) {
+      await saveTacticalDiagram("task", created.id, diagrams[0].board_state, name).catch(console.error);
+    }
+    return created;
+  };
+
+  // Duplica una tarea y abre directamente el panel de editar de la copia,
+  // totalmente independiente (no aparece junto a la original).
   const handleDuplicate = async (task: Task) => {
     try {
-      const created = await createTask({
-        name: `${task.name} (copia)`,
-        description: task.description,
-        rules: task.rules,
-        dimensions: task.dimensions,
-        num_players: task.num_players,
-        duration_minutes: task.duration_minutes,
-        variants: task.variants,
-        content_type: [],
-        objective: task.objective,
-        guidelines: task.guidelines,
-        observations: task.observations,
-        image_url: task.image_url,
-        youtube_url: task.youtube_url,
-      });
-      const tagIds = (task.tags ?? []).map((t) => t.id);
-      if (tagIds.length > 0) await setTaskTags(created.id, tagIds).catch(console.error);
-      const diagrams = await getTacticalDiagrams("task", task.id).catch(() => []);
-      if (diagrams[0]) {
-        await saveTacticalDiagram("task", created.id, diagrams[0].board_state, created.name).catch(console.error);
-      }
+      const created = await cloneTaskInto(task, `${task.name} (copia)`, null);
       router.push(`/tareas/${created.id}/editar`);
     } catch (err) {
       console.error("Error duplicating task:", err);
     }
   };
 
+  // Añade una variante a una tarea "madre": parte siempre del formato y
+  // texto de la madre (no de la diapositiva que se esté viendo), pero
+  // ligada a ella — en la biblioteca se muestran juntas en el mismo
+  // recuadro, aunque se buscan/filtran de forma independiente.
+  const handleAddVariant = async (mother: Task) => {
+    try {
+      const variantCount = tasks.filter((t) => t.parent_task_id === mother.id).length;
+      const created = await cloneTaskInto(mother, `${mother.name} (variante ${variantCount + 1})`, mother.id);
+      router.push(`/tareas/${created.id}/editar`);
+    } catch (err) {
+      console.error("Error creating variant:", err);
+    }
+  };
+
   const hasActiveFilters = !!search || Object.values(tagFilters).some(Boolean);
   const clearFilters = () => { setSearch(""); setTagFilters({}); };
 
-  const filtered = tasks.filter((t) => {
+  // Una tarea (madre o variante) coincide con la búsqueda/filtros por sus
+  // propios datos — así cada variante se busca de forma independiente,
+  // aunque en la biblioteca se muestre dentro del recuadro de su madre.
+  const taskMatches = (t: Task) => {
     const matchSearch =
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.description?.toLowerCase().includes(search.toLowerCase());
@@ -147,7 +183,23 @@ export default function TareasPage() {
       return (t.tags ?? []).some((tag) => tag.id === filterId);
     });
     return matchSearch && matchTags;
-  });
+  };
+
+  // Agrupa cada tarea "madre" (sin parent_task_id) con sus variantes, en el
+  // mismo recuadro. El grupo aparece si al menos una diapositiva coincide
+  // con la búsqueda/filtros; se muestra la diapositiva navegada a mano si
+  // sigue coincidiendo, si no, la primera que coincida.
+  const groups = tasks
+    .filter((t) => !t.parent_task_id)
+    .map((mother) => {
+      const variantsOf = tasks
+        .filter((t) => t.parent_task_id === mother.id)
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const slides = [mother, ...variantsOf];
+      const matchingIndices = slides.map((s, i) => (taskMatches(s) ? i : -1)).filter((i) => i >= 0);
+      return { mother, slides, matchingIndices };
+    })
+    .filter((g) => g.matchingIndices.length > 0);
 
   /* ── Sidebar data ── */
   const totalTasks = tasks.length;
@@ -221,8 +273,10 @@ export default function TareasPage() {
           </div>
         </div>
 
-        {/* Task cards grid — 3 por fila: título, imagen, etiquetas abajo */}
-        {filtered.length === 0 ? (
+        {/* Task cards grid — 3 por fila: título, imagen, etiquetas abajo.
+            Cada recuadro es una tarea "madre" + sus variantes, navegables con flechas;
+            cada diapositiva se busca/filtra por sus propios datos. */}
+        {groups.length === 0 ? (
           <div className="bg-surface rounded-xl border border-border p-8 text-center text-foreground-secondary">
             <p className="text-lg font-medium mb-2">Sin tareas</p>
             <p className="text-sm">
@@ -233,32 +287,67 @@ export default function TareasPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((task) => {
+            {groups.map(({ mother, slides, matchingIndices }) => {
+              const manual = slideIndex[mother.id];
+              const displayIndex = manual !== undefined && matchingIndices.includes(manual) ? manual : matchingIndices[0];
+              const task = slides[displayIndex];
+              const hasMultiple = slides.length > 1;
               const isFavorite = favoriteIds.includes(task.id);
+              const goTo = (e: React.MouseEvent, delta: number) => {
+                e.stopPropagation();
+                setSlideIndex((prev) => ({ ...prev, [mother.id]: (displayIndex + delta + slides.length) % slides.length }));
+              };
               return (
                 <div
-                  key={task.id}
+                  key={mother.id}
                   onClick={() => router.push(`/tareas/${task.id}/editar`)}
                   onContextMenu={(e) => handleContextMenu(e, task.id, task.name)}
                   className="bg-surface rounded-xl border border-border overflow-hidden group hover:border-border-light transition-colors cursor-pointer flex flex-col"
                 >
                   {/* Título */}
                   <div className="p-4 pb-2 flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-foreground text-sm truncate">{task.name}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-foreground text-sm truncate">{task.name}</h3>
+                      {hasMultiple && (
+                        <p className="text-[10px] text-muted mt-0.5">
+                          {displayIndex === 0 ? "Original" : `Variante ${displayIndex}`} · {displayIndex + 1}/{slides.length}
+                        </p>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {isFavorite && <span className="text-red-400 text-xs">★</span>}
                       {itemStatuses.has(task.id) && <StatusBadge status={itemStatuses.get(task.id)!} />}
                     </div>
                   </div>
 
-                  {/* Imagen */}
-                  {task.image_url ? (
-                    <img src={task.image_url} alt="" className="w-full h-36 object-cover" />
-                  ) : (
-                    <div className="w-full h-36 bg-surface-hover flex items-center justify-center">
-                      <span className="text-muted text-xs">Sin imagen</span>
-                    </div>
-                  )}
+                  {/* Imagen, con flechas para pasar de diapositiva si hay variantes */}
+                  <div className="relative">
+                    {task.image_url ? (
+                      <img src={task.image_url} alt="" className="w-full h-36 object-cover" />
+                    ) : (
+                      <div className="w-full h-36 bg-surface-hover flex items-center justify-center">
+                        <span className="text-muted text-xs">Sin imagen</span>
+                      </div>
+                    )}
+                    {hasMultiple && (
+                      <>
+                        <button
+                          onClick={(e) => goTo(e, -1)}
+                          className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                          title="Diapositiva anterior"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          onClick={(e) => goTo(e, 1)}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                          title="Siguiente diapositiva"
+                        >
+                          ›
+                        </button>
+                      </>
+                    )}
+                  </div>
 
                   <div className="p-4 pt-3 flex-1 flex flex-col">
                     {/* Etiquetas */}
@@ -286,12 +375,18 @@ export default function TareasPage() {
                       {task.dimensions && <span>{task.dimensions}</span>}
                     </div>
 
-                    <div className="flex gap-1 max-h-0 group-hover:max-h-8 group-hover:mt-2 overflow-hidden transition-all duration-150">
+                    <div className="flex flex-wrap gap-1 max-h-0 group-hover:max-h-14 group-hover:mt-2 overflow-hidden transition-all duration-150">
                       <button
                         onClick={(e) => { e.stopPropagation(); router.push(`/tareas/${task.id}/editar`); }}
                         className="px-2 py-1 text-xs text-muted hover:text-purple-400 hover:bg-purple-900/20 rounded"
                       >
                         Editar
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleAddVariant(mother); }}
+                        className="px-2 py-1 text-xs text-muted hover:text-purple-400 hover:bg-purple-900/20 rounded"
+                      >
+                        + Variante
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDuplicate(task); }}
@@ -300,7 +395,7 @@ export default function TareasPage() {
                         Duplicar
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(task.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(task); }}
                         className="px-2 py-1 text-xs text-muted hover:text-red-400 hover:bg-red-900/20 rounded"
                       >
                         Eliminar

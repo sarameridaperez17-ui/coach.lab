@@ -618,6 +618,7 @@ export interface TaskInput {
   observations?: string;
   image_url?: string | null;
   youtube_url?: string | null;
+  parent_task_id?: string | null;
 }
 
 export async function createTask(task: TaskInput): Promise<Task> {
