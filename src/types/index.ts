@@ -405,3 +405,46 @@ export interface Attachment {
   entity_id: string;
   created_at: string;
 }
+
+// --- Sesiones ---
+
+export type SessionStatus = "planificada" | "realizada" | "plantilla";
+export type SessionPart = "inicial" | "principal" | "final";
+
+export interface SessionTeam {
+  id: string;
+  name: string;
+  color: string; // clase Tailwind, ej. "bg-sky-500"
+  player_ids: string[];
+}
+
+export interface Session {
+  id: string;
+  name: string;
+  session_date: string | null; // YYYY-MM-DD
+  status: SessionStatus;
+  team_label: string;
+  objective: string;
+  notes: string;
+  favorite: boolean;
+  squad_player_ids: string[]; // convocatoria de la sesión
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+  // Relaciones cargadas
+  session_tasks?: SessionTask[];
+}
+
+export interface SessionTask {
+  id: string;
+  session_id: string;
+  task_id: string;
+  part: SessionPart;
+  position: number;
+  teams: SessionTeam[];
+  wildcards_inside: string[];
+  wildcards_outside: string[];
+  created_at: string;
+  // Relación cargada
+  task?: Task;
+}

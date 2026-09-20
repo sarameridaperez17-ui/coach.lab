@@ -28,6 +28,11 @@ import type {
   CallUpStatus,
   TaskTagValue,
   TaskTagCategory,
+  Session,
+  SessionStatus,
+  SessionTask,
+  SessionPart,
+  SessionTeam,
 } from "@/types";
 
 // ============================================
@@ -1528,5 +1533,144 @@ export async function deletePlayerReport(id: string): Promise<void> {
 
 export async function deletePlanningEvent(id: string): Promise<void> {
   const { error } = await supabase.from("planning_events").update({ archived: true }).eq("id", id);
+  if (error) throw error;
+}
+
+// ============================================
+// SESIONES
+// ============================================
+// "sessions" es la sesión en sí (nombre, fecha, estado, convocatoria).
+// "session_tasks" son las tareas colocadas dentro, agrupadas por parte
+// (inicial/principal/final) con su reparto de equipos y comodines.
+
+interface SessionTaskRow extends Omit<SessionTask, "task"> {
+  task?: Task | Task[] | null;
+}
+
+function flattenSessionTask(row: SessionTaskRow): SessionTask {
+  const task = Array.isArray(row.task) ? row.task[0] : row.task;
+  return { ...row, task: task ?? undefined };
+}
+
+// Lista para el dashboard — trae solo lo necesario de cada tarea (duración)
+// para poder calcular los minutos por parte sin cargar la ficha completa.
+export async function getSessions(): Promise<Session[]> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(`
+      *,
+      session_tasks(id, part, position, task:tasks(id, duration_minutes))
+    `)
+    .eq("archived", false)
+    .order("session_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as (Session & { session_tasks: SessionTaskRow[] })[];
+  return rows.map((s) => ({ ...s, session_tasks: (s.session_tasks ?? []).map(flattenSessionTask) }));
+}
+
+export async function getSessionById(id: string): Promise<Session> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(`
+      *,
+      session_tasks(*, task:tasks(*, task_tag_links(tag_value:task_tag_values(*))))
+    `)
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  const row = data as unknown as Session & { session_tasks: SessionTaskRow[] };
+  const session_tasks = (row.session_tasks ?? [])
+    .map(flattenSessionTask)
+    .map((st) => {
+      if (!st.task) return st;
+      const taskRow = st.task as unknown as Task & { task_tag_links?: { tag_value: TaskTagValue }[] };
+      const tags = (taskRow.task_tag_links ?? []).map((l) => l.tag_value).filter(Boolean);
+      return { ...st, task: { ...taskRow, tags } };
+    })
+    .sort((a, b) => (a.part === b.part ? a.position - b.position : 0));
+  return { ...row, session_tasks };
+}
+
+export interface SessionInput {
+  name: string;
+  session_date?: string | null;
+  status?: SessionStatus;
+  team_label?: string;
+  objective?: string;
+  notes?: string;
+  favorite?: boolean;
+  squad_player_ids?: string[];
+}
+
+export async function createSession(session: SessionInput): Promise<Session> {
+  const { data, error } = await supabase.from("sessions").insert(session).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSession(id: string, updates: Partial<SessionInput>): Promise<void> {
+  const { error } = await supabase.from("sessions").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  const { error } = await supabase.from("sessions").update({ archived: true }).eq("id", id);
+  if (error) throw error;
+}
+
+// Duplica una sesión completa (incluidas sus tareas por parte, equipos y
+// comodines) — útil para reutilizar una sesión ya realizada o una plantilla.
+export async function duplicateSession(id: string, name: string): Promise<Session> {
+  const original = await getSessionById(id);
+  const created = await createSession({
+    name,
+    session_date: null,
+    status: "planificada",
+    team_label: original.team_label,
+    objective: original.objective,
+    notes: original.notes,
+    squad_player_ids: original.squad_player_ids,
+  });
+  for (const st of original.session_tasks ?? []) {
+    await addSessionTask({
+      session_id: created.id,
+      task_id: st.task_id,
+      part: st.part,
+      position: st.position,
+      teams: st.teams,
+      wildcards_inside: st.wildcards_inside,
+      wildcards_outside: st.wildcards_outside,
+    });
+  }
+  return created;
+}
+
+export interface SessionTaskInput {
+  session_id: string;
+  task_id: string;
+  part: SessionPart;
+  position?: number;
+  teams?: SessionTeam[];
+  wildcards_inside?: string[];
+  wildcards_outside?: string[];
+}
+
+export async function addSessionTask(input: SessionTaskInput): Promise<SessionTask> {
+  const { data, error } = await supabase.from("session_tasks").insert(input).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSessionTask(
+  id: string,
+  updates: Partial<Omit<SessionTaskInput, "session_id" | "task_id">>
+): Promise<void> {
+  const { error } = await supabase.from("session_tasks").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function removeSessionTask(id: string): Promise<void> {
+  const { error } = await supabase.from("session_tasks").delete().eq("id", id);
   if (error) throw error;
 }

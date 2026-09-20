@@ -31,6 +31,7 @@ const NAV_SECTIONS = [
     title: "ENTRENAMIENTO",
     items: [
       { href: "/tareas", label: "Tareas", icon: "▣" },
+      { href: "/sesiones", label: "Sesiones", icon: "▦" },
     ],
   },
   {
@@ -46,7 +47,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-background text-foreground flex flex-col border-r border-border">
+    <aside className="fixed left-0 top-0 h-full w-64 bg-background text-foreground flex flex-col border-r border-border print:hidden">
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <h1 className="text-xl font-bold tracking-tight">
