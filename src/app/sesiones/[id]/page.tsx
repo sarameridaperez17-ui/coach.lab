@@ -333,6 +333,14 @@ export default function SesionDetailPage() {
                               ▼
                             </button>
                           </div>
+                          <div className="w-14 h-10 rounded-md overflow-hidden flex-shrink-0 bg-surface-hover">
+                            {task?.image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={task.image_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted text-[9px]">Sin dibujo</div>
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{task?.name ?? "Tarea eliminada"}</p>
                             <div className="flex flex-wrap items-center gap-2 mt-0.5">
