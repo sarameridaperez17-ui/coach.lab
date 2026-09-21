@@ -102,10 +102,33 @@ export default function SesionDetailPage() {
   const addTaskToPart = async (task: Task, part: SessionPart) => {
     if (!session) return;
     const siblingCount = (session.session_tasks ?? []).filter((st) => st.part === part).length;
-    const created = await addSessionTask({ session_id: session.id, task_id: task.id, part, position: siblingCount });
+    // La duración arranca igual a la de la ficha de la tarea, pero queda
+    // guardada solo en esta sesión — a partir de aquí es independiente.
+    const created = await addSessionTask({
+      session_id: session.id,
+      task_id: task.id,
+      part,
+      position: siblingCount,
+      duration_minutes: task.duration_minutes,
+    });
     const withTask: SessionTask = { ...created, task };
     setSession((prev) => (prev ? { ...prev, session_tasks: [...(prev.session_tasks ?? []), withTask] } : prev));
     setTaskPickerPart(null);
+  };
+
+  const updateTaskDuration = async (st: SessionTask, minutes: number) => {
+    const clamped = Number.isFinite(minutes) && minutes >= 0 ? Math.round(minutes) : 0;
+    await updateSessionTask(st.id, { duration_minutes: clamped });
+    setSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            session_tasks: (prev.session_tasks ?? []).map((x) =>
+              x.id === st.id ? { ...x, duration_minutes: clamped } : x
+            ),
+          }
+        : prev
+    );
   };
 
   const moveTask = async (st: SessionTask, direction: -1 | 1) => {
@@ -164,7 +187,7 @@ export default function SesionDetailPage() {
     (part: SessionPart) =>
       (session?.session_tasks ?? [])
         .filter((st) => st.part === part && st.task)
-        .reduce((sum, st) => sum + (st.task?.duration_minutes ?? 0), 0),
+        .reduce((sum, st) => sum + (st.duration_minutes ?? st.task?.duration_minutes ?? 0), 0),
     [session]
   );
 
@@ -362,7 +385,16 @@ export default function SesionDetailPage() {
                             })}
                           </div>
                           <div className="flex items-center justify-between mt-auto gap-2">
-                            <span className="text-[11px] text-muted flex-shrink-0">{task?.duration_minutes ?? 0} min</span>
+                            <label className="flex items-center gap-1 flex-shrink-0" title="Duración solo para esta sesión">
+                              <input
+                                type="number"
+                                min={0}
+                                defaultValue={st.duration_minutes ?? task?.duration_minutes ?? 0}
+                                onBlur={(e) => updateTaskDuration(st, Number(e.target.value))}
+                                className="w-11 bg-surface-hover border border-border rounded px-1 py-0.5 text-[11px] text-foreground text-center focus:outline-none focus:border-emerald-500"
+                              />
+                              <span className="text-[11px] text-muted">min</span>
+                            </label>
                             <button
                               onClick={() => setTeamBuilderFor(st)}
                               className={`text-[11px] px-2.5 py-1 rounded-lg font-medium flex-shrink-0 ${
@@ -424,7 +456,7 @@ export default function SesionDetailPage() {
               {tasks.map((st) => (
                 <div key={st.id} className="mb-3 break-inside-avoid">
                   <p className="font-semibold">
-                    {st.task?.name} <span className="font-normal">({st.task?.duration_minutes} min · {st.task?.dimensions} · {st.task?.num_players})</span>
+                    {st.task?.name} <span className="font-normal">({st.duration_minutes ?? st.task?.duration_minutes ?? 0} min · {st.task?.dimensions} · {st.task?.num_players})</span>
                   </p>
                   {st.task?.description && <p className="text-sm">{st.task.description}</p>}
                   {(st.teams.length > 0 || st.wildcards_inside.length > 0 || st.wildcards_outside.length > 0) && (

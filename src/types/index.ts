@@ -441,6 +441,9 @@ export interface SessionTask {
   task_id: string;
   part: SessionPart;
   position: number;
+  // Duración de la tarea solo para esta sesión — independiente de
+  // "duration_minutes" en la tarea maestra, editable al colocarla aquí.
+  duration_minutes: number | null;
   teams: SessionTeam[];
   wildcards_inside: string[];
   wildcards_outside: string[];

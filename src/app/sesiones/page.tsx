@@ -41,7 +41,7 @@ function toISODate(d: Date): string {
 function partMinutes(session: Session, part: SessionPart): number {
   return (session.session_tasks ?? [])
     .filter((st) => st.part === part && st.task)
-    .reduce((sum, st) => sum + (st.task?.duration_minutes ?? 0), 0);
+    .reduce((sum, st) => sum + (st.duration_minutes ?? st.task?.duration_minutes ?? 0), 0);
 }
 
 function totalMinutes(session: Session): number {

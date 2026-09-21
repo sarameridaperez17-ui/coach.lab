@@ -1559,7 +1559,7 @@ export async function getSessions(): Promise<Session[]> {
     .from("sessions")
     .select(`
       *,
-      session_tasks(id, part, position, task:tasks(id, duration_minutes))
+      session_tasks(id, part, position, duration_minutes, task:tasks(id, duration_minutes))
     `)
     .eq("archived", false)
     .order("session_date", { ascending: false, nullsFirst: false })
@@ -1638,6 +1638,7 @@ export async function duplicateSession(id: string, name: string): Promise<Sessio
       task_id: st.task_id,
       part: st.part,
       position: st.position,
+      duration_minutes: st.duration_minutes,
       teams: st.teams,
       wildcards_inside: st.wildcards_inside,
       wildcards_outside: st.wildcards_outside,
@@ -1651,6 +1652,7 @@ export interface SessionTaskInput {
   task_id: string;
   part: SessionPart;
   position?: number;
+  duration_minutes?: number | null;
   teams?: SessionTeam[];
   wildcards_inside?: string[];
   wildcards_outside?: string[];
