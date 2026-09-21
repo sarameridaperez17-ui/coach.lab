@@ -17,12 +17,6 @@ import {
 import { getTagColor } from "@/lib/tagColors";
 import type { Session, SessionStatus, SessionPart, SessionTask, SessionTeam, Player, Task } from "@/types";
 
-const STATUS_OPTIONS: { key: SessionStatus; label: string }[] = [
-  { key: "planificada", label: "Planificada" },
-  { key: "realizada", label: "Realizada" },
-  { key: "plantilla", label: "Plantilla" },
-];
-
 const PARTS: { key: SessionPart; label: string; short: string; bar: string }[] = [
   { key: "inicial", label: "Parte inicial", short: "Activación", bar: "bg-sky-500" },
   { key: "principal", label: "Parte principal", short: "Principal", bar: "bg-emerald-500" },
@@ -238,15 +232,6 @@ export default function SesionDetailPage() {
               className="text-2xl font-bold text-foreground bg-transparent border-b border-transparent hover:border-border focus:border-emerald-500 focus:outline-none w-full"
             />
             <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <select
-                value={session.status}
-                onChange={(e) => saveField({ status: e.target.value as SessionStatus })}
-                className="bg-surface border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s.key} value={s.key}>{s.label}</option>
-                ))}
-              </select>
               <input
                 type="date"
                 value={session.session_date ?? ""}

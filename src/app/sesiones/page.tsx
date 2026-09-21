@@ -84,7 +84,10 @@ export default function SesionesPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [slideIndex, setSlideIndex] = useState<Record<string, number>>({});
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
-  const [calendarDay, setCalendarDay] = useState<string | null>(null);
+  // Filtro por periodo de fechas — un clic en el calendario rellena ambos
+  // con el mismo día; los campos "Desde"/"Hasta" permiten un rango libre.
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const load = useCallback(() => {
     getSessions().then(setSessions).catch((err) => console.error("Error al cargar sesiones:", err));
@@ -135,7 +138,8 @@ export default function SesionesPage() {
     let list = sessions;
     if (showTemplatesOnly) list = list.filter((s) => s.status === "plantilla");
     if (teamFilter) list = list.filter((s) => s.team_label === teamFilter);
-    if (calendarDay) list = list.filter((s) => s.session_date === calendarDay);
+    if (dateFrom) list = list.filter((s) => s.session_date && s.session_date >= dateFrom);
+    if (dateTo) list = list.filter((s) => s.session_date && s.session_date <= dateTo);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -150,7 +154,7 @@ export default function SesionesPage() {
       const db = b.session_date ?? "0000-00-00";
       return sortBy === "fecha_desc" ? db.localeCompare(da) : da.localeCompare(db);
     });
-  }, [sessions, showTemplatesOnly, teamFilter, calendarDay, search, sortBy]);
+  }, [sessions, showTemplatesOnly, teamFilter, dateFrom, dateTo, search, sortBy]);
 
   const stats = useMemo(
     () => ({
@@ -255,12 +259,28 @@ export default function SesionesPage() {
             <option value="fecha_desc">Ordenar por: Fecha (recientes)</option>
             <option value="fecha_asc">Ordenar por: Fecha (antiguas)</option>
           </select>
-          {calendarDay && (
+          <div className="flex items-center gap-1.5 bg-surface border border-border rounded-lg px-2 py-1">
+            <span className="text-xs text-muted">Desde</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-transparent text-sm text-foreground focus:outline-none"
+            />
+            <span className="text-xs text-muted">Hasta</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-transparent text-sm text-foreground focus:outline-none"
+            />
+          </div>
+          {(dateFrom || dateTo) && (
             <button
-              onClick={() => setCalendarDay(null)}
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
               className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600/15 text-emerald-400 rounded-lg text-xs font-medium"
             >
-              {formatDate(calendarDay)} ✕
+              Ver todas ✕
             </button>
           )}
         </div>
@@ -512,11 +532,14 @@ export default function SesionesPage() {
               const iso = toISODate(date);
               const daySessions = sessionsByDate.get(iso) ?? [];
               const isToday = iso === todayISO;
-              const isSelected = iso === calendarDay;
+              const isSelected = dateFrom === iso && dateTo === iso;
               return (
                 <button
                   key={i}
-                  onClick={() => setCalendarDay(isSelected ? null : iso)}
+                  onClick={() => {
+                    if (isSelected) { setDateFrom(""); setDateTo(""); }
+                    else { setDateFrom(iso); setDateTo(iso); }
+                  }}
                   className={`relative aspect-square rounded-md text-xs flex items-center justify-center ${
                     isSelected
                       ? "bg-emerald-600 text-white font-semibold"
