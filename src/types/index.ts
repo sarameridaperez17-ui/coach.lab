@@ -422,6 +422,8 @@ export interface Session {
   id: string;
   name: string;
   session_date: string | null; // YYYY-MM-DD
+  start_time: string | null; // HH:MM — la hora de fin se calcula, no se guarda
+  match_day: string; // "+1 MD", "-3 MD", "MD"... o "" si no se ha definido
   status: SessionStatus;
   team_label: string;
   objective: string;

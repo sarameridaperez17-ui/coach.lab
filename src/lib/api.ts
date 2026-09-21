@@ -1595,6 +1595,8 @@ export async function getSessionById(id: string): Promise<Session> {
 export interface SessionInput {
   name: string;
   session_date?: string | null;
+  start_time?: string | null;
+  match_day?: string;
   status?: SessionStatus;
   team_label?: string;
   objective?: string;

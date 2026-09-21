@@ -29,6 +29,19 @@ const PARTS: { key: SessionPart; label: string; short: string; bar: string }[] =
   { key: "final", label: "Parte final", short: "Vuelta a la calma", bar: "bg-amber-500" },
 ];
 
+const MD_OPTIONS = ["+1 MD", "+2 MD", "+3 MD", "-5 MD", "-4 MD", "-3 MD", "-2 MD", "-1 MD", "MD"];
+
+// Suma minutos a una hora "HH:MM" y devuelve el resultado en el mismo
+// formato — se usa para calcular la hora de fin a partir de la de inicio.
+function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  const wrapped = ((total % 1440) + 1440) % 1440;
+  const hh = String(Math.floor(wrapped / 60)).padStart(2, "0");
+  const mm = String(wrapped % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 const TEAM_COLORS = [
   { bg: "bg-sky-500", dot: "bg-sky-500" },
   { bg: "bg-rose-500", dot: "bg-rose-500" },
@@ -234,6 +247,29 @@ export default function SesionDetailPage() {
                 onChange={(e) => saveField({ session_date: e.target.value || null })}
                 className="bg-surface border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500"
               />
+              <input
+                type="time"
+                value={session.start_time ?? ""}
+                onChange={(e) => saveField({ start_time: e.target.value || null })}
+                title="Hora de inicio"
+                className="bg-surface border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500"
+              />
+              {session.start_time && (
+                <span className="text-xs text-muted" title="Hora de fin (calculada con la duración de las tareas)">
+                  → {addMinutesToTime(session.start_time, totalMinutes)}
+                </span>
+              )}
+              <select
+                value={session.match_day}
+                onChange={(e) => saveField({ match_day: e.target.value })}
+                title="Match Day"
+                className="bg-surface border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500"
+              >
+                <option value="">MD (sin definir)</option>
+                {MD_OPTIONS.map((md) => (
+                  <option key={md} value={md}>{md}</option>
+                ))}
+              </select>
               <input
                 defaultValue={session.team_label}
                 onBlur={(e) => e.target.value !== session.team_label && saveField({ team_label: e.target.value })}
