@@ -112,6 +112,12 @@ export default function SesionDetailPage() {
     router.push("/sesiones");
   };
 
+  const toggleTemplate = () => {
+    if (!session) return;
+    const nextStatus: SessionStatus = session.status === "plantilla" ? "planificada" : "plantilla";
+    saveField({ status: nextStatus });
+  };
+
   const addTaskToPart = async (task: Task, part: SessionPart) => {
     if (!session) return;
     const siblingCount = (session.session_tasks ?? []).filter((st) => st.part === part).length;
@@ -293,6 +299,16 @@ export default function SesionDetailPage() {
               className="px-3.5 py-2 bg-surface border border-border rounded-lg text-sm text-foreground-secondary hover:text-foreground transition-colors"
             >
               Duplicar
+            </button>
+            <button
+              onClick={toggleTemplate}
+              className={`px-3.5 py-2 rounded-lg text-sm border transition-colors ${
+                session.status === "plantilla"
+                  ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                  : "bg-surface border-border text-foreground-secondary hover:text-foreground"
+              }`}
+            >
+              {session.status === "plantilla" ? "🗂 Quitar de plantillas" : "🗂 Marcar como plantilla"}
             </button>
             <button
               onClick={handleDelete}

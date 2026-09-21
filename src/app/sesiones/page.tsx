@@ -18,13 +18,6 @@ const PART_META: { key: SessionPart; short: string; bar: string }[] = [
   { key: "final", short: "V. Calma", bar: "bg-amber-500" },
 ];
 
-const TABS: { key: "todas" | SessionStatus; label: string }[] = [
-  { key: "todas", label: "Todas" },
-  { key: "planificada", label: "Planificadas" },
-  { key: "realizada", label: "Realizadas" },
-  { key: "plantilla", label: "Plantillas" },
-];
-
 const WEEKDAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const MONTH_LONG = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -85,7 +78,7 @@ export default function SesionesPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"todas" | SessionStatus>("todas");
+  const [showTemplatesOnly, setShowTemplatesOnly] = useState(false);
   const [teamFilter, setTeamFilter] = useState("");
   const [sortBy, setSortBy] = useState<"fecha_desc" | "fecha_asc">("fecha_desc");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -125,6 +118,14 @@ export default function SesionesPage() {
     setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, favorite: !x.favorite } : x)));
   };
 
+  // Botón directo para definir/quitar una sesión como plantilla, sin tener
+  // que abrirla y tocar el desplegable de estado.
+  const toggleTemplate = async (s: Session) => {
+    const nextStatus: SessionStatus = s.status === "plantilla" ? "planificada" : "plantilla";
+    await updateSession(s.id, { status: nextStatus });
+    setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, status: nextStatus } : x)));
+  };
+
   const teamOptions = useMemo(
     () => Array.from(new Set(sessions.map((s) => s.team_label).filter(Boolean))).sort(),
     [sessions]
@@ -132,7 +133,7 @@ export default function SesionesPage() {
 
   const filtered = useMemo(() => {
     let list = sessions;
-    if (tab !== "todas") list = list.filter((s) => s.status === tab);
+    if (showTemplatesOnly) list = list.filter((s) => s.status === "plantilla");
     if (teamFilter) list = list.filter((s) => s.team_label === teamFilter);
     if (calendarDay) list = list.filter((s) => s.session_date === calendarDay);
     if (search.trim()) {
@@ -149,7 +150,7 @@ export default function SesionesPage() {
       const db = b.session_date ?? "0000-00-00";
       return sortBy === "fecha_desc" ? db.localeCompare(da) : da.localeCompare(db);
     });
-  }, [sessions, tab, teamFilter, calendarDay, search, sortBy]);
+  }, [sessions, showTemplatesOnly, teamFilter, calendarDay, search, sortBy]);
 
   const stats = useMemo(
     () => ({
@@ -208,12 +209,24 @@ export default function SesionesPage() {
             <h1 className="text-3xl font-bold text-foreground">Sesiones</h1>
             <p className="text-muted mt-1">Diseña, organiza y gestiona tus sesiones de entrenamiento.</p>
           </div>
-          <button
-            onClick={handleNewSession}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition-colors flex-shrink-0"
-          >
-            + Nueva sesión
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowTemplatesOnly((v) => !v)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
+                showTemplatesOnly
+                  ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                  : "bg-surface border-border text-foreground-secondary hover:text-foreground"
+              }`}
+            >
+              🗂 Sesiones plantilla
+            </button>
+            <button
+              onClick={handleNewSession}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              + Nueva sesión
+            </button>
+          </div>
         </div>
 
         {/* Búsqueda y filtros */}
@@ -252,22 +265,9 @@ export default function SesionesPage() {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 mb-5 bg-surface border border-border rounded-lg p-1 w-fit">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                tab === t.key ? "bg-emerald-600 text-white" : "text-foreground-secondary hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <p className="text-xs text-muted mb-3">{filtered.length} sesiones encontradas</p>
+        <p className="text-xs text-muted mb-3">
+          {filtered.length} sesiones encontradas{showTemplatesOnly && " · solo plantillas"}
+        </p>
 
         {filtered.length === 0 ? (
           <div className="bg-surface border border-border rounded-xl p-10 text-center text-muted text-sm">
@@ -399,7 +399,7 @@ export default function SesionesPage() {
                           ⋯
                         </button>
                         {openMenu === s.id && (
-                          <div className="absolute right-0 bottom-6 z-10 bg-surface border border-border rounded-lg shadow-xl py-1 w-36">
+                          <div className="absolute right-0 bottom-6 z-10 bg-surface border border-border rounded-lg shadow-xl py-1 w-44">
                             <button
                               onClick={() => { setOpenMenu(null); router.push(`/sesiones/${s.id}`); }}
                               className="w-full text-left px-3 py-1.5 text-sm text-foreground-secondary hover:bg-surface-hover"
@@ -411,6 +411,12 @@ export default function SesionesPage() {
                               className="w-full text-left px-3 py-1.5 text-sm text-foreground-secondary hover:bg-surface-hover"
                             >
                               Duplicar
+                            </button>
+                            <button
+                              onClick={() => { setOpenMenu(null); toggleTemplate(s); }}
+                              className="w-full text-left px-3 py-1.5 text-sm text-amber-400 hover:bg-surface-hover"
+                            >
+                              {s.status === "plantilla" ? "Quitar de plantillas" : "Marcar como plantilla"}
                             </button>
                             <button
                               onClick={() => { setOpenMenu(null); handleDelete(s); }}
