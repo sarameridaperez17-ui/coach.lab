@@ -54,6 +54,19 @@ function formatDate(iso: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
+const PART_ORDER: SessionPart[] = ["inicial", "principal", "final"];
+
+// Todas las tareas de la sesión en orden (parte inicial → principal → final,
+// y dentro de cada parte por su posición) — así "la primera tarea" es
+// siempre la que de verdad abre la sesión.
+function orderedTasks(session: Session) {
+  return (session.session_tasks ?? [])
+    .slice()
+    .sort((a, b) =>
+      a.part === b.part ? a.position - b.position : PART_ORDER.indexOf(a.part) - PART_ORDER.indexOf(b.part)
+    );
+}
+
 function MiniPitchIcon() {
   return (
     <svg viewBox="0 0 80 56" className="w-full h-full">
@@ -76,6 +89,7 @@ export default function SesionesPage() {
   const [teamFilter, setTeamFilter] = useState("");
   const [sortBy, setSortBy] = useState<"fecha_desc" | "fecha_asc">("fecha_desc");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [slideIndex, setSlideIndex] = useState<Record<string, number>>({});
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [calendarDay, setCalendarDay] = useState<string | null>(null);
 
@@ -260,7 +274,7 @@ export default function SesionesPage() {
             No hay sesiones que coincidan con la búsqueda.
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((s) => {
               const uniqueTags = Array.from(
                 new Map(
@@ -270,38 +284,91 @@ export default function SesionesPage() {
                 ).values()
               ).slice(0, 4);
               const total = totalMinutes(s);
-              const taskCount = (s.session_tasks ?? []).length;
+              const tasks = orderedTasks(s);
+              const taskCount = tasks.length;
+              const hasMultiple = tasks.length > 1;
+              const idx = Math.min(slideIndex[s.id] ?? 0, Math.max(tasks.length - 1, 0));
+              const currentTask = tasks[idx]?.task;
+              const goTo = (e: React.MouseEvent, delta: number) => {
+                e.stopPropagation();
+                setSlideIndex((prev) => ({ ...prev, [s.id]: (idx + delta + tasks.length) % tasks.length }));
+              };
 
               return (
                 <div
                   key={s.id}
                   onClick={() => router.push(`/sesiones/${s.id}`)}
-                  className="flex gap-4 bg-surface border border-border rounded-xl p-4 hover:border-emerald-500/40 transition-colors cursor-pointer"
+                  className="bg-surface rounded-xl border border-border overflow-hidden hover:border-border-light transition-colors cursor-pointer flex flex-col"
                 >
-                  <div className="w-28 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                    <MiniPitchIcon />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-bold text-foreground truncate">{s.name}</h3>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0 ${STATUS_META[s.status].badge}`}>
-                        {STATUS_META[s.status].label}
-                      </span>
+                  {/* Título, estado y MD */}
+                  <div className="p-4 pb-2 min-h-[64px] flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-foreground text-sm truncate">{s.name}</h3>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_META[s.status].badge}`}>
+                          {STATUS_META[s.status].label}
+                        </span>
+                        {s.match_day && (
+                          <span className="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 text-[10px] font-semibold">
+                            {s.match_day}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {s.objective && <p className="text-sm text-foreground-secondary truncate mb-1.5">{s.objective}</p>}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted mb-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(s); }}
+                      title="Favorita"
+                      className="text-base leading-none flex-shrink-0"
+                    >
+                      {s.favorite ? "⭐" : <span className="text-muted">☆</span>}
+                    </button>
+                  </div>
+
+                  {/* Dibujo de la primera tarea, con flechas para ver el resto */}
+                  <div className="relative">
+                    {currentTask?.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={currentTask.image_url} alt="" className="w-full h-36 object-cover" />
+                    ) : (
+                      <div className="w-full h-36 bg-surface-hover flex items-center justify-center">
+                        <span className="text-muted text-xs">Sin dibujo</span>
+                      </div>
+                    )}
+                    {hasMultiple && (
+                      <>
+                        <span className="absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-bold">
+                          {idx + 1}/{tasks.length}
+                        </span>
+                        <button
+                          onClick={(e) => goTo(e, -1)}
+                          className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                          title="Tarea anterior"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          onClick={(e) => goTo(e, 1)}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                          title="Tarea siguiente"
+                        >
+                          ›
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="p-4 pt-3 flex-1 flex flex-col">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted mb-2">
                       <span>📅 {formatDate(s.session_date)}</span>
                       <span>⏱ {total} min</span>
                       {s.team_label && <span>👥 {s.team_label}</span>}
-                      <span>▣ {taskCount} tareas</span>
-                      <span>🧍 {s.squad_player_ids.length} jugadoras</span>
                     </div>
                     {uniqueTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
+                      <div className="flex flex-wrap gap-1 mb-2">
                         {uniqueTags.map((t) => {
                           const c = getTagColor(t.id);
                           return (
-                            <span key={t.id} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${c.bg} ${c.text}`}>
+                            <span key={t.id} className={`px-1.5 py-0.5 rounded-full text-[9px] font-medium ${c.bgSoft} ${c.text}`}>
                               {t.label}
                             </span>
                           );
@@ -309,55 +376,51 @@ export default function SesionesPage() {
                       </div>
                     )}
                     {total > 0 && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 rounded-full overflow-hidden flex bg-border">
-                          {PART_META.map((p) => {
-                            const m = partMinutes(s, p.key);
-                            if (m === 0) return null;
-                            return <div key={p.key} className={p.bar} style={{ width: `${(m / total) * 100}%` }} />;
-                          })}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-muted flex-shrink-0">
-                          {PART_META.map((p) => (
-                            <span key={p.key}>{p.short} {partMinutes(s, p.key)}&apos;</span>
-                          ))}
-                        </div>
+                      <div
+                        className="h-1.5 rounded-full overflow-hidden flex bg-border mb-2"
+                        title={PART_META.map((p) => `${p.short} ${partMinutes(s, p.key)}'`).join(" · ")}
+                      >
+                        {PART_META.map((p) => {
+                          const m = partMinutes(s, p.key);
+                          if (m === 0) return null;
+                          return <div key={p.key} className={p.bar} style={{ width: `${(m / total) * 100}%` }} />;
+                        })}
                       </div>
                     )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => toggleFavorite(s)} title="Favorita" className="text-lg leading-none">
-                      {s.favorite ? "⭐" : <span className="text-muted">☆</span>}
-                    </button>
-                    <div className="relative">
-                      <button
-                        onClick={() => setOpenMenu(openMenu === s.id ? null : s.id)}
-                        className="text-muted hover:text-foreground px-1"
-                      >
-                        ⋯
-                      </button>
-                      {openMenu === s.id && (
-                        <div className="absolute right-0 top-6 z-10 bg-surface border border-border rounded-lg shadow-xl py-1 w-36">
-                          <button
-                            onClick={() => { setOpenMenu(null); router.push(`/sesiones/${s.id}`); }}
-                            className="w-full text-left px-3 py-1.5 text-sm text-foreground-secondary hover:bg-surface-hover"
-                          >
-                            Abrir
-                          </button>
-                          <button
-                            onClick={() => { setOpenMenu(null); handleDuplicate(s); }}
-                            className="w-full text-left px-3 py-1.5 text-sm text-foreground-secondary hover:bg-surface-hover"
-                          >
-                            Duplicar
-                          </button>
-                          <button
-                            onClick={() => { setOpenMenu(null); handleDelete(s); }}
-                            className="w-full text-left px-3 py-1.5 text-sm text-rose-400 hover:bg-surface-hover"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between mt-auto pt-1">
+                      <span className="text-[11px] text-muted">
+                        {taskCount} tareas · {s.squad_player_ids.length} jugadoras
+                      </span>
+                      <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setOpenMenu(openMenu === s.id ? null : s.id)}
+                          className="text-muted hover:text-foreground px-1"
+                        >
+                          ⋯
+                        </button>
+                        {openMenu === s.id && (
+                          <div className="absolute right-0 bottom-6 z-10 bg-surface border border-border rounded-lg shadow-xl py-1 w-36">
+                            <button
+                              onClick={() => { setOpenMenu(null); router.push(`/sesiones/${s.id}`); }}
+                              className="w-full text-left px-3 py-1.5 text-sm text-foreground-secondary hover:bg-surface-hover"
+                            >
+                              Abrir
+                            </button>
+                            <button
+                              onClick={() => { setOpenMenu(null); handleDuplicate(s); }}
+                              className="w-full text-left px-3 py-1.5 text-sm text-foreground-secondary hover:bg-surface-hover"
+                            >
+                              Duplicar
+                            </button>
+                            <button
+                              onClick={() => { setOpenMenu(null); handleDelete(s); }}
+                              className="w-full text-left px-3 py-1.5 text-sm text-rose-400 hover:bg-surface-hover"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
