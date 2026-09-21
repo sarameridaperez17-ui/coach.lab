@@ -345,8 +345,9 @@ export default function TareasPage() {
                   onContextMenu={(e) => handleContextMenu(e, task.id, task.name)}
                   className="bg-surface rounded-xl border border-border overflow-hidden group hover:border-border-light transition-colors cursor-pointer flex flex-col"
                 >
-                  {/* Título */}
-                  <div className="p-4 pb-2 flex items-start justify-between gap-2">
+                  {/* Título — altura fija para que la imagen de abajo arranque
+                      siempre en la misma línea, tenga o no subtítulo de variante */}
+                  <div className="p-4 pb-2 min-h-[60px] flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold text-foreground text-sm truncate">{task.name}</h3>
                       {hasMultiple && (
@@ -406,7 +407,7 @@ export default function TareasPage() {
                         task.tags!.map((tag) => {
                           const color = getTagColor(tag.id);
                           return (
-                            <span key={tag.id} className={`px-2 py-0.5 rounded-full ${color.bg} ${color.text} text-[10px] font-medium`}>
+                            <span key={tag.id} className={`px-1.5 py-0.5 rounded-full ${color.bgSoft} ${color.text} text-[9px] font-medium`}>
                               {tag.label}
                             </span>
                           );
