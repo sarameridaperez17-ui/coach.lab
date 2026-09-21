@@ -295,88 +295,99 @@ export default function SesionDetailPage() {
               .sort((a, b) => a.position - b.position);
             return (
               <div key={part.key} className="bg-surface border border-border rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${part.bar}`} />
-                    <h3 className="font-semibold text-foreground">{part.label}</h3>
-                    <span className="text-xs text-muted">{part.short} · {partMinutes(part.key)} min</span>
-                  </div>
-                  <button
-                    onClick={() => setTaskPickerPart(part.key)}
-                    className="text-xs px-2.5 py-1 bg-emerald-600/15 text-emerald-400 rounded-lg font-medium hover:bg-emerald-600/25"
-                  >
-                    + Añadir tarea
-                  </button>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`w-2 h-2 rounded-full ${part.bar}`} />
+                  <h3 className="font-semibold text-foreground">{part.label}</h3>
+                  <span className="text-xs text-muted">{part.short} · {partMinutes(part.key)} min</span>
                 </div>
-                {tasks.length === 0 ? (
-                  <p className="text-xs text-muted italic">Sin tareas en esta parte.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {tasks.map((st, i) => {
-                      const task = st.task;
-                      const teamCount = st.teams.length;
-                      return (
-                        <div key={st.id} className="flex items-center gap-3 bg-background rounded-lg px-3 py-2">
-                          <div className="flex flex-col">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {tasks.map((st, i) => {
+                    const task = st.task;
+                    const teamCount = st.teams.length;
+                    return (
+                      <div key={st.id} className="bg-background rounded-xl border border-border overflow-hidden flex flex-col">
+                        {/* Título, con reordenar arriba a la derecha */}
+                        <div className="px-3 pt-2.5 pb-1.5 flex items-start justify-between gap-2">
+                          <h4 className="text-sm font-semibold text-foreground truncate flex-1">
+                            {task?.name ?? "Tarea eliminada"}
+                          </h4>
+                          <div className="flex flex-col flex-shrink-0 -mt-0.5">
                             <button
                               disabled={i === 0}
                               onClick={() => moveTask(st, -1)}
-                              className="text-muted hover:text-foreground disabled:opacity-20 text-xs leading-none"
+                              className="text-muted hover:text-foreground disabled:opacity-20 text-[10px] leading-none"
+                              title="Mover antes"
                             >
                               ▲
                             </button>
                             <button
                               disabled={i === tasks.length - 1}
                               onClick={() => moveTask(st, 1)}
-                              className="text-muted hover:text-foreground disabled:opacity-20 text-xs leading-none"
+                              className="text-muted hover:text-foreground disabled:opacity-20 text-[10px] leading-none"
+                              title="Mover después"
                             >
                               ▼
                             </button>
                           </div>
-                          <div className="w-14 h-10 rounded-md overflow-hidden flex-shrink-0 bg-surface-hover">
-                            {task?.image_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={task.image_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-muted text-[9px]">Sin dibujo</div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{task?.name ?? "Tarea eliminada"}</p>
-                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                              <span className="text-[11px] text-muted">{task?.duration_minutes ?? 0} min</span>
-                              {(task?.tags ?? []).slice(0, 3).map((t) => {
-                                const c = getTagColor(t.id);
-                                return (
-                                  <span key={t.id} className={`px-1.5 py-0.5 rounded-full text-[9px] font-medium ${c.bg} ${c.text}`}>
-                                    {t.label}
-                                  </span>
-                                );
-                              })}
+                        </div>
+
+                        {/* Dibujo de la tarea — visualización principal */}
+                        <div className="relative">
+                          {task?.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={task.image_url} alt="" className="w-full h-32 object-cover" />
+                          ) : (
+                            <div className="w-full h-32 bg-surface-hover flex items-center justify-center">
+                              <span className="text-muted text-xs">Sin dibujo</span>
                             </div>
-                          </div>
-                          <button
-                            onClick={() => setTeamBuilderFor(st)}
-                            className={`text-xs px-2.5 py-1 rounded-lg font-medium flex-shrink-0 ${
-                              teamCount > 0
-                                ? "bg-violet-500/15 text-violet-400 hover:bg-violet-500/25"
-                                : "bg-surface-hover text-foreground-secondary hover:text-foreground"
-                            }`}
-                          >
-                            {teamCount > 0 ? `${teamCount} equipo${teamCount > 1 ? "s" : ""}` : "Equipos"}
-                          </button>
+                          )}
                           <button
                             onClick={() => removeTask(st)}
-                            className="text-muted hover:text-rose-400 flex-shrink-0 px-1"
-                            title="Quitar"
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                            title="Quitar de la sesión"
                           >
                             ✕
                           </button>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+
+                        <div className="p-3 pt-2 flex-1 flex flex-col">
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {(task?.tags ?? []).slice(0, 4).map((t) => {
+                              const c = getTagColor(t.id);
+                              return (
+                                <span key={t.id} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${c.bg} ${c.text}`}>
+                                  {t.label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                          <div className="flex items-center justify-between mt-auto gap-2">
+                            <span className="text-[11px] text-muted flex-shrink-0">{task?.duration_minutes ?? 0} min</span>
+                            <button
+                              onClick={() => setTeamBuilderFor(st)}
+                              className={`text-[11px] px-2.5 py-1 rounded-lg font-medium flex-shrink-0 ${
+                                teamCount > 0
+                                  ? "bg-violet-500/15 text-violet-400 hover:bg-violet-500/25"
+                                  : "bg-surface-hover text-foreground-secondary hover:text-foreground"
+                              }`}
+                            >
+                              {teamCount > 0 ? `${teamCount} equipo${teamCount > 1 ? "s" : ""}` : "Equipos"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Tarjeta de añadir — grande y centrada, en vez de un enlace pequeño */}
+                  <button
+                    onClick={() => setTaskPickerPart(part.key)}
+                    className="min-h-[190px] flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border text-muted hover:text-emerald-400 hover:border-emerald-500/50 transition-colors"
+                  >
+                    <span className="text-3xl leading-none">+</span>
+                    <span className="text-sm font-medium">Añadir tarea</span>
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -549,7 +560,7 @@ function TaskPickerModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="bg-surface border border-border rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+      <div className="bg-surface border border-border rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col">
         <div className="p-4 border-b border-border">
           <h3 className="font-semibold text-foreground mb-2">Añadir tarea</h3>
           <input
@@ -560,16 +571,24 @@ function TaskPickerModal({
             autoFocus
           />
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
-          {filtered.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => onPick(t)}
-              className="w-full text-left flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg hover:bg-surface-hover"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
-                <div className="flex flex-wrap gap-1 mt-0.5">
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {filtered.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onPick(t)}
+                className="text-left bg-background rounded-xl border border-border overflow-hidden hover:border-emerald-500/50 transition-colors flex flex-col"
+              >
+                <p className="text-sm font-semibold text-foreground truncate px-2.5 pt-2 pb-1.5">{t.name}</p>
+                {t.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.image_url} alt="" className="w-full h-24 object-cover" />
+                ) : (
+                  <div className="w-full h-24 bg-surface-hover flex items-center justify-center">
+                    <span className="text-muted text-[10px]">Sin dibujo</span>
+                  </div>
+                )}
+                <div className="p-2.5 pt-2 flex flex-wrap items-center gap-1">
                   {(t.tags ?? []).slice(0, 3).map((tag) => {
                     const c = getTagColor(tag.id);
                     return (
@@ -578,11 +597,11 @@ function TaskPickerModal({
                       </span>
                     );
                   })}
+                  <span className="ml-auto text-[10px] text-muted flex-shrink-0">{t.duration_minutes} min</span>
                 </div>
-              </div>
-              <span className="text-xs text-muted flex-shrink-0">{t.duration_minutes} min</span>
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
           {filtered.length === 0 && <p className="text-xs text-muted italic px-2.5 py-2">Sin resultados.</p>}
         </div>
         <div className="p-3 border-t border-border flex justify-end">
