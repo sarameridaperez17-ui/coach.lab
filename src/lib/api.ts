@@ -1559,7 +1559,7 @@ export async function getSessions(): Promise<Session[]> {
     .from("sessions")
     .select(`
       *,
-      session_tasks(id, part, position, duration_minutes, task:tasks(id, duration_minutes))
+      session_tasks(id, part, position, duration_minutes, task:tasks(id, duration_minutes, image_url))
     `)
     .eq("archived", false)
     .order("session_date", { ascending: false, nullsFirst: false })
