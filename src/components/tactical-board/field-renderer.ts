@@ -199,8 +199,11 @@ export function drawField(
   const lArcCenter = fc(PENALTY_SPOT, FIELD_H / 2);
   const lArcEdge = fc(PENALTY_SPOT + PENALTY_ARC_RADIUS, FIELD_H / 2);
   const lArcR = Math.abs(lArcEdge.x - lArcCenter.x);
-  // Arc outside penalty area
-  const lArcAngle = Math.acos(PENALTY_AREA_H / PENALTY_ARC_RADIUS);
+  // Arc outside penalty area — ángulo medido desde el punto de penalti
+  // (centro del arco), no desde la línea de fondo, así que hay que restar
+  // PENALTY_SPOT. Con PENALTY_AREA_H directo el cociente salía > 1 y
+  // Math.acos devolvía NaN, por lo que el arco nunca llegaba a dibujarse.
+  const lArcAngle = Math.acos((PENALTY_AREA_H - PENALTY_SPOT) / PENALTY_ARC_RADIUS);
   ctx.beginPath();
   ctx.arc(lArcCenter.x, lArcCenter.y, lArcR, -lArcAngle, lArcAngle);
   ctx.stroke();
