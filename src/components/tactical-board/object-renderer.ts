@@ -233,9 +233,15 @@ export function paintEquipmentShape(
 ) {
   switch (equipmentType) {
     // ── Conos ──
-    case 'cono-anillo':
-      drawRing(ctx, size * 0.4, size * 0.16, color);
+    case 'cono-anillo': {
+      // Grosor mínimo del anillo — a tableros pequeños (campo completo muy
+      // reducido) el hueco podía comerse casi todo el anillo y volverlo
+      // invisible por el antialiasing.
+      const rOuter = Math.max(4, size * 0.4);
+      const rInner = Math.max(0, Math.min(rOuter - 1.5, size * 0.16));
+      drawRing(ctx, rOuter, rInner, color);
       break;
+    }
     case 'cono-disco':
       ctx.beginPath();
       ctx.arc(0, 0, size * 0.35, 0, Math.PI * 2);
@@ -620,7 +626,9 @@ function drawEquipment(vctx: ViewCtx, eq: BoardEquipment) {
   const { ctx } = vctx;
   const pos = fc(vctx, eq.x, eq.y);
   const s = scale(vctx);
-  const size = eq.scale * s * 1.2;
+  // Tamaño mínimo — con el campo completo muy reducido (tablero estrecho)
+  // el material podía quedar por debajo del píxel y desaparecer.
+  const size = Math.max(8, eq.scale * s * 1.2);
   const selected = vctx.selectedId === eq.id;
   const color = eq.color || DEFAULT_EQUIPMENT_COLOR[eq.equipmentType] || '#9ca3af';
 
