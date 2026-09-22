@@ -23,7 +23,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex bg-background text-foreground font-sans">
         <Sidebar />
-        <main className="flex-1 ml-64 p-8 print:ml-0 print:p-0">{children}</main>
+        <main className="flex-1 min-w-0 ml-64 p-8 print:ml-0 print:p-0">{children}</main>
       </body>
     </html>
   );
