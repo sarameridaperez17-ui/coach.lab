@@ -35,38 +35,64 @@ function scale(vctx: ViewCtx) {
   return getScale(vctx.canvasW, vctx.canvasH, vctx.viewport, vctx.zoom);
 }
 
-// ── Color helpers (para colorear jugadoras/material desde un único hex) ──
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '');
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-  const n = parseInt(full, 16) || 0;
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
-function shade(hex: string, amt: number): string {
-  const { r, g, b } = hexToRgb(hex);
-  const f = (c: number) => Math.max(0, Math.min(255, Math.round(c * (1 + amt / 100))));
-  return `rgb(${f(r)}, ${f(g)}, ${f(b)})`;
-}
-
-function contrastText(hex: string): string {
-  const { r, g, b } = hexToRgb(hex);
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.62 ? '#111827' : '#ffffff';
-}
 
 // ── Player ──
+
+// "Muñeco" visto desde arriba — cuerpo ovalado del color elegido, cabeza
+// negra arriba y manos (tono piel) a los lados. Centrado en (0,0); se usa
+// tanto para colocar la jugadora en el campo como para el icono del
+// selector de la pestaña "Jugadoras" (mismo dibujo en los dos sitios).
+export function paintPlayerToken(ctx: CanvasRenderingContext2D, size: number, color: string) {
+  const rx = size * 0.36;
+  const ry = size * 0.5;
+  const bodyCy = size * 0.04;
+
+  ctx.save();
+
+  // Manos (tono piel), a los lados del cuerpo
+  const handRx = size * 0.11;
+  const handRy = size * 0.15;
+  ctx.fillStyle = '#e3ad82';
+  ctx.beginPath();
+  ctx.ellipse(-rx - handRx * 0.35, bodyCy, handRx, handRy, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(rx + handRx * 0.35, bodyCy, handRx, handRy, 0.35, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cuerpo — óvalo del color elegido
+  ctx.beginPath();
+  ctx.ellipse(0, bodyCy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = Math.max(1, size * 0.02);
+  ctx.stroke();
+
+  // Cabeza — óvalo negro solapado en la parte de arriba del cuerpo
+  const headR = size * 0.27;
+  const headCy = bodyCy - ry * 0.55;
+  ctx.beginPath();
+  ctx.ellipse(0, headCy, headR * 0.9, headR, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#161616';
+  ctx.fill();
+  // Brillo sutil para dar volumen
+  ctx.beginPath();
+  ctx.ellipse(-headR * 0.28, headCy - headR * 0.3, headR * 0.34, headR * 0.48, -0.4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  ctx.fill();
+
+  ctx.restore();
+}
 
 function drawPlayer(vctx: ViewCtx, p: BoardPlayer) {
   const { ctx } = vctx;
   const pos = fc(vctx, p.x, p.y);
   const s = scale(vctx);
   const r = p.radius * s;
+  const size = r * 2;
   const legacy = vctx.teamColors[p.team];
   const fill = p.color ?? legacy.fill;
-  const stroke = p.color ? shade(p.color, -35) : legacy.stroke;
-  const text = p.color ? contrastText(p.color) : legacy.text;
   const selected = vctx.selectedId === p.id;
 
   // Shadow
@@ -74,34 +100,15 @@ function drawPlayer(vctx: ViewCtx, p: BoardPlayer) {
   ctx.shadowColor = 'rgba(0,0,0,0.4)';
   ctx.shadowBlur = 4;
   ctx.shadowOffsetY = 2;
-
-  // Circle fill
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = selected ? 3 : 1.5;
-  ctx.stroke();
+  ctx.translate(pos.x, pos.y);
+  paintPlayerToken(ctx, size, fill);
   ctx.restore();
-
-  // Portera: pequeños guantes (dos puntos) a los lados del número
-  if (p.role === 'portero') {
-    ctx.save();
-    ctx.fillStyle = text;
-    ctx.globalAlpha = 0.55;
-    ctx.beginPath();
-    ctx.arc(pos.x - r * 0.72, pos.y, r * 0.16, 0, Math.PI * 2);
-    ctx.arc(pos.x + r * 0.72, pos.y, r * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
 
   // Selection ring
   if (selected) {
     ctx.save();
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r + 4, 0, Math.PI * 2);
+    ctx.ellipse(pos.x, pos.y, r * 0.55 + 4, r * 0.75 + 4, 0, 0, Math.PI * 2);
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 3]);
@@ -109,12 +116,16 @@ function drawPlayer(vctx: ViewCtx, p: BoardPlayer) {
     ctx.restore();
   }
 
-  // Number
-  ctx.fillStyle = text;
-  ctx.font = `bold ${Math.max(10, r * 1.1)}px Arial`;
+  // Número — insignia pequeña en la parte baja del cuerpo
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${Math.max(9, r * 0.55)}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(String(p.number), pos.x, pos.y + 1);
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 2;
+  ctx.fillText(String(p.number), pos.x, pos.y + r * 0.3);
+  ctx.restore();
 
   // Label below
   if (p.label) {
@@ -619,6 +630,22 @@ export function renderEquipmentIcon(
   ctx.save();
   ctx.translate(px / 2, px / 2);
   paintEquipmentShape(ctx, equipmentType, px * 0.78, color);
+  ctx.restore();
+}
+
+// Icono en miniatura de un "muñeco" de jugadora — para el selector de la
+// pestaña "Jugadoras" y el re-color en el panel de Propiedades.
+export function renderPlayerIcon(canvas: HTMLCanvasElement, color: string, px: number) {
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  canvas.width = px * dpr;
+  canvas.height = px * dpr;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, px, px);
+  ctx.save();
+  ctx.translate(px / 2, px / 2);
+  paintPlayerToken(ctx, px * 0.92, color);
   ctx.restore();
 }
 

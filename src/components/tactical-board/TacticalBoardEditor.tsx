@@ -22,7 +22,7 @@ import type {
   TeamColors,
 } from "./types";
 import { drawField, getFieldViewport, canvasToField, fieldToCanvas, getScale } from "./field-renderer";
-import { drawObjects, hitTest, renderEquipmentIcon, DEFAULT_EQUIPMENT_COLOR } from "./object-renderer";
+import { drawObjects, hitTest, renderEquipmentIcon, renderPlayerIcon, DEFAULT_EQUIPMENT_COLOR } from "./object-renderer";
 import type { ViewCtx } from "./object-renderer";
 
 // ── Defaults ──
@@ -215,6 +215,42 @@ function MaterialSwatchButton({
       }}
     >
       <canvas ref={canvasRef} style={{ width: 28, height: 28 }} />
+    </button>
+  );
+}
+
+// Icono en miniatura del "muñeco" de jugadora — mismo dibujo que el que se
+// coloca en el campo, para el selector de "Jugadoras" y el re-color.
+function PlayerSwatchButton({
+  color,
+  active,
+  onClick,
+  label,
+  size = 44,
+}: {
+  color: string;
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  size?: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (canvasRef.current) renderPlayerIcon(canvasRef.current, color, size);
+  }, [color, size]);
+
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      className="flex items-center justify-center rounded-lg aspect-square transition-colors"
+      style={{
+        background: "var(--surface-hover)",
+        border: active ? "2px solid var(--accent-blue)" : "1px solid var(--border)",
+      }}
+    >
+      <canvas ref={canvasRef} style={{ width: size, height: size }} />
     </button>
   );
 }
@@ -795,23 +831,19 @@ export default function TacticalBoardEditor({
                       <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--muted)" }}>
                         {group.label}
                       </p>
-                      <div className="grid grid-cols-5 gap-1.5">
+                      <div className="grid grid-cols-4 gap-1.5">
                         {group.colors.map((hex) => {
                           const active = tool === "player" && activePlayerColor === hex && activePlayerRole === group.role;
                           return (
-                            <button
+                            <PlayerSwatchButton
                               key={hex}
+                              color={hex}
+                              label={group.label}
+                              active={active}
                               onClick={() => {
                                 setActivePlayerColor(hex);
                                 setActivePlayerRole(group.role);
                                 setTool("player");
-                              }}
-                              title={group.label}
-                              className="rounded-full aspect-square transition-all"
-                              style={{
-                                background: hex,
-                                border: active ? "2px solid var(--accent-blue)" : "1px solid var(--border)",
-                                boxShadow: active ? "0 0 0 1px var(--accent-blue)" : "none",
                               }}
                             />
                           );
@@ -978,19 +1010,15 @@ export default function TacticalBoardEditor({
                 <label className="text-xs" style={{ color: "var(--muted)" }}>
                   Color
                 </label>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-5 gap-1">
                   {ALL_PLAYER_COLORS.map(({ hex, role }) => (
-                    <button
+                    <PlayerSwatchButton
                       key={hex}
+                      color={hex}
+                      label={hex}
+                      size={26}
+                      active={(selectedObj as BoardPlayer).color === hex}
                       onClick={() => updateObj(selectedObj.id, { color: hex, role })}
-                      className="rounded-full aspect-square"
-                      style={{
-                        background: hex,
-                        border:
-                          (selectedObj as BoardPlayer).color === hex
-                            ? "2px solid var(--accent-blue)"
-                            : "1px solid var(--border)",
-                      }}
                     />
                   ))}
                 </div>
