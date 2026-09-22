@@ -49,15 +49,17 @@ export function paintPlayerToken(ctx: CanvasRenderingContext2D, size: number, co
 
   ctx.save();
 
-  // Manos (tono piel), a los lados del cuerpo
-  const handRx = size * 0.11;
-  const handRy = size * 0.15;
+  // Manos (tono piel), a los lados del cuerpo — bien separadas para que no
+  // queden a medio tapar por el óvalo del cuerpo (se dibuja después).
+  const handRx = size * 0.1;
+  const handRy = size * 0.14;
+  const handOffset = rx + handRx * 1.2;
   ctx.fillStyle = '#e3ad82';
   ctx.beginPath();
-  ctx.ellipse(-rx - handRx * 0.35, bodyCy, handRx, handRy, -0.35, 0, Math.PI * 2);
+  ctx.ellipse(-handOffset, bodyCy, handRx, handRy, -0.3, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(rx + handRx * 0.35, bodyCy, handRx, handRy, 0.35, 0, Math.PI * 2);
+  ctx.ellipse(handOffset, bodyCy, handRx, handRy, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
   // Cuerpo — óvalo del color elegido
@@ -116,15 +118,23 @@ function drawPlayer(vctx: ViewCtx, p: BoardPlayer) {
     ctx.restore();
   }
 
-  // Número — insignia pequeña en la parte baja del cuerpo
+  // Número — insignia pequeña en la esquina, no tapa el muñeco entero
+  const badgeR = Math.max(3.5, r * 0.28);
+  const badgeX = pos.x + r * 0.6;
+  const badgeY = pos.y + r * 0.75;
   ctx.save();
+  ctx.beginPath();
+  ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${Math.max(9, r * 0.55)}px Arial`;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 0.75;
+  ctx.stroke();
+  ctx.fillStyle = '#111827';
+  ctx.font = `bold ${Math.max(5, badgeR * 1.15)}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(0,0,0,0.6)';
-  ctx.shadowBlur = 2;
-  ctx.fillText(String(p.number), pos.x, pos.y + r * 0.3);
+  ctx.fillText(String(p.number), badgeX, badgeY + 0.5);
   ctx.restore();
 
   // Label below
