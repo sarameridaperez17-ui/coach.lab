@@ -15,14 +15,15 @@ import type {
   BoardZone,
   BoardText,
   ToolMode,
-  TeamId,
   EquipmentType,
+  PlayerRole,
   FieldPerspective,
   Point,
   TeamColors,
 } from "./types";
 import { drawField, getFieldViewport, canvasToField, fieldToCanvas, getScale } from "./field-renderer";
-import { drawObjects, hitTest } from "./object-renderer";
+import { drawObjects, hitTest, renderEquipmentIcon, DEFAULT_EQUIPMENT_COLOR } from "./object-renderer";
+import type { ViewCtx } from "./object-renderer";
 
 // ── Defaults ──
 
@@ -73,22 +74,102 @@ const TOOL_LABELS: Record<ToolMode, string> = {
   text: "Texto",
 };
 
-const EQUIPMENT_ITEMS: { type: EquipmentType; label: string; icon: string }[] = [
-  { type: "cone", label: "Cono", icon: "▲" },
-  { type: "hurdle", label: "Valla", icon: "╫" },
-  { type: "pole", label: "Pica", icon: "│" },
-  { type: "ball", label: "Balón", icon: "⚽" },
-  { type: "mini-goal", label: "Mini portería", icon: "⊡" },
-  { type: "mannequin", label: "Maniquí", icon: "♀" },
-  { type: "ladder", label: "Escalera", icon: "≡" },
+// ── Pestaña "Jugadores" ──
+// 7 colores de jugadora + 3 de portera + 2 neutrales + 1 de staff.
+const PLAYER_GROUPS: { role: PlayerRole; label: string; colors: string[] }[] = [
+  {
+    role: "jugador",
+    label: "Jugadoras",
+    colors: ["#3b82f6", "#ef4444", "#eab308", "#a855f7", "#f97316", "#22c55e", "#ec4899"],
+  },
+  { role: "portero", label: "Porteras", colors: ["#18181b", "#52525b", "#a1a1aa"] },
+  { role: "neutral", label: "Neutral", colors: ["#2563eb", "#84cc16"] },
+  { role: "staff", label: "Staff", colors: ["#f4f4f5"] },
+];
+const ALL_PLAYER_COLORS: { hex: string; role: PlayerRole }[] = PLAYER_GROUPS.flatMap((g) =>
+  g.colors.map((hex) => ({ hex, role: g.role }))
+);
+
+// ── Pestaña "Material" ──
+const MATERIAL_COLORS: { id: string; hex: string }[] = [
+  { id: "amarillo", hex: "#eab308" },
+  { id: "azul", hex: "#3b82f6" },
+  { id: "naranja", hex: "#f97316" },
+  { id: "rojo", hex: "#ef4444" },
 ];
 
+interface MaterialCatalogItem {
+  type: EquipmentType;
+  category: string;
+  label: string;
+  colorable: boolean;
+}
+
+const MATERIAL_CATEGORIES = [
+  "Conos",
+  "Aros",
+  "Maniquíes",
+  "Rebotadores",
+  "Otro material",
+  "Vallas",
+  "Picas",
+  "Marcas",
+  "Pelotas",
+  "Porterías",
+];
+
+const MATERIAL_CATALOG: MaterialCatalogItem[] = [
+  { type: "cono-anillo", category: "Conos", label: "Cono anillo", colorable: true },
+  { type: "cono-disco", category: "Conos", label: "Cono disco", colorable: true },
+  { type: "cono-piramide", category: "Conos", label: "Cono", colorable: true },
+  { type: "aro-circulo", category: "Aros", label: "Aro", colorable: true },
+  { type: "aro-hexagono", category: "Aros", label: "Aro hexagonal", colorable: true },
+  { type: "maniqui-valla", category: "Maniquíes", label: "Muro de maniquíes", colorable: false },
+  { type: "maniqui-poste", category: "Maniquíes", label: "Poste", colorable: false },
+  { type: "maniqui-figura", category: "Maniquíes", label: "Maniquí", colorable: false },
+  { type: "rebotador-portico", category: "Rebotadores", label: "Rebotador pórtico", colorable: false },
+  { type: "rebotador-red", category: "Rebotadores", label: "Rebotador red", colorable: false },
+  { type: "rebotador-cuadros", category: "Rebotadores", label: "Rebotador cuadros", colorable: false },
+  { type: "disco-diana", category: "Otro material", label: "Diana", colorable: false },
+  { type: "step", category: "Otro material", label: "Step", colorable: false },
+  { type: "escalera-recta", category: "Otro material", label: "Escalera", colorable: false },
+  { type: "escalera-cruz", category: "Otro material", label: "Escalera (cruz)", colorable: false },
+  { type: "valla-agilidad", category: "Vallas", label: "Valla de agilidad", colorable: true },
+  { type: "pica-recta", category: "Picas", label: "Pica", colorable: true },
+  { type: "pica-bola", category: "Picas", label: "Pica con bola", colorable: true },
+  { type: "pica-angular", category: "Picas", label: "Pica angular", colorable: true },
+  { type: "marca-x", category: "Marcas", label: "Marca", colorable: true },
+  { type: "balon-futbol", category: "Pelotas", label: "Balón de fútbol", colorable: false },
+  { type: "balon-baloncesto", category: "Pelotas", label: "Balón de baloncesto", colorable: false },
+  { type: "balon-americano", category: "Pelotas", label: "Balón de fútbol americano", colorable: false },
+  { type: "balon-voleibol", category: "Pelotas", label: "Balón de voleibol", colorable: false },
+  { type: "balon-beisbol", category: "Pelotas", label: "Balón de béisbol", colorable: false },
+  { type: "balon-tenis", category: "Pelotas", label: "Balón de tenis", colorable: false },
+  { type: "porteria-f11", category: "Porterías", label: "Portería F11", colorable: false },
+  { type: "porteria-f7", category: "Porterías", label: "Portería F7", colorable: false },
+  { type: "porteria-mini", category: "Porterías", label: "Mini portería", colorable: false },
+  { type: "porteria-aim", category: "Porterías", label: "Portería de diana", colorable: false },
+];
+
+function materialLabel(type: EquipmentType): string {
+  return MATERIAL_CATALOG.find((m) => m.type === type)?.label ?? type;
+}
+
+// ── Pestaña "Campos" ──
 const PERSPECTIVE_LABELS: Record<FieldPerspective, string> = {
   full: "Campo completo",
   half: "Medio campo",
-  third: "Tercio",
-  area: "Área",
-  reduced: "Reducido",
+  third: "Tercio de campo",
+  area: "Área / portería",
+  reduced: "Campo reducido",
+};
+
+const PERSPECTIVE_ICONS: Record<FieldPerspective, string> = {
+  full: "▭",
+  half: "▤",
+  third: "▥",
+  area: "⊓",
+  reduced: "▢",
 };
 
 const DRAW_COLORS = [
@@ -101,6 +182,42 @@ const DRAW_COLORS = [
   "#f43f5e",
   "#06b6d4",
 ];
+
+// Icono en miniatura de una pieza de material — dibuja con el mismo motor
+// que el tablero, así lo que ves en el selector es igual a lo que se coloca.
+function MaterialSwatchButton({
+  type,
+  color,
+  active,
+  onClick,
+  label,
+}: {
+  type: EquipmentType;
+  color: string;
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (canvasRef.current) renderEquipmentIcon(canvasRef.current, type, color, 28);
+  }, [type, color]);
+
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      className="flex items-center justify-center rounded-lg aspect-square transition-colors"
+      style={{
+        background: "var(--surface-hover)",
+        border: active ? "2px solid var(--accent-blue)" : "1px solid var(--border)",
+      }}
+    >
+      <canvas ref={canvasRef} style={{ width: 28, height: 28 }} />
+    </button>
+  );
+}
 
 // ── Component ──
 
@@ -124,12 +241,16 @@ export default function TacticalBoardEditor({
   // Tool state
   const [tool, setTool] = useState<ToolMode>("select");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeTeam, setActiveTeam] = useState<TeamId>("A");
-  const [activeEquipment, setActiveEquipment] = useState<EquipmentType>("cone");
   const [drawColor, setDrawColor] = useState("#ffffff");
   const [drawWidth, setDrawWidth] = useState(2.5);
-  const [showEquipmentPanel, setShowEquipmentPanel] = useState(false);
-  const [nextPlayerNumber, setNextPlayerNumber] = useState<Record<TeamId, number>>({ A: 1, B: 1, neutral: 1 });
+  const [nextNumber, setNextNumber] = useState(1);
+
+  // Panel lateral: Jugadores / Material / Campos
+  const [sidebarTab, setSidebarTab] = useState<"jugadores" | "material" | "campos">("jugadores");
+  const [activePlayerColor, setActivePlayerColor] = useState(PLAYER_GROUPS[0].colors[0]);
+  const [activePlayerRole, setActivePlayerRole] = useState<PlayerRole>("jugador");
+  const [activeEquipment, setActiveEquipment] = useState<EquipmentType>("cono-anillo");
+  const [activeMaterialColor, setActiveMaterialColor] = useState(MATERIAL_COLORS[0].hex);
 
   // Canvas interaction state
   const [zoom, setZoom] = useState(1);
@@ -195,7 +316,7 @@ export default function TacticalBoardEditor({
     };
 
     // Draw in-progress drawing
-    let allObjects = [...objects];
+    const allObjects = [...objects];
     if (drawing && drawing.length >= 1 && (tool === "zone" || tool === "line" || tool === "arrow" || tool === "dashed-line" || tool === "dashed-arrow" || tool === "curve")) {
       if (tool === "zone" && drawing.length >= 3) {
         allObjects.push({
@@ -258,7 +379,7 @@ export default function TacticalBoardEditor({
     const fieldPos = canvasToField(pos.x, pos.y, canvasW, canvasH, viewport, zoom, panX, panY);
 
     if (tool === "select") {
-      const vctx = { canvasW, canvasH, viewport, zoom, panX, panY, teamColors } as any;
+      const vctx: Omit<ViewCtx, "ctx" | "selectedId"> = { canvasW, canvasH, viewport, zoom, panX, panY, teamColors };
       const hit = hitTest(vctx, objects, pos.x, pos.y);
       if (hit) {
         setSelectedId(hit.id);
@@ -273,21 +394,23 @@ export default function TacticalBoardEditor({
         setSelectedId(null);
       }
     } else if (tool === "player") {
-      const number = nextPlayerNumber[activeTeam];
       const player: BoardPlayer = {
         kind: "player",
         id: genId(),
         x: fieldPos.x,
         y: fieldPos.y,
-        number,
+        number: nextNumber,
         label: "",
-        team: activeTeam,
+        team: activePlayerRole === "neutral" ? "neutral" : "A",
         radius: 1.4,
+        color: activePlayerColor,
+        role: activePlayerRole,
       };
       setObjects((prev) => [...prev, player]);
-      setNextPlayerNumber((prev) => ({ ...prev, [activeTeam]: prev[activeTeam] + 1 }));
+      setNextNumber((n) => n + 1);
       setSelectedId(player.id);
     } else if (tool === "equipment") {
+      const colorable = MATERIAL_CATALOG.find((m) => m.type === activeEquipment)?.colorable;
       const eq: BoardEquipment = {
         kind: "equipment",
         id: genId(),
@@ -296,6 +419,7 @@ export default function TacticalBoardEditor({
         equipmentType: activeEquipment,
         rotation: 0,
         scale: 1.2,
+        color: colorable ? activeMaterialColor : undefined,
       };
       setObjects((prev) => [...prev, eq]);
       setSelectedId(eq.id);
@@ -516,55 +640,34 @@ export default function TacticalBoardEditor({
       {/* ── Toolbar ── */}
       {!readOnly && (
         <div className="flex items-center gap-1 p-2 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          {/* Tool buttons */}
+          {/* Tool buttons — jugadoras y material se eligen en el panel lateral */}
           <div className="flex items-center gap-0.5">
-            {(Object.keys(TOOL_ICONS) as ToolMode[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => {
-                  setTool(t);
-                  if (t === "equipment") setShowEquipmentPanel(!showEquipmentPanel);
-                  else setShowEquipmentPanel(false);
-                  if (drawing) finalizeDrawing();
-                }}
-                title={TOOL_LABELS[t]}
-                className="relative flex items-center justify-center rounded transition-colors"
-                style={{
-                  width: 34,
-                  height: 34,
-                  background: tool === t ? "var(--accent-blue)" : "transparent",
-                  color: tool === t ? "#fff" : "var(--muted)",
-                  fontSize: t === "text" ? 15 : 16,
-                  fontWeight: t === "text" ? 700 : 400,
-                }}
-              >
-                {TOOL_ICONS[t]}
-              </button>
-            ))}
+            {(Object.keys(TOOL_ICONS) as ToolMode[])
+              .filter((t) => t !== "player" && t !== "equipment")
+              .map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setTool(t);
+                    if (drawing) finalizeDrawing();
+                  }}
+                  title={TOOL_LABELS[t]}
+                  className="relative flex items-center justify-center rounded transition-colors"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    background: tool === t ? "var(--accent-blue)" : "transparent",
+                    color: tool === t ? "#fff" : "var(--muted)",
+                    fontSize: t === "text" ? 15 : 16,
+                    fontWeight: t === "text" ? 700 : 400,
+                  }}
+                >
+                  {TOOL_ICONS[t]}
+                </button>
+              ))}
           </div>
 
           <div className="w-px h-6 mx-1" style={{ background: "var(--border)" }} />
-
-          {/* Team selector (when player tool) */}
-          {tool === "player" && (
-            <div className="flex items-center gap-1 mr-2">
-              {(["A", "B", "neutral"] as TeamId[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTeam(t)}
-                  className="rounded-full transition-all"
-                  style={{
-                    width: 24,
-                    height: 24,
-                    background: teamColors[t].fill,
-                    border: activeTeam === t ? "2px solid #fff" : "2px solid transparent",
-                    boxShadow: activeTeam === t ? "0 0 0 2px var(--accent-blue)" : "none",
-                  }}
-                  title={t === "A" ? "Equipo A" : t === "B" ? "Equipo B" : "Neutral"}
-                />
-              ))}
-            </div>
-          )}
 
           {/* Draw color */}
           {(tool === "line" || tool === "arrow" || tool === "curve" || tool === "dashed-line" || tool === "dashed-arrow" || tool === "zone" || tool === "text") && (
@@ -586,29 +689,6 @@ export default function TacticalBoardEditor({
           )}
 
           <div className="flex-1" />
-
-          {/* Perspective selector */}
-          <select
-            value={perspective}
-            onChange={(e) => {
-              setPerspective(e.target.value as FieldPerspective);
-              setZoom(1);
-              setPanX(0);
-              setPanY(0);
-            }}
-            className="text-xs rounded px-2 py-1"
-            style={{
-              background: "var(--surface-hover)",
-              color: "var(--foreground)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            {(Object.keys(PERSPECTIVE_LABELS) as FieldPerspective[]).map((p) => (
-              <option key={p} value={p}>
-                {PERSPECTIVE_LABELS[p]}
-              </option>
-            ))}
-          </select>
 
           {/* Zoom controls */}
           <div className="flex items-center gap-1 ml-2">
@@ -678,38 +758,145 @@ export default function TacticalBoardEditor({
         </div>
       )}
 
-      {/* ── Equipment dropdown ── */}
-      {showEquipmentPanel && !readOnly && (
-        <div
-          className="flex items-center gap-1 p-2 rounded-lg"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
-        >
-          <span className="text-xs mr-2" style={{ color: "var(--muted)" }}>
-            Equipamiento:
-          </span>
-          {EQUIPMENT_ITEMS.map((eq) => (
-            <button
-              key={eq.type}
-              onClick={() => {
-                setActiveEquipment(eq.type);
-                setTool("equipment");
-              }}
-              className="flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors"
-              style={{
-                background: activeEquipment === eq.type && tool === "equipment" ? "var(--accent-blue)" : "var(--surface-hover)",
-                color: activeEquipment === eq.type && tool === "equipment" ? "#fff" : "var(--foreground)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <span>{eq.icon}</span>
-              <span>{eq.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Canvas + Properties panel ── */}
+      {/* ── Panel lateral (Jugadores / Material / Campos) + Canvas + Propiedades ── */}
       <div className="flex gap-2">
+        {/* Panel lateral */}
+        {!readOnly && (
+          <div
+            className="flex flex-col rounded-lg overflow-hidden"
+            style={{ width: 216, flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)", maxHeight: canvasH }}
+          >
+            <div className="flex" style={{ borderBottom: "1px solid var(--border)" }}>
+              {([
+                { key: "jugadores", label: "Jugadoras" },
+                { key: "material", label: "Material" },
+                { key: "campos", label: "Campos" },
+              ] as const).map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setSidebarTab(t.key)}
+                  className="flex-1 text-[11px] font-medium py-2 transition-colors"
+                  style={{
+                    background: sidebarTab === t.key ? "var(--surface-hover)" : "transparent",
+                    color: sidebarTab === t.key ? "var(--foreground)" : "var(--muted)",
+                    borderBottom: sidebarTab === t.key ? "2px solid var(--accent-blue)" : "2px solid transparent",
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2">
+              {sidebarTab === "jugadores" && (
+                <div className="space-y-3">
+                  {PLAYER_GROUPS.map((group) => (
+                    <div key={group.role}>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--muted)" }}>
+                        {group.label}
+                      </p>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {group.colors.map((hex) => {
+                          const active = tool === "player" && activePlayerColor === hex && activePlayerRole === group.role;
+                          return (
+                            <button
+                              key={hex}
+                              onClick={() => {
+                                setActivePlayerColor(hex);
+                                setActivePlayerRole(group.role);
+                                setTool("player");
+                              }}
+                              title={group.label}
+                              className="rounded-full aspect-square transition-all"
+                              style={{
+                                background: hex,
+                                border: active ? "2px solid var(--accent-blue)" : "1px solid var(--border)",
+                                boxShadow: active ? "0 0 0 1px var(--accent-blue)" : "none",
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {sidebarTab === "material" && (
+                <div className="space-y-3">
+                  {MATERIAL_CATEGORIES.map((cat) => {
+                    const items = MATERIAL_CATALOG.filter((m) => m.category === cat);
+                    return (
+                      <div key={cat}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--muted)" }}>
+                          {cat}
+                        </p>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {items.flatMap((item) =>
+                            item.colorable
+                              ? MATERIAL_COLORS.map((c) => (
+                                  <MaterialSwatchButton
+                                    key={item.type + c.hex}
+                                    type={item.type}
+                                    color={c.hex}
+                                    label={item.label}
+                                    active={tool === "equipment" && activeEquipment === item.type && activeMaterialColor === c.hex}
+                                    onClick={() => {
+                                      setActiveEquipment(item.type);
+                                      setActiveMaterialColor(c.hex);
+                                      setTool("equipment");
+                                    }}
+                                  />
+                                ))
+                              : [
+                                  <MaterialSwatchButton
+                                    key={item.type}
+                                    type={item.type}
+                                    color={DEFAULT_EQUIPMENT_COLOR[item.type] || "#9ca3af"}
+                                    label={item.label}
+                                    active={tool === "equipment" && activeEquipment === item.type}
+                                    onClick={() => {
+                                      setActiveEquipment(item.type);
+                                      setTool("equipment");
+                                    }}
+                                  />,
+                                ]
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {sidebarTab === "campos" && (
+                <div className="space-y-1.5">
+                  {(Object.keys(PERSPECTIVE_LABELS) as FieldPerspective[]).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => {
+                        setPerspective(p);
+                        setZoom(1);
+                        setPanX(0);
+                        setPanY(0);
+                      }}
+                      className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-left transition-colors"
+                      style={{
+                        background: perspective === p ? "var(--accent-blue)" : "var(--surface-hover)",
+                        color: perspective === p ? "#fff" : "var(--foreground)",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <span className="text-sm">{PERSPECTIVE_ICONS[p]}</span>
+                      {PERSPECTIVE_LABELS[p]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Canvas */}
         <div
           ref={containerRef}
@@ -787,22 +974,20 @@ export default function TacticalBoardEditor({
                   }}
                 />
                 <label className="text-xs" style={{ color: "var(--muted)" }}>
-                  Equipo
+                  Color
                 </label>
-                <div className="flex gap-1">
-                  {(["A", "B", "neutral"] as TeamId[]).map((t) => (
+                <div className="grid grid-cols-7 gap-1">
+                  {ALL_PLAYER_COLORS.map(({ hex, role }) => (
                     <button
-                      key={t}
-                      onClick={() => updateObj(selectedObj.id, { team: t })}
-                      className="rounded-full"
+                      key={hex}
+                      onClick={() => updateObj(selectedObj.id, { color: hex, role })}
+                      className="rounded-full aspect-square"
                       style={{
-                        width: 22,
-                        height: 22,
-                        background: teamColors[t].fill,
+                        background: hex,
                         border:
-                          (selectedObj as BoardPlayer).team === t
-                            ? "2px solid #fff"
-                            : "2px solid transparent",
+                          (selectedObj as BoardPlayer).color === hex
+                            ? "2px solid var(--accent-blue)"
+                            : "1px solid var(--border)",
                       }}
                     />
                   ))}
@@ -817,8 +1002,33 @@ export default function TacticalBoardEditor({
                   Tipo
                 </label>
                 <span className="text-sm" style={{ color: "var(--foreground)" }}>
-                  {EQUIPMENT_ITEMS.find((e) => e.type === (selectedObj as BoardEquipment).equipmentType)?.label}
+                  {materialLabel((selectedObj as BoardEquipment).equipmentType)}
                 </span>
+                {MATERIAL_CATALOG.find((m) => m.type === (selectedObj as BoardEquipment).equipmentType)?.colorable && (
+                  <>
+                    <label className="text-xs" style={{ color: "var(--muted)" }}>
+                      Color
+                    </label>
+                    <div className="flex gap-1">
+                      {MATERIAL_COLORS.map((c) => (
+                        <button
+                          key={c.hex}
+                          onClick={() => updateObj(selectedObj.id, { color: c.hex })}
+                          className="rounded-full"
+                          style={{
+                            width: 20,
+                            height: 20,
+                            background: c.hex,
+                            border:
+                              (selectedObj as BoardEquipment).color === c.hex
+                                ? "2px solid var(--accent-blue)"
+                                : "1px solid var(--border)",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
                 <label className="text-xs" style={{ color: "var(--muted)" }}>
                   Rotación (°)
                 </label>
@@ -989,8 +1199,8 @@ export default function TacticalBoardEditor({
         >
           <span>
             {TOOL_LABELS[tool]}
-            {tool === "player" && ` · Equipo ${activeTeam} · #${nextPlayerNumber[activeTeam]}`}
-            {tool === "equipment" && ` · ${EQUIPMENT_ITEMS.find((e) => e.type === activeEquipment)?.label}`}
+            {tool === "player" && ` · #${nextNumber}`}
+            {tool === "equipment" && ` · ${materialLabel(activeEquipment)}`}
           </span>
           <span>
             {objects.length} elemento{objects.length !== 1 ? "s" : ""} ·{" "}
