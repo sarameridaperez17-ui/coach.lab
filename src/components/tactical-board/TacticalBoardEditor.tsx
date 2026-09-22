@@ -636,7 +636,7 @@ export default function TacticalBoardEditor({
   // ── Render ──
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 min-w-0">
       {/* ── Toolbar ── */}
       {!readOnly && (
         <div className="flex items-center gap-1 p-2 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -759,7 +759,7 @@ export default function TacticalBoardEditor({
       )}
 
       {/* ── Panel lateral (Jugadores / Material / Campos) + Canvas + Propiedades ── */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 min-w-0">
         {/* Panel lateral */}
         {!readOnly && (
           <div
@@ -897,10 +897,12 @@ export default function TacticalBoardEditor({
           </div>
         )}
 
-        {/* Canvas */}
+        {/* Canvas — min-w-0 para que el flex realmente pueda encogerlo por
+            debajo del ancho fijo del <canvas>; si no, empuja la página
+            entera a desbordar y aparece scroll horizontal en todo el sitio */}
         <div
           ref={containerRef}
-          className="flex-1 rounded-lg overflow-hidden"
+          className="flex-1 min-w-0 rounded-lg overflow-hidden"
           style={{ border: "1px solid var(--border)", background: "var(--background)" }}
         >
           <canvas
