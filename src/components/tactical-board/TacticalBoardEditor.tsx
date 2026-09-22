@@ -764,7 +764,7 @@ export default function TacticalBoardEditor({
         {!readOnly && (
           <div
             className="flex flex-col rounded-lg overflow-hidden"
-            style={{ width: 216, flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)", maxHeight: canvasH }}
+            style={{ width: 168, flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)", maxHeight: canvasH }}
           >
             <div className="flex" style={{ borderBottom: "1px solid var(--border)" }}>
               {([
@@ -933,7 +933,7 @@ export default function TacticalBoardEditor({
           <div
             className="rounded-lg p-3 flex flex-col gap-2"
             style={{
-              width: 220,
+              width: 168,
               background: "var(--surface)",
               border: "1px solid var(--border)",
               flexShrink: 0,
