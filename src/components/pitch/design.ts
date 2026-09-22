@@ -38,9 +38,11 @@ export const PITCH_DESIGN = {
   // y con color de texto del tema para que se vean en modo día y noche.
   GOAL_VIS_DEPTH: 3.6,
   GOAL_LINE_WIDTH_M: 0.5,
-  NET_OPACITY: 0.55,
-  NET_VERTICALS: 8,
-  NET_HORIZONTALS: 9,
+  // Densidad de la red — con demasiadas líneas se funden entre sí y la
+  // portería se ve como un bloque negro sólido en vez de una red.
+  NET_OPACITY: 0.5,
+  NET_VERTICALS: 5,
+  NET_HORIZONTALS: 6,
 } as const;
 
 /** Media cuerda del semicírculo del área que sobresale del área grande. */
