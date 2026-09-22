@@ -119,9 +119,9 @@ function drawPlayer(vctx: ViewCtx, p: BoardPlayer) {
   }
 
   // Número — insignia pequeña en la esquina, no tapa el muñeco entero
-  const badgeR = Math.max(3.5, r * 0.28);
-  const badgeX = pos.x + r * 0.6;
-  const badgeY = pos.y + r * 0.75;
+  const badgeR = Math.max(2.5, r * 0.22);
+  const badgeX = pos.x + r * 0.68;
+  const badgeY = pos.y + r * 0.85;
   ctx.save();
   ctx.beginPath();
   ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);

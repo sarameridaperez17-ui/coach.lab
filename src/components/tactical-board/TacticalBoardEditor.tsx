@@ -438,7 +438,7 @@ export default function TacticalBoardEditor({
         number: nextNumber,
         label: "",
         team: activePlayerRole === "neutral" ? "neutral" : "A",
-        radius: 1.7,
+        radius: 2.5,
         color: activePlayerColor,
         role: activePlayerRole,
       };
