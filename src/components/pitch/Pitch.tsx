@@ -78,17 +78,18 @@ function Goal({ line, dir }: { line: number; dir: 1 | -1 }) {
 }
 
 function PitchBase() {
-  const stripeH = FIELD.H / STRIPE_COUNT;
+  // Rayas verticales — de banda a banda, no de portería a portería.
+  const stripeW = FIELD.W / STRIPE_COUNT;
   return (
     <g>
       {/* Césped con rayas de corte */}
       {Array.from({ length: STRIPE_COUNT }, (_, i) => (
         <rect
           key={i}
-          x={0}
-          y={i * stripeH}
-          width={FIELD.W}
-          height={stripeH}
+          x={i * stripeW}
+          y={0}
+          width={stripeW}
+          height={FIELD.H}
           fill={i % 2 === 0 ? STRIPE_LIGHT : STRIPE_DARK}
         />
       ))}

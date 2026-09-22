@@ -23,7 +23,11 @@ export const FIELD = {
 } as const;
 
 export const PITCH_DESIGN = {
-  STRIPE_COUNT: 9,
+  // Rayas de corte VERTICALES (de banda a banda, no de portería a
+  // portería) — 13 rayas a lo largo de los 105 m = 6,5 por cada mitad de
+  // campo, con lo que dentro de cada área grande (16,5 m de fondo) se ven
+  // 3 cortes de raya.
+  STRIPE_COUNT: 13,
   STRIPE_LIGHT: "#489e37",
   STRIPE_DARK: "#3a8c30",
   LINE: "#ffffff",
@@ -35,8 +39,8 @@ export const PITCH_DESIGN = {
   GOAL_VIS_DEPTH: 3.6,
   GOAL_LINE_WIDTH_M: 0.5,
   NET_OPACITY: 0.55,
-  NET_VERTICALS: 4,
-  NET_HORIZONTALS: 5,
+  NET_VERTICALS: 8,
+  NET_HORIZONTALS: 9,
 } as const;
 
 /** Media cuerda del semicírculo del área que sobresale del área grande. */

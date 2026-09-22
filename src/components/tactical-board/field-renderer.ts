@@ -127,19 +127,20 @@ export function drawField(
   // Fondo transparente — deja ver el fondo de la página (modo día/noche)
   ctx.clearRect(0, 0, canvasW, canvasH);
 
-  // Césped con rayas de corte (mismo diseño que el componente <Pitch>)
+  // Césped con rayas de corte VERTICALES — de banda a banda, no de
+  // portería a portería (mismo diseño que el componente <Pitch>)
   const topLeft = fc(0, 0);
   const botRight = fc(FIELD_W, FIELD_H);
   const fieldPxW = botRight.x - topLeft.x;
   const fieldPxH = botRight.y - topLeft.y;
-  const stripePxH = fieldPxH / PITCH_DESIGN.STRIPE_COUNT;
+  const stripePxW = fieldPxW / PITCH_DESIGN.STRIPE_COUNT;
   ctx.save();
   ctx.beginPath();
   ctx.rect(topLeft.x, topLeft.y, fieldPxW, fieldPxH);
   ctx.clip();
   for (let i = 0; i < PITCH_DESIGN.STRIPE_COUNT; i++) {
     ctx.fillStyle = i % 2 === 0 ? PITCH_DESIGN.STRIPE_LIGHT : PITCH_DESIGN.STRIPE_DARK;
-    ctx.fillRect(topLeft.x, topLeft.y + i * stripePxH, fieldPxW, stripePxH + 1);
+    ctx.fillRect(topLeft.x + i * stripePxW, topLeft.y, stripePxW + 1, fieldPxH);
   }
   ctx.restore();
   void fieldColor;
