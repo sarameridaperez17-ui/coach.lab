@@ -167,7 +167,7 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-background text-foreground flex flex-col border-r border-border print:hidden">
       {/* Logo */}
-      <div className="p-4 border-b border-border">
+      <div className="p-3 border-b border-border">
         <h1 className="text-xl font-bold tracking-tight">
           coach<span className="text-emerald-400">.lab</span>
         </h1>
@@ -175,7 +175,7 @@ export function Sidebar() {
       </div>
 
       {/* Home */}
-      <div className="px-4 pt-3 pb-1">
+      <div className="px-4 pt-2 pb-1">
         <Link
           href="/"
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -191,7 +191,7 @@ export function Sidebar() {
 
       {/* Navigation sections — sin scroll propio: el contenido está
           calculado para caber siempre entero en la altura de la pantalla */}
-      <nav className="flex-1 px-4 py-1.5 space-y-2.5 overflow-y-auto">
+      <nav className="flex-1 px-4 py-1 space-y-2 overflow-y-auto">
         {sections.map((section) => (
           <div key={section.title}>
             <p className="text-[10px] font-semibold text-muted uppercase tracking-wider px-3 mb-1">
