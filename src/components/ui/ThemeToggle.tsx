@@ -8,8 +8,9 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme") as Theme | null;
-    setTheme(stored === "light" ? "light" : "dark");
+    Promise.resolve(localStorage.getItem("theme") as Theme | null).then((stored) => {
+      setTheme(stored === "light" ? "light" : "dark");
+    });
   }, []);
 
   function toggle() {
@@ -22,7 +23,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-foreground-secondary hover:bg-surface hover:text-foreground transition-colors"
+      className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-foreground-secondary hover:bg-surface hover:text-foreground transition-colors truncate"
       title={theme === "dark" ? "Cambiar a modo día" : "Cambiar a modo noche"}
     >
       {theme === "dark" ? (

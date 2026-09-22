@@ -167,7 +167,7 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-background text-foreground flex flex-col border-r border-border print:hidden">
       {/* Logo */}
-      <div className="p-6 border-b border-border">
+      <div className="p-4 border-b border-border">
         <h1 className="text-xl font-bold tracking-tight">
           coach<span className="text-emerald-400">.lab</span>
         </h1>
@@ -175,10 +175,10 @@ export function Sidebar() {
       </div>
 
       {/* Home */}
-      <div className="px-4 pt-4 pb-1">
+      <div className="px-4 pt-3 pb-1">
         <Link
           href="/"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
             pathname === "/"
               ? "bg-emerald-600 text-white font-medium"
               : "text-foreground-secondary hover:bg-surface hover:text-foreground"
@@ -189,11 +189,12 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation sections */}
-      <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
+      {/* Navigation sections — sin scroll propio: el contenido está
+          calculado para caber siempre entero en la altura de la pantalla */}
+      <nav className="flex-1 px-4 py-1.5 space-y-2.5 overflow-y-auto">
         {sections.map((section) => (
           <div key={section.title}>
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-wider px-3 mb-1.5">
+            <p className="text-[10px] font-semibold text-muted uppercase tracking-wider px-3 mb-1">
               {section.title}
             </p>
             <div className="space-y-0.5">
@@ -207,7 +208,7 @@ export function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors ${
                       isActive
                         ? "bg-emerald-600/15 text-emerald-400 font-medium"
                         : "text-foreground-secondary hover:bg-surface hover:text-foreground"
@@ -223,17 +224,19 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-border space-y-1">
-        <button
-          onClick={() => setSettingsOpen(true)}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm w-full text-foreground-secondary hover:bg-surface hover:text-foreground transition-colors"
-        >
-          <span className="text-sm">⚙</span>
-          Configuración
-        </button>
-        <ThemeToggle />
-        <p className="text-xs text-muted px-3">coach.lab v1.0</p>
+      {/* Footer — modo noche y configuración en la misma fila, compacto */}
+      <div className="p-3 border-t border-border">
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            onClick={() => setSettingsOpen(true)}
+            title="Configuración"
+            className="flex-shrink-0 p-2 rounded-lg text-foreground-secondary hover:bg-surface hover:text-foreground transition-colors"
+          >
+            <span className="text-sm">⚙</span>
+          </button>
+        </div>
+        <p className="text-xs text-muted px-1 mt-1">coach.lab v1.0</p>
       </div>
 
       {settingsOpen && (
