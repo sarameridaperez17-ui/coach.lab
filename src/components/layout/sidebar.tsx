@@ -191,10 +191,10 @@ export function Sidebar() {
 
       {/* Navigation sections — sin scroll propio: el contenido está
           calculado para caber siempre entero en la altura de la pantalla */}
-      <nav className="flex-1 px-4 py-1 space-y-2 overflow-y-auto">
+      <nav className="flex-1 px-4 py-1 space-y-1.5 overflow-y-auto">
         {sections.map((section) => (
           <div key={section.title}>
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-wider px-3 mb-1">
+            <p className="text-[10px] font-semibold text-muted uppercase tracking-wider px-3 mb-0.5">
               {section.title}
             </p>
             <div className="space-y-0.5">
