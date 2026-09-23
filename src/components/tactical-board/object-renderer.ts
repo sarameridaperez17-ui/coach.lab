@@ -38,50 +38,33 @@ function scale(vctx: ViewCtx) {
 
 // ── Player ──
 
-// "Muñeco" visto desde arriba — cuerpo ovalado del color elegido, cabeza
-// negra arriba y manos (tono piel) a los lados. Centrado en (0,0); se usa
+// "Muñeco" — ficha con anillo: círculo del color de la jugadora con un
+// anillo exterior oscuro de contraste y un pequeño indicador de "cabeza"
+// arriba. Sin número (a petición de Sandra). Centrado en (0,0); se usa
 // tanto para colocar la jugadora en el campo como para el icono del
 // selector de la pestaña "Jugadoras" (mismo dibujo en los dos sitios).
 export function paintPlayerToken(ctx: CanvasRenderingContext2D, size: number, color: string) {
-  const rx = size * 0.36;
-  const ry = size * 0.5;
-  const bodyCy = size * 0.04;
+  const r = size * 0.46;
 
   ctx.save();
 
-  // Manos (tono piel), a los lados del cuerpo — bien separadas para que no
-  // queden a medio tapar por el óvalo del cuerpo (se dibuja después).
-  const handRx = size * 0.1;
-  const handRy = size * 0.14;
-  const handOffset = rx + handRx * 1.2;
-  ctx.fillStyle = '#e3ad82';
+  // Anillo exterior de contraste
   ctx.beginPath();
-  ctx.ellipse(-handOffset, bodyCy, handRx, handRy, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(handOffset, bodyCy, handRx, handRy, 0.3, 0, Math.PI * 2);
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#1f2430';
   ctx.fill();
 
-  // Cuerpo — óvalo del color elegido
+  // Disco interior del color elegido
   ctx.beginPath();
-  ctx.ellipse(0, bodyCy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-  ctx.lineWidth = Math.max(1, size * 0.02);
-  ctx.stroke();
 
-  // Cabeza — óvalo negro solapado en la parte de arriba del cuerpo
-  const headR = size * 0.27;
-  const headCy = bodyCy - ry * 0.55;
+  // Indicador de cabeza — puntito oscuro arriba
+  const headR = size * 0.11;
   ctx.beginPath();
-  ctx.ellipse(0, headCy, headR * 0.9, headR, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#161616';
-  ctx.fill();
-  // Brillo sutil para dar volumen
-  ctx.beginPath();
-  ctx.ellipse(-headR * 0.28, headCy - headR * 0.3, headR * 0.34, headR * 0.48, -0.4, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  ctx.arc(0, -r * 0.85, headR, 0, Math.PI * 2);
+  ctx.fillStyle = '#1f2430';
   ctx.fill();
 
   ctx.restore();
@@ -117,25 +100,6 @@ function drawPlayer(vctx: ViewCtx, p: BoardPlayer) {
     ctx.stroke();
     ctx.restore();
   }
-
-  // Número — insignia pequeña en la esquina, no tapa el muñeco entero
-  const badgeR = Math.max(2.5, r * 0.22);
-  const badgeX = pos.x + r * 0.68;
-  const badgeY = pos.y + r * 0.85;
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-  ctx.lineWidth = 0.75;
-  ctx.stroke();
-  ctx.fillStyle = '#111827';
-  ctx.font = `bold ${Math.max(5, badgeR * 1.15)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(String(p.number), badgeX, badgeY + 0.5);
-  ctx.restore();
 
   // Label below
   if (p.label) {
