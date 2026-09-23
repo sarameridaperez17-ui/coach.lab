@@ -841,9 +841,17 @@ export default function TacticalBoardEditor({
                               label={group.label}
                               active={active}
                               onClick={() => {
-                                setActivePlayerColor(hex);
-                                setActivePlayerRole(group.role);
-                                setTool("player");
+                                // Segundo clic sobre el mismo muñeco activo lo
+                                // desactiva y vuelve a la herramienta de
+                                // seleccionar/mover — igual que el resto de
+                                // herramientas del tablero.
+                                if (active) {
+                                  setTool("select");
+                                } else {
+                                  setActivePlayerColor(hex);
+                                  setActivePlayerRole(group.role);
+                                  setTool("player");
+                                }
                               }}
                             />
                           );
@@ -866,33 +874,48 @@ export default function TacticalBoardEditor({
                         <div className="grid grid-cols-4 gap-1.5">
                           {items.flatMap((item) =>
                             item.colorable
-                              ? MATERIAL_COLORS.map((c) => (
-                                  <MaterialSwatchButton
-                                    key={item.type + c.hex}
-                                    type={item.type}
-                                    color={c.hex}
-                                    label={item.label}
-                                    active={tool === "equipment" && activeEquipment === item.type && activeMaterialColor === c.hex}
-                                    onClick={() => {
-                                      setActiveEquipment(item.type);
-                                      setActiveMaterialColor(c.hex);
-                                      setTool("equipment");
-                                    }}
-                                  />
-                                ))
-                              : [
-                                  <MaterialSwatchButton
-                                    key={item.type}
-                                    type={item.type}
-                                    color={DEFAULT_EQUIPMENT_COLOR[item.type] || "#9ca3af"}
-                                    label={item.label}
-                                    active={tool === "equipment" && activeEquipment === item.type}
-                                    onClick={() => {
-                                      setActiveEquipment(item.type);
-                                      setTool("equipment");
-                                    }}
-                                  />,
-                                ]
+                              ? MATERIAL_COLORS.map((c) => {
+                                  const itemActive =
+                                    tool === "equipment" && activeEquipment === item.type && activeMaterialColor === c.hex;
+                                  return (
+                                    <MaterialSwatchButton
+                                      key={item.type + c.hex}
+                                      type={item.type}
+                                      color={c.hex}
+                                      label={item.label}
+                                      active={itemActive}
+                                      onClick={() => {
+                                        if (itemActive) {
+                                          setTool("select");
+                                        } else {
+                                          setActiveEquipment(item.type);
+                                          setActiveMaterialColor(c.hex);
+                                          setTool("equipment");
+                                        }
+                                      }}
+                                    />
+                                  );
+                                })
+                              : (() => {
+                                  const itemActive = tool === "equipment" && activeEquipment === item.type;
+                                  return [
+                                    <MaterialSwatchButton
+                                      key={item.type}
+                                      type={item.type}
+                                      color={DEFAULT_EQUIPMENT_COLOR[item.type] || "#9ca3af"}
+                                      label={item.label}
+                                      active={itemActive}
+                                      onClick={() => {
+                                        if (itemActive) {
+                                          setTool("select");
+                                        } else {
+                                          setActiveEquipment(item.type);
+                                          setTool("equipment");
+                                        }
+                                      }}
+                                    />,
+                                  ];
+                                })()
                           )}
                         </div>
                       </div>
